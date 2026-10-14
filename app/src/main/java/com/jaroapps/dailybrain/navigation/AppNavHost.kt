@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 
 @Composable
@@ -17,7 +18,15 @@ fun AppNavHost() {
         composable(Route.HOME) {
             HomeScreen(
                 onStartTraining = {
-                    // Подключим экран тренировки позже.
+                    navController.navigate(Route.ARITHMETIC)
+                },
+            )
+        }
+
+        composable(Route.ARITHMETIC) {
+            ArithmeticScreen(
+                onExit = {
+                    navController.popBackStack()
                 },
             )
         }

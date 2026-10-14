@@ -2,7 +2,6 @@ package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
 import androidx.lifecycle.ViewModel
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticOperation
-import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticProblem
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
@@ -11,12 +10,16 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
+import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.feature.history.domain.model.TrainingSession
+import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingSessionRepository
+import kotlinx.coroutines.launch
 
 class ArithmeticViewModel(
     private val generateProblem: GenerateArithmeticProblemUseCase,
     private val checkAnswer: CheckArithmeticAnswerUseCase,
-
-    ) : ViewModel() {
+    private val trainingSessionRepository: TrainingSessionRepository,
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArithmeticUiState())
     val uiState: StateFlow<ArithmeticUiState> = _uiState.asStateFlow()
@@ -24,14 +27,15 @@ class ArithmeticViewModel(
     private var startedAtMs: Long? = null
 
     fun startTraining(
-        operation: ArithmeticOperation = ArithmeticOperation.ADDITION,
-        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(),
+        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
         startedAtMs = System.currentTimeMillis()
 
+        val firstProblem = generateProblem.execute()
+
         _uiState.value = ArithmeticUiState(
-            operation = operation,
-            currentProblem = generateProblem.execute(operation),
+            operation = firstProblem.operation,
+            currentProblem = firstProblem,
             totalTaskCount = config.taskCount,
             isStarted = true,
         )
@@ -87,8 +91,11 @@ class ArithmeticViewModel(
                 completedCount = completedCount,
             )
         } else {
+            val nextProblem = generateProblem.execute()
+
             _uiState.value = state.copy(
-                currentProblem = generateProblem.execute(state.operation),
+                operation = nextProblem.operation,
+                currentProblem = nextProblem,
                 answerInput = "",
                 completedTaskCount = completedCount,
                 taskResults = results,
@@ -106,10 +113,10 @@ class ArithmeticViewModel(
         results: List<ArithmeticTaskResult>,
         completedCount: Int,
     ) {
-        val startedAt = startedAtMs ?: System.currentTimeMillis()
-        val duration = (System.currentTimeMillis() - startedAt)
-            .coerceAtLeast(0L)
+        val finishedAt = System.currentTimeMillis()
+        val startedAt = startedAtMs ?: finishedAt
 
+        val duration = (finishedAt - startedAt).coerceAtLeast(0L)
         val correctCount = results.count { it.isCorrect }
         val accuracy = correctCount * 100.0 / results.size
 
@@ -121,6 +128,20 @@ class ArithmeticViewModel(
             accuracyPercent = accuracy,
             answerInput = "",
         )
+
+        viewModelScope.launch {
+            trainingSessionRepository.save(
+                TrainingSession(
+                    exerciseType = "ARITHMETIC",
+                    startedAtEpochMs = startedAt,
+                    finishedAtEpochMs = finishedAt,
+                    durationMs = duration,
+                    accuracyPercent = accuracy,
+                    taskCount = completedCount,
+                    correctCount = correctCount,
+                )
+            )
+        }
 
         startedAtMs = null
     }

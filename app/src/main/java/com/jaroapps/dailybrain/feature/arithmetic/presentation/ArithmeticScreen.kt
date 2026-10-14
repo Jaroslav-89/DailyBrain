@@ -1,0 +1,264 @@
+package com.jaroapps.dailybrain.feature.arithmetic.presentation
+
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Button
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import org.koin.androidx.compose.koinViewModel
+
+@Composable
+fun ArithmeticScreen(
+    onExit: () -> Unit,
+    viewModel: ArithmeticViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(viewModel) {
+        if (!state.isStarted && !state.isCompleted) {
+            viewModel.startTraining()
+        }
+    }
+
+    BackHandler {
+        viewModel.cancelTraining()
+        onExit()
+    }
+
+    if (state.isCompleted) {
+        ResultContent(
+            state = state,
+            onFinish = {
+                viewModel.cancelTraining()
+                onExit()
+            },
+        )
+    } else {
+        TrainingContent(
+            state = state,
+            onExit = {
+                viewModel.cancelTraining()
+                onExit()
+            },
+            onDigitPressed = viewModel::onDigitPressed,
+            onDeletePressed = viewModel::onDeletePressed,
+            onSubmit = viewModel::submitAnswer,
+        )
+    }
+}
+
+@Composable
+private fun TrainingContent(
+    state: ArithmeticUiState,
+    onExit: () -> Unit,
+    onDigitPressed: (Int) -> Unit,
+    onDeletePressed: () -> Unit,
+    onSubmit: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(onClick = onExit) {
+                Text("Закрыть")
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = "${state.completedTaskCount + 1} / ${state.totalTaskCount}",
+                style = MaterialTheme.typography.titleMedium,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        LinearProgressIndicator(
+            progress = { state.progress },
+            modifier = Modifier.fillMaxWidth(),
+        )
+
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            val problem = state.currentProblem
+
+            if (problem != null) {
+                Text(
+                    text = "${problem.firstOperand} " +
+                            "${problem.operation.symbol} ${problem.secondOperand}",
+                    style = MaterialTheme.typography.displayLarge,
+                )
+            }
+
+            Spacer(Modifier.height(24.dp))
+
+            Text(
+                text = state.answerInput.ifEmpty { " " },
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary,
+            )
+        }
+
+        NumberKeyboard(
+            onDigitPressed = onDigitPressed,
+            onDeletePressed = onDeletePressed,
+            onSubmit = onSubmit,
+            canSubmit = state.answerInput.isNotBlank(),
+        )
+    }
+}
+
+@Composable
+private fun NumberKeyboard(
+    onDigitPressed: (Int) -> Unit,
+    onDeletePressed: () -> Unit,
+    onSubmit: () -> Unit,
+    canSubmit: Boolean,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        listOf(
+            listOf("1", "2", "3"),
+            listOf("4", "5", "6"),
+            listOf("7", "8", "9"),
+        ).forEach { row ->
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                row.forEach { digit ->
+                    Button(
+                        onClick = { onDigitPressed(digit.toInt()) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(56.dp),
+                    ) {
+                        Text(digit, style = MaterialTheme.typography.titleLarge)
+                    }
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            OutlinedButton(
+                onClick = onDeletePressed,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+            ) {
+                Text("⌫", style = MaterialTheme.typography.titleLarge)
+            }
+
+            Button(
+                onClick = { onDigitPressed(0) },
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+            ) {
+                Text("0", style = MaterialTheme.typography.titleLarge)
+            }
+
+            Button(
+                onClick = onSubmit,
+                enabled = canSubmit,
+                modifier = Modifier
+                    .weight(1f)
+                    .height(56.dp),
+            ) {
+                Text("✓", style = MaterialTheme.typography.titleLarge)
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultContent(
+    state: ArithmeticUiState,
+    onFinish: () -> Unit,
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        Text(
+            text = "Тренировка завершена",
+            style = MaterialTheme.typography.headlineMedium,
+        )
+
+        Spacer(Modifier.height(32.dp))
+
+        Text(
+            text = "Время",
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        Text(
+            text = formatDuration(state.durationMs ?: 0L),
+            style = MaterialTheme.typography.headlineLarge,
+        )
+
+        Spacer(Modifier.height(24.dp))
+
+        Text(
+            text = "Точность",
+            style = MaterialTheme.typography.titleMedium,
+        )
+
+        Text(
+            text = "${"%.1f".format(state.accuracyPercent ?: 0.0)}%",
+            style = MaterialTheme.typography.headlineLarge,
+        )
+
+        Spacer(Modifier.height(40.dp))
+
+        Button(
+            onClick = onFinish,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Завершить")
+        }
+    }
+}
+
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = durationMs / 1_000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+    return "%02d:%02d".format(minutes, seconds)
+}

@@ -8,6 +8,10 @@ class GenerateArithmeticProblemUseCase(
     private val random: Random = Random.Default,
 ) {
 
+    fun execute(): ArithmeticProblem {
+        val operation = ArithmeticOperation.values().random(random)
+        return execute(operation)
+    }
     fun execute(
         operation: ArithmeticOperation,
     ): ArithmeticProblem {
