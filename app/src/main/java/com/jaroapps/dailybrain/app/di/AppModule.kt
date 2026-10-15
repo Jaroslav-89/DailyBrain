@@ -20,7 +20,7 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
-
+//разбить на фичи, либо на отдельные модули для каждой фичи
     factory {
         GenerateArithmeticProblemUseCase()
     }
@@ -82,10 +82,6 @@ val appModule = module {
     }
 
     single { get<AppDatabase>().trainingDayDao() }
-
-    single {
-        get<AppDatabase>().trainingSessionDao()
-    }
 
     viewModel {
         CalendarViewModel(
