@@ -10,7 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
@@ -308,41 +308,34 @@ private fun AnswerReviewContent(
 
         Spacer(Modifier.height(16.dp))
 
+
         LazyColumn(
             modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            items(
+            itemsIndexed(
                 items = results,
-                key = { result ->
-                    results.indexOf(result)
-                },
-            ) { result ->
-                Card(
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(16.dp),
-                    ) {
+                key = { index, _ -> index },
+            ) { _, result ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Column(modifier = Modifier.padding(16.dp)) {
                         val problem = result.problem
+                        val answerColor = if (result.isCorrect) {
+                            Color(0xFF2E7D32)
+                        } else {
+                            Color(0xFFC62828)
+                        }
 
                         Text(
                             text = "${problem.firstOperand} " +
                                     "${problem.operation.symbol} " +
-                                    "${problem.secondOperand} = " +
-                                    "${result.correctAnswer}",
+                                    "${problem.secondOperand} = ${result.userAnswer}",
                             style = MaterialTheme.typography.titleMedium,
-                        )
-
-                        Spacer(Modifier.height(4.dp))
-
-                        Text(
-                            text = "Ваш ответ: ${result.userAnswer}",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = if (result.isCorrect) green else red,
+                            color = answerColor,
                         )
 
                         if (!result.isCorrect) {
+                            Spacer(Modifier.height(4.dp))
                             Text(
                                 text = "Правильный ответ: ${result.correctAnswer}",
                                 style = MaterialTheme.typography.bodyMedium,
