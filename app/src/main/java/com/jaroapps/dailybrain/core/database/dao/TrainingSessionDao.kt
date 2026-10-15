@@ -24,4 +24,14 @@ interface TrainingSessionDao {
 
     @Query("SELECT * FROM training_sessions WHERE id = :id")
     suspend fun getById(id: Long): TrainingSessionEntity?
+
+
+    @Query(
+        """
+    SELECT * FROM training_sessions
+    WHERE date = :date
+    ORDER BY finishedAtEpochMs DESC
+    """
+    )
+    fun observeByDate(date: Int): Flow<List<TrainingSessionEntity>>
 }

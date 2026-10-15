@@ -1,7 +1,6 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
 import androidx.lifecycle.ViewModel
-import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticOperation
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
@@ -11,14 +10,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.history.domain.model.TrainingSession
-import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingSessionRepository
+import com.jaroapps.dailybrain.common.domain.model.TrainingSession
+import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
 import kotlinx.coroutines.launch
 
 class ArithmeticViewModel(
     private val generateProblem: GenerateArithmeticProblemUseCase,
     private val checkAnswer: CheckArithmeticAnswerUseCase,
-    private val trainingSessionRepository: TrainingSessionRepository,
+    private val arithmeticTrainingRepository: ArithmeticTrainingRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArithmeticUiState())
@@ -27,7 +26,7 @@ class ArithmeticViewModel(
     private var startedAtMs: Long? = null
 
     fun startTraining(
-        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
+        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 50),
     ) {
         startedAtMs = System.currentTimeMillis()
 
@@ -130,7 +129,7 @@ class ArithmeticViewModel(
         )
 
         viewModelScope.launch {
-            trainingSessionRepository.save(
+            arithmeticTrainingRepository.saveCompletedTraining(
                 TrainingSession(
                     exerciseType = "ARITHMETIC",
                     startedAtEpochMs = startedAt,

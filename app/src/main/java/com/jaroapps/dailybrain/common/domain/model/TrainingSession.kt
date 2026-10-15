@@ -1,4 +1,4 @@
-package com.jaroapps.dailybrain.feature.history.domain.model
+package com.jaroapps.dailybrain.common.domain.model
 
 data class TrainingSession(
     val id: Long = 0,

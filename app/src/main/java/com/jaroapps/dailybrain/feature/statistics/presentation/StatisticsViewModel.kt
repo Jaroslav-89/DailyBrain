@@ -2,7 +2,7 @@ package com.jaroapps.dailybrain.feature.statistics.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingSessionRepository
+import com.jaroapps.dailybrain.feature.history.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -11,7 +11,7 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 class StatisticsViewModel(
-    repository: TrainingSessionRepository,
+    repository: HistoryRepository,
 ) : ViewModel() {
 
     val uiState = repository.observeAll()

@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,6 +33,7 @@ import java.util.Locale
 fun HomeScreen(
     onStartTraining: () -> Unit,
     onOpenStatistics: () -> Unit,
+    onOpenCalendar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -72,7 +74,9 @@ fun HomeScreen(
         Spacer(Modifier.height(20.dp))
 
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .clickable(onClick = onOpenCalendar)
+                .fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
