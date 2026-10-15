@@ -15,6 +15,7 @@ data class ArithmeticUiState(
     val durationMs: Long? = null,
     val accuracyPercent: Double? = null,
     val taskResults: List<ArithmeticTaskResult> = emptyList(),
+    val isReviewingAnswers: Boolean = false,
 ) {
     val progress: Float
         get() = if (totalTaskCount > 0) {

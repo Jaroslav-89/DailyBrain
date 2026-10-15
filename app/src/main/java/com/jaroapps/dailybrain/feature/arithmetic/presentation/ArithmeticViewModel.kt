@@ -26,7 +26,7 @@ class ArithmeticViewModel(
     private var startedAtMs: Long? = null
 
     fun startTraining(
-        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 50),
+        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
         startedAtMs = System.currentTimeMillis()
 
@@ -143,5 +143,19 @@ class ArithmeticViewModel(
         }
 
         startedAtMs = null
+    }
+
+    fun openAnswerReview() {
+        if (_uiState.value.isCompleted) {
+            _uiState.update {
+                it.copy(isReviewingAnswers = true)
+            }
+        }
+    }
+
+    fun closeAnswerReview() {
+        _uiState.update {
+            it.copy(isReviewingAnswers = false)
+        }
     }
 }

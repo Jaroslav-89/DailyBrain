@@ -9,7 +9,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
+import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -19,8 +22,10 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -41,9 +46,15 @@ fun ArithmeticScreen(
         onExit()
     }
 
-    if (state.isCompleted) {
+    if (state.isCompleted && state.isReviewingAnswers) {
+        AnswerReviewContent(
+            results = state.taskResults,
+            onBack = viewModel::closeAnswerReview,
+        )
+    } else if (state.isCompleted) {
         ResultContent(
             state = state,
+            onOpenAnswerReview = viewModel::openAnswerReview,
             onFinish = {
                 viewModel.cancelTraining()
                 onExit()
@@ -208,6 +219,7 @@ private fun NumberKeyboard(
 private fun ResultContent(
     state: ArithmeticUiState,
     onFinish: () -> Unit,
+    onOpenAnswerReview: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -247,11 +259,98 @@ private fun ResultContent(
 
         Spacer(Modifier.height(40.dp))
 
+        OutlinedButton(
+            onClick = onOpenAnswerReview,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Посмотреть ответы")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
         Button(
             onClick = onFinish,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Завершить")
+        }
+    }
+}
+
+@Composable
+private fun AnswerReviewContent(
+    results: List<ArithmeticTaskResult>,
+    onBack: () -> Unit,
+) {
+    val green = Color(0xFF2E7D32)
+    val red = Color(0xFFC62828)
+
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            OutlinedButton(onClick = onBack) {
+                Text("Назад")
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = "Результаты",
+                style = MaterialTheme.typography.titleLarge,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            items(
+                items = results,
+                key = { result ->
+                    results.indexOf(result)
+                },
+            ) { result ->
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(16.dp),
+                    ) {
+                        val problem = result.problem
+
+                        Text(
+                            text = "${problem.firstOperand} " +
+                                    "${problem.operation.symbol} " +
+                                    "${problem.secondOperand} = " +
+                                    "${result.correctAnswer}",
+                            style = MaterialTheme.typography.titleMedium,
+                        )
+
+                        Spacer(Modifier.height(4.dp))
+
+                        Text(
+                            text = "Ваш ответ: ${result.userAnswer}",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = if (result.isCorrect) green else red,
+                        )
+
+                        if (!result.isCorrect) {
+                            Text(
+                                text = "Правильный ответ: ${result.correctAnswer}",
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+                    }
+                }
+            }
         }
     }
 }
