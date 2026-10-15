@@ -1,0 +1,102 @@
+package com.jaroapps.dailybrain.app.di
+
+import androidx.room.Room
+import com.jaroapps.dailybrain.core.database.AppDatabase
+import com.jaroapps.dailybrain.feature.arithmetic.data.ArithmeticTrainingRepositoryImpl
+import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
+import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
+import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
+import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
+import com.jaroapps.dailybrain.feature.history.data.HistoryRepositoryImpl
+import com.jaroapps.dailybrain.feature.history.data.TrainingCalendarRepositoryImpl
+import com.jaroapps.dailybrain.feature.history.domain.repository.HistoryRepository
+import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingCalendarRepository
+import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
+import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
+import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
+import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
+import org.koin.android.ext.koin.androidContext
+import org.koin.core.module.dsl.viewModel
+import org.koin.dsl.module
+
+val appModule = module {
+
+    factory {
+        GenerateArithmeticProblemUseCase()
+    }
+
+    factory {
+        CheckArithmeticAnswerUseCase()
+    }
+
+    viewModel {
+        ArithmeticViewModel(
+            generateProblem = get(),
+            checkAnswer = get(),
+            arithmeticTrainingRepository = get(),
+        )
+    }
+
+    single {
+        Room.databaseBuilder(
+            androidContext(),
+            AppDatabase::class.java,
+            "daily_brain.db",
+        )
+            .fallbackToDestructiveMigration(true)
+            .build()
+    }
+
+    single {
+        get<AppDatabase>().trainingSessionDao()
+    }
+
+    single<HistoryRepository> {
+        HistoryRepositoryImpl(
+            dao = get(),
+        )
+    }
+
+    viewModel {
+        HomeViewModel(
+            repository = get(),
+        )
+    }
+
+    viewModel {
+        StatisticsViewModel(
+            repository = get(),
+        )
+    }
+
+    single<TrainingCalendarRepository> {
+        TrainingCalendarRepositoryImpl(
+            dao = get(),
+        )
+    }
+
+    single<ArithmeticTrainingRepository> {
+        ArithmeticTrainingRepositoryImpl(
+            database = get(),
+        )
+    }
+
+    single { get<AppDatabase>().trainingDayDao() }
+
+    single {
+        get<AppDatabase>().trainingSessionDao()
+    }
+
+    viewModel {
+        CalendarViewModel(
+            repository = get(),
+        )
+    }
+
+    viewModel {
+        DayHistoryViewModel(
+            savedStateHandle = get(),
+            repository = get(),
+        )
+    }
+}
