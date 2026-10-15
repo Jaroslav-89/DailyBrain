@@ -6,7 +6,7 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 fun formatMillisToDate(millis: Long): Int {
-    val formatter = DateTimeFormatter.ofPattern("ddMMYYYY")
+    val formatter = DateTimeFormatter.ofPattern("YYYYMMdd")
         .withLocale(Locale.ENGLISH)
 
     val date = Instant.ofEpochMilli(millis)

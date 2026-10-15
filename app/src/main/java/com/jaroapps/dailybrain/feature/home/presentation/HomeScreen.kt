@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,6 +31,7 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     onStartTraining: () -> Unit,
+    onOpenStatistics: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -138,6 +140,15 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.weight(1f))
+
+        OutlinedButton(
+            onClick = onOpenStatistics,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Моя статистика")
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         Button(
             onClick = onStartTraining,

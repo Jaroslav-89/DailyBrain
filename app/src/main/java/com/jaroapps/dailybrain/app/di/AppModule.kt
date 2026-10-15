@@ -11,6 +11,7 @@ import com.jaroapps.dailybrain.feature.history.data.TrainingSessionRepositoryImp
 import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingSessionRepository
 import org.koin.android.ext.koin.androidContext
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
+import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 
 val appModule = module {
 
@@ -52,6 +53,12 @@ val appModule = module {
 
     viewModel {
         HomeViewModel(
+            repository = get(),
+        )
+    }
+
+    viewModel {
+        StatisticsViewModel(
             repository = get(),
         )
     }
