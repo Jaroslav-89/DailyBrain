@@ -10,6 +10,7 @@ import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.feature.history.data.TrainingSessionRepositoryImpl
 import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingSessionRepository
 import org.koin.android.ext.koin.androidContext
+import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
 
 val appModule = module {
 
@@ -46,6 +47,12 @@ val appModule = module {
     single<TrainingSessionRepository> {
         TrainingSessionRepositoryImpl(
             dao = get(),
+        )
+    }
+
+    viewModel {
+        HomeViewModel(
+            repository = get(),
         )
     }
 }

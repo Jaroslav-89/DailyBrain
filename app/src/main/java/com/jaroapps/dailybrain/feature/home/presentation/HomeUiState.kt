@@ -18,6 +18,7 @@ data class HomeUiState(
     val lastSevenDays: List<DailyActivityUiModel>
         get() = (6 downTo 0).map { daysAgo ->
             val date = today.minusDays(daysAgo.toLong())
+
             DailyActivityUiModel(
                 date = date,
                 isCompleted = date in completedDates,
