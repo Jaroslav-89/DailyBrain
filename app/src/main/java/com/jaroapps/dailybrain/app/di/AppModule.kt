@@ -121,12 +121,6 @@ val appModule = module {
         )
     }
 
-    single<MemoryWordsRepository> {
-        MemoryWordsRepositoryImpl(
-            context = androidContext()
-        )
-    }
-
     factory {
         GetRandomMemoryWordsUseCase(
             repository = get()

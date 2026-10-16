@@ -34,6 +34,7 @@ fun HomeScreen(
     onStartTraining: () -> Unit,
     onOpenStatistics: () -> Unit,
     onOpenCalendar: () -> Unit,
+    onStartMemoryTraining: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -165,6 +166,15 @@ fun HomeScreen(
                     "Начать тренировку"
                 },
             )
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        OutlinedButton(
+            onClick = onStartMemoryTraining,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Запоминание слов")
         }
     }
 }

@@ -90,9 +90,10 @@ fun DayHistoryScreen(
                         ) {
                             Text(
                                 text = when (session.exerciseType) {
-                                    "ARITHMETIC" -> "Арифметика"
-                                    else -> session.exerciseType
-                                },
+                            "ARITHMETIC" -> "Арифметика"
+                            "MEMORY_WORDS" -> "Запоминание слов"
+                            else -> session.exerciseType
+                        },
                                 style = MaterialTheme.typography.titleMedium,
                             )
 

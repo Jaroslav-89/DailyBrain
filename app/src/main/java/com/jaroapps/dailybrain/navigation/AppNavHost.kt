@@ -11,6 +11,7 @@ import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
+import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -31,6 +32,9 @@ fun AppNavHost() {
                 },
                 onOpenStatistics = {
                     navController.navigate(Route.STATISTICS)
+                },
+                onStartMemoryTraining = {
+                    navController.navigate(Route.MEMORY_TRAINING)
                 },
             )
         }
@@ -78,6 +82,14 @@ fun AppNavHost() {
                 onBack = {
                     navController.popBackStack()
                 },
+            )
+        }
+
+        composable(Route.MEMORY_TRAINING) {
+            MemoryTrainingScreen(
+                onExit = {
+                    navController.popBackStack()
+                }
             )
         }
     }

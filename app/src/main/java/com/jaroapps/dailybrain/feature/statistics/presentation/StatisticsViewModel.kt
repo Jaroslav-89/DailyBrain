@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.statistics.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.history.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
@@ -20,32 +21,61 @@ class StatisticsViewModel(
             val today = LocalDate.now(zone)
             val weekStart = today.minusDays(6)
 
-            val weeklySessions = sessions.filter { session ->
-                val date = Instant
-                    .ofEpochMilli(session.finishedAtEpochMs)
+            fun isInLastSevenDays(session: TrainingSession): Boolean {
+                val date = Instant.ofEpochMilli(session.finishedAtEpochMs)
                     .atZone(zone)
                     .toLocalDate()
 
-                !date.isBefore(weekStart) && !date.isAfter(today)
+                return !date.isBefore(weekStart) && !date.isAfter(today)
+            }
+
+            fun calculateStats(
+                filteredSessions: List<TrainingSession>,
+            ): ExerciseStatistics {
+                val weeklySessions =
+                    filteredSessions.filter(::isInLastSevenDays)
+
+                val totalTasks = filteredSessions.sumOf {
+                    it.taskCount.coerceAtLeast(0)
+                }
+                val totalCorrect = filteredSessions.sumOf {
+                    it.correctCount.coerceAtLeast(0)
+                }
+
+                return ExerciseStatistics(
+                    trainingCount = filteredSessions.size,
+                    weeklyTrainingCount = weeklySessions.size,
+                    totalDurationMs = filteredSessions.sumOf {
+                        it.durationMs.coerceAtLeast(0L)
+                    },
+                    averageDurationMs = filteredSessions
+                        .takeIf { it.isNotEmpty() }
+                        ?.map { it.durationMs.coerceAtLeast(0L) }
+                        ?.average()
+                        ?.toLong()
+                        ?: 0L,
+                    averageAccuracyPercent = if (totalTasks > 0) {
+                        totalCorrect.toDouble() / totalTasks * 100.0
+                    } else {
+                        0.0
+                    },
+                    bestAccuracyPercent = filteredSessions
+                        .maxOfOrNull {
+                            it.accuracyPercent.coerceIn(0.0, 100.0)
+                        } ?: 0.0,
+                    totalTaskCount = totalTasks,
+                    totalCorrectCount = totalCorrect,
+                )
             }
 
             StatisticsUiState(
-                totalTrainingCount = sessions.size,
-                weeklyTrainingCount = weeklySessions.size,
-                averageAccuracyPercent = sessions
-                    .takeIf { it.isNotEmpty() }
-                    ?.map { it.accuracyPercent }
-                    ?.average()
-                    ?: 0.0,
-                averageDurationMs = sessions
-                    .takeIf { it.isNotEmpty() }
-                    ?.map { it.durationMs }
-                    ?.average()
-                    ?.toLong()
-                    ?: 0L,
-                bestAccuracyPercent = sessions
-                    .maxOfOrNull { it.accuracyPercent }
-                    ?: 0.0,
+                overall = calculateStats(sessions),
+                arithmetic = calculateStats(
+                    sessions.filter { it.exerciseType == "ARITHMETIC" }
+                ),
+                memoryWords = calculateStats(
+                    sessions.filter { it.exerciseType == "MEMORY_WORDS" }
+                ),
             )
         }
         .stateIn(
