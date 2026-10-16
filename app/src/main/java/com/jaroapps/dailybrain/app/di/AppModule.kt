@@ -14,11 +14,18 @@ import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingCalenda
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
+import com.jaroapps.dailybrain.feature.memory.data.MemoryTrainingRepositoryImpl
+import com.jaroapps.dailybrain.feature.memory.data.MemoryWordsRepositoryImpl
+import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryTrainingRepository
+import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepository
+import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWordsUseCase
+import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
-
+import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
+import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
 val appModule = module {
 //разбить на фичи, либо на отдельные модули для каждой фичи
     factory {
@@ -93,6 +100,48 @@ val appModule = module {
         DayHistoryViewModel(
             savedStateHandle = get(),
             repository = get(),
+        )
+    }
+
+    factory {
+        SaveMemoryTrainingUseCase(
+            repository = get()
+        )
+    }
+
+    single<MemoryTrainingRepository> {
+        MemoryTrainingRepositoryImpl(
+            database = get()
+        )
+    }
+
+    single<MemoryWordsRepository> {
+        MemoryWordsRepositoryImpl(
+            context = androidContext()
+        )
+    }
+
+    single<MemoryWordsRepository> {
+        MemoryWordsRepositoryImpl(
+            context = androidContext()
+        )
+    }
+
+    factory {
+        GetRandomMemoryWordsUseCase(
+            repository = get()
+        )
+    }
+
+    factory {
+        CheckMemoryAnswersUseCase()
+    }
+
+    viewModel {
+        MemoryTrainingViewModel(
+            getRandomMemoryWords = get(),
+            checkMemoryAnswers = get(),
+            saveMemoryTraining = get()
         )
     }
 }
