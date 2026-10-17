@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.memory.domain.usecase
 
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryTrainingRepository
 
@@ -17,7 +18,7 @@ class SaveMemoryTrainingUseCase(
         }
 
         val session = TrainingSession(
-            exerciseType = EXERCISE_TYPE,
+            exerciseType = ExerciseType.MEMORY_WORDS.storageValue,
             startedAtEpochMs = startedAtEpochMs,
             finishedAtEpochMs = finishedAtEpochMs,
             durationMs = finishedAtEpochMs - startedAtEpochMs,
@@ -27,9 +28,5 @@ class SaveMemoryTrainingUseCase(
         )
 
         repository.saveCompletedTraining(session)
-    }
-
-    private companion object {
-        const val EXERCISE_TYPE = "MEMORY_WORDS"
     }
 }

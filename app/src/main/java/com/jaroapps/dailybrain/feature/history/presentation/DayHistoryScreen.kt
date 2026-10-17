@@ -2,7 +2,6 @@ package com.jaroapps.dailybrain.feature.history.presentation
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -19,12 +18,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.SavedStateHandle
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
+import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import java.time.ZoneId
 
 @Composable
 fun DayHistoryScreen(
@@ -89,11 +88,8 @@ fun DayHistoryScreen(
                             modifier = Modifier.padding(16.dp),
                         ) {
                             Text(
-                                text = when (session.exerciseType) {
-                            "ARITHMETIC" -> "Арифметика"
-                            "MEMORY_WORDS" -> "Запоминание слов"
-                            else -> session.exerciseType
-                        },
+                                text = ExerciseType.fromStorage(session.exerciseType)?.displayName
+                                    ?: session.exerciseType,
                                 style = MaterialTheme.typography.titleMedium,
                             )
 

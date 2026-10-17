@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.statistics.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.history.domain.repository.HistoryRepository
 import kotlinx.coroutines.flow.SharingStarted
@@ -71,10 +72,10 @@ class StatisticsViewModel(
             StatisticsUiState(
                 overall = calculateStats(sessions),
                 arithmetic = calculateStats(
-                    sessions.filter { it.exerciseType == "ARITHMETIC" }
+                    sessions.filter { it.exerciseType == ExerciseType.ARITHMETIC.storageValue }
                 ),
                 memoryWords = calculateStats(
-                    sessions.filter { it.exerciseType == "MEMORY_WORDS" }
+                    sessions.filter { it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue}
                 ),
             )
         }

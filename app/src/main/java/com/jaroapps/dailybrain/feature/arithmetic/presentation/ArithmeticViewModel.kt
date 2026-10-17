@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
 import kotlinx.coroutines.launch
@@ -131,7 +132,7 @@ class ArithmeticViewModel(
         viewModelScope.launch {
             arithmeticTrainingRepository.saveCompletedTraining(
                 TrainingSession(
-                    exerciseType = "ARITHMETIC",
+                    exerciseType = ExerciseType.ARITHMETIC.storageValue,
                     startedAtEpochMs = startedAt,
                     finishedAtEpochMs = finishedAt,
                     durationMs = duration,
