@@ -11,6 +11,10 @@ enum class ExerciseType(
     MEMORY_WORDS(
         storageValue = "MEMORY_WORDS",
         displayName = "Запоминание слов",
+    ),
+    STROOP_TEST(
+    storageValue = "STROOP_TEST",
+    displayName = "Тест Струпа",
     );
 
     companion object {

@@ -26,6 +26,9 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
+import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
+import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
+
 val appModule = module {
 //разбить на фичи, либо на отдельные модули для каждой фичи
     factory {
@@ -136,6 +139,17 @@ val appModule = module {
             getRandomMemoryWords = get(),
             checkMemoryAnswers = get(),
             saveMemoryTraining = get()
+        )
+    }
+
+    factory {
+        GenerateStroopStimuliUseCase()
+    }
+
+    viewModel {
+        StroopViewModel(
+            generateStimuli = get(),
+            repository = get(),
         )
     }
 }

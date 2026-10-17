@@ -8,6 +8,7 @@ object Route {
     const val CALENDAR = "calendar"
     const val DAY_HISTORY = "day_history/{date}"
     const val MEMORY_TRAINING = "memory_training"
+    const val STROOP_TEST = "stroop_test"
 
     fun dayHistory(date: Int): String = "day_history/$date"
 }

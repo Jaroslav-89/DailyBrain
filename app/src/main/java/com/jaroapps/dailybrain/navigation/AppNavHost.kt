@@ -12,6 +12,7 @@ import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
+import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -35,6 +36,9 @@ fun AppNavHost() {
                 },
                 onStartMemoryTraining = {
                     navController.navigate(Route.MEMORY_TRAINING)
+                },
+                onStartStroopTest = {
+                    navController.navigate(Route.STROOP_TEST)
                 },
             )
         }
@@ -87,6 +91,14 @@ fun AppNavHost() {
 
         composable(Route.MEMORY_TRAINING) {
             MemoryTrainingScreen(
+                onExit = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Route.STROOP_TEST) {
+            StroopScreen(
                 onExit = {
                     navController.popBackStack()
                 }
