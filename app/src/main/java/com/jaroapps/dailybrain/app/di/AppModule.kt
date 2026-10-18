@@ -7,6 +7,10 @@ import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTr
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
+import com.jaroapps.dailybrain.feature.counting.data.repository.CountingTrainingRepositoryImpl
+import com.jaroapps.dailybrain.feature.counting.domain.repository.CountingTrainingRepository
+import com.jaroapps.dailybrain.feature.counting.presentation.CountingStatisticsViewModel
+import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingViewModel
 import com.jaroapps.dailybrain.feature.history.data.HistoryRepositoryImpl
 import com.jaroapps.dailybrain.feature.history.data.TrainingCalendarRepositoryImpl
 import com.jaroapps.dailybrain.feature.history.domain.repository.HistoryRepository
@@ -149,6 +153,24 @@ val appModule = module {
     viewModel {
         StroopViewModel(
             generateStimuli = get(),
+            repository = get(),
+        )
+    }
+
+    single<CountingTrainingRepository> {
+        CountingTrainingRepositoryImpl(
+            database = get(),
+        )
+    }
+
+    viewModel {
+        CountingTrainingViewModel(
+            repository = get(),
+        )
+    }
+
+    viewModel {
+        CountingStatisticsViewModel(
             repository = get(),
         )
     }
