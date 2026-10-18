@@ -10,7 +10,11 @@ import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
+import com.jaroapps.dailybrain.feature.counting.presentation.CountingStatisticsScreen
+import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
+import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
+import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import java.time.format.DateTimeFormatter
 
 @Composable
@@ -31,6 +35,15 @@ fun AppNavHost() {
                 },
                 onOpenStatistics = {
                     navController.navigate(Route.STATISTICS)
+                },
+                onStartMemoryTraining = {
+                    navController.navigate(Route.MEMORY_TRAINING)
+                },
+                onStartStroopTest = {
+                    navController.navigate(Route.STROOP_TEST)
+                },
+                onStartCountingTraining = {
+                    navController.navigate(Route.COUNTING_TRAINING)
                 },
             )
         }
@@ -75,6 +88,44 @@ fun AppNavHost() {
             ),
         ) {
             DayHistoryScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+            )
+        }
+
+        composable(Route.MEMORY_TRAINING) {
+            MemoryTrainingScreen(
+                onExit = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Route.STROOP_TEST) {
+            StroopScreen(
+                onExit = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Route.COUNTING_TRAINING) {
+            CountingTrainingScreen(
+                onExit = {
+                    navController.popBackStack(
+                        route = Route.HOME,
+                        inclusive = false,
+                    )
+                },
+                onOpenStatistics = {
+                    navController.navigate(Route.COUNTING_STATISTICS)
+                },
+            )
+        }
+
+        composable(Route.COUNTING_STATISTICS) {
+            CountingStatisticsScreen(
                 onBack = {
                     navController.popBackStack()
                 },

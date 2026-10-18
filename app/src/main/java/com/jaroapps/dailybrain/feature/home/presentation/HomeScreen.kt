@@ -34,6 +34,9 @@ fun HomeScreen(
     onStartTraining: () -> Unit,
     onOpenStatistics: () -> Unit,
     onOpenCalendar: () -> Unit,
+    onStartMemoryTraining: () -> Unit,
+    onStartStroopTest: () -> Unit,
+    onStartCountingTraining: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = koinViewModel(),
 ) {
@@ -158,13 +161,34 @@ fun HomeScreen(
             onClick = onStartTraining,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(
-                text = if (state.isTrainingCompletedToday) {
-                    "Тренироваться ещё"
-                } else {
-                    "Начать тренировку"
-                },
-            )
+            Text("Арифметика")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Button(
+            onClick = onStartMemoryTraining,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Запоминание слов")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Button(
+            onClick = onStartStroopTest,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text("Тест Струпа")
+        }
+
+        Spacer(Modifier.height(12.dp))
+
+        Button(
+            onClick = onStartCountingTraining,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text("Устный счёт до 120")
         }
     }
 }
