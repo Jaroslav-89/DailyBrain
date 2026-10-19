@@ -17,6 +17,8 @@ import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
@@ -38,9 +40,9 @@ fun StatisticsScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val tabs = listOf(
-        "Общая",
-        "Арифметика",
-        "Запоминание слов",
+        stringResource(R.string.statistics_tab_overall),
+        stringResource(R.string.statistics_arithmetic),
+        stringResource(R.string.statistics_memory),
     )
 
     val stats = when (selectedTab) {
@@ -56,7 +58,7 @@ fun StatisticsScreen(
             .padding(24.dp),
     ) {
         Text(
-            text = "Статистика",
+            text = stringResource(R.string.statistics_title),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
@@ -64,7 +66,7 @@ fun StatisticsScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Твой прогресс в Daily Brain",
+            text = stringResource(R.string.statistics_tagline),
             style = MaterialTheme.typography.bodyLarge,
         )
 
@@ -83,50 +85,50 @@ fun StatisticsScreen(
         Spacer(Modifier.height(20.dp))
 
         StatisticCard(
-            title = "Всего тренировок",
+            title = stringResource(R.string.statistics_total_trainings),
             value = stats.trainingCount.toString(),
         )
 
         Spacer(Modifier.height(12.dp))
 
         StatisticCard(
-            title = "За последние 7 дней",
+            title = stringResource(R.string.statistics_last_seven_days),
             value = stats.weeklyTrainingCount.toString(),
         )
 
         Spacer(Modifier.height(12.dp))
 
         StatisticCard(
-            title = "Общее время тренировок",
+            title = stringResource(R.string.statistics_total_duration),
             value = formatDuration(stats.totalDurationMs),
         )
 
         Spacer(Modifier.height(12.dp))
 
         StatisticCard(
-            title = "Средняя длительность",
+            title = stringResource(R.string.statistics_average_duration),
             value = formatDuration(stats.averageDurationMs),
         )
 
         Spacer(Modifier.height(12.dp))
 
         StatisticCard(
-            title = "Средняя точность",
+            title = stringResource(R.string.statistics_average_accuracy),
             value = formatPercent(stats.averageAccuracyPercent),
         )
 
         Spacer(Modifier.height(12.dp))
 
         StatisticCard(
-            title = "Лучшая точность",
+            title = stringResource(R.string.statistics_best_accuracy),
             value = formatPercent(stats.bestAccuracyPercent),
         )
 
         Spacer(Modifier.height(12.dp))
 
         StatisticCard(
-            title = "Правильные ответы",
-            value = "${stats.totalCorrectCount} из ${stats.totalTaskCount}",
+            title = stringResource(R.string.label_correct_count),
+            value = stringResource(R.string.label_correct_answers, stats.totalCorrectCount, stats.totalTaskCount),
         )
 
         Spacer(Modifier.height(24.dp))
@@ -135,7 +137,7 @@ fun StatisticsScreen(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("На главный экран")
+            Text(stringResource(R.string.action_home))
         }
     }
 }
@@ -179,8 +181,8 @@ private fun formatDuration(durationMs: Long): String {
     val seconds = totalSeconds % 60
 
     return when {
-        hours > 0 -> "${hours} ч ${minutes} мин"
-        minutes > 0 -> "${minutes} мин ${seconds} с"
-        else -> "${seconds} с"
+        hours > 0 -> stringResource(R.string.statistics_duration_hours, hours, minutes)
+        minutes > 0 -> stringResource(R.string.statistics_duration_minutes, minutes, seconds)
+        else -> stringResource(R.string.statistics_duration_seconds, seconds)
     }
 }
