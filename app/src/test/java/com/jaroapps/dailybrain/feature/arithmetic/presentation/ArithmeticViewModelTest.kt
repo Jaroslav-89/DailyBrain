@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.feature.arithmetic.presentation
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.SaveArithmeticTrainingUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
