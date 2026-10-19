@@ -12,17 +12,19 @@ class SaveMemoryTrainingUseCase(
     suspend operator fun invoke(
         startedAtEpochMs: Long,
         finishedAtEpochMs: Long,
+        durationMs: Long,
         result: MemoryTrainingResult,
     ) {
         require(finishedAtEpochMs >= startedAtEpochMs) {
             "Finish time cannot be earlier than start time"
         }
+        require(durationMs >= 0L) { "Duration cannot be negative" }
 
         val session = TrainingSession(
             exerciseType = ExerciseType.MEMORY_WORDS.storageValue,
             startedAtEpochMs = startedAtEpochMs,
             finishedAtEpochMs = finishedAtEpochMs,
-            durationMs = finishedAtEpochMs - startedAtEpochMs,
+            durationMs = durationMs,
             accuracyPercent = result.accuracyPercent.toDouble(),
             taskCount = result.shownWords.size,
             correctCount = result.correctCount,
