@@ -42,8 +42,11 @@ fun ArithmeticScreen(
     }
 
     BackHandler {
-        viewModel.cancelTraining()
-        onExit()
+        // Пока результат не сохранён, остаёмся на экране и даём пользователю повторить попытку.
+        if (!state.isCompleted || state.isSaved) {
+            viewModel.cancelTraining()
+            onExit()
+        }
     }
 
     if (state.isCompleted && state.isReviewingAnswers) {
@@ -55,6 +58,7 @@ fun ArithmeticScreen(
         ResultContent(
             state = state,
             onOpenAnswerReview = viewModel::openAnswerReview,
+            onRetrySave = viewModel::retrySave,
             onFinish = {
                 viewModel.cancelTraining()
                 onExit()
@@ -220,6 +224,7 @@ private fun ResultContent(
     state: ArithmeticUiState,
     onFinish: () -> Unit,
     onOpenAnswerReview: () -> Unit,
+    onRetrySave: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -257,7 +262,36 @@ private fun ResultContent(
             style = MaterialTheme.typography.headlineLarge,
         )
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(24.dp))
+
+        when {
+            state.isSaving -> Text(
+                text = "Сохраняем результат…",
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            state.isSaved -> Text(
+                text = "Результат сохранён",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            state.saveErrorMessage != null -> {
+                Text(
+                    text = state.saveErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onRetrySave,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Повторить сохранение")
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         OutlinedButton(
             onClick = onOpenAnswerReview,
@@ -270,6 +304,7 @@ private fun ResultContent(
 
         Button(
             onClick = onFinish,
+            enabled = state.isSaved,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text("Завершить")
