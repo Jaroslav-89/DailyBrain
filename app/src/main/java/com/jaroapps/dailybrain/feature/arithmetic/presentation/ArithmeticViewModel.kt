@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
+import android.os.SystemClock
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
@@ -25,14 +26,15 @@ class ArithmeticViewModel(
     private val _uiState = MutableStateFlow(ArithmeticUiState())
     val uiState: StateFlow<ArithmeticUiState> = _uiState.asStateFlow()
 
-    private var startedAtMs: Long? = null
+    private var startedAtEpochMs: Long? = null
+    private var startedAtElapsedMs: Long? = null
     private var pendingSession: TrainingSession? = null
     private var saveInProgress = false
 
     fun startTraining(
         config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
-        startedAtMs = System.currentTimeMillis()
+        startedAtEpochMs = System.currentTimeMillis()\n        startedAtElapsedMs = SystemClock.elapsedRealtime()
         pendingSession = null
         saveInProgress = false
 
@@ -104,7 +106,7 @@ class ArithmeticViewModel(
         // Не теряем неподтверждённый результат при случайном сбросе экрана.
         if (_uiState.value.isCompleted && !_uiState.value.isSaved) return
 
-        startedAtMs = null
+        startedAtEpochMs = null\n        startedAtElapsedMs = null
         pendingSession = null
         _uiState.value = ArithmeticUiState()
     }
@@ -144,7 +146,7 @@ class ArithmeticViewModel(
             saveErrorMessage = null,
         )
 
-        startedAtMs = null
+        startedAtEpochMs = null\n        startedAtElapsedMs = null
         savePendingSession()
     }
 
