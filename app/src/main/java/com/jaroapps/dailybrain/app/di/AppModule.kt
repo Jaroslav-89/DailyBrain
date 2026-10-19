@@ -3,18 +3,18 @@ package com.jaroapps.dailybrain.app.di
 import androidx.room.Room
 import com.jaroapps.dailybrain.common.data.repository.CompletedTrainingRepositoryImpl
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
-import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
+import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.SaveArithmeticTrainingUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
 import com.jaroapps.dailybrain.feature.counting.domain.usecase.ObserveCountingStatisticsUseCase
+import com.jaroapps.dailybrain.feature.counting.domain.usecase.SaveCountingTrainingUseCase
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingStatisticsViewModel
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingViewModel
-import com.jaroapps.dailybrain.feature.history.data.TrainingCalendarRepositoryImpl
-import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingCalendarRepository
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
@@ -26,6 +26,7 @@ import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingU
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
+import com.jaroapps.dailybrain.feature.stroop.domain.usecase.SaveStroopTrainingUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
@@ -33,7 +34,7 @@ import org.koin.dsl.module
 
 val appModule = module {
 
-    // Common data layer
+    // Common data and use cases
     single {
         Room.databaseBuilder(
             androidContext(),
@@ -45,39 +46,25 @@ val appModule = module {
             .build()
     }
 
-    single { get<AppDatabase>().trainingSessionDao() }
-    single { get<AppDatabase>().trainingDayDao() }
-
     single<CompletedTrainingRepository> {
         CompletedTrainingRepositoryImpl(database = get())
     }
 
-    // Common domain use cases
-    factory { SaveCompletedTrainingUseCase(repository = get()) }
     factory { ObserveAllCompletedTrainingsUseCase(repository = get()) }
     factory { ObserveCompletedTrainingsByDateUseCase(repository = get()) }
+    factory { ObserveActiveTrainingDatesUseCase(repository = get()) }
 
     // Arithmetic feature
     factory { GenerateArithmeticProblemUseCase() }
     factory { CheckArithmeticAnswerUseCase() }
+    factory { SaveArithmeticTrainingUseCase(completedTrainingRepository = get()) }
 
     viewModel {
         ArithmeticViewModel(
             generateProblem = get(),
             checkAnswer = get(),
-            saveCompletedTraining = get(),
+            saveArithmeticTraining = get(),
         )
-    }
-
-    // Counting feature
-    factory { ObserveCountingStatisticsUseCase(completedTrainingRepository = get()) }
-
-    viewModel {
-        CountingTrainingViewModel(saveCompletedTraining = get())
-    }
-
-    viewModel {
-        CountingStatisticsViewModel(observeCountingStatistics = get())
     }
 
     // Memory feature
@@ -97,34 +84,26 @@ val appModule = module {
         )
     }
 
+    // Counting feature
+    factory { SaveCountingTrainingUseCase(completedTrainingRepository = get()) }
+    factory { ObserveCountingStatisticsUseCase(completedTrainingRepository = get()) }
+
+    viewModel { CountingTrainingViewModel(saveCountingTraining = get()) }
+    viewModel { CountingStatisticsViewModel(observeCountingStatistics = get()) }
+
     // Stroop feature
     factory { GenerateStroopStimuliUseCase() }
+    factory { SaveStroopTrainingUseCase(completedTrainingRepository = get()) }
 
     viewModel {
         StroopViewModel(
             generateStimuli = get(),
-            saveCompletedTraining = get(),
+            saveStroopTraining = get(),
         )
     }
 
-    // Home feature
-    viewModel {
-        HomeViewModel(observeAllCompletedTrainings = get())
-    }
-
-    // Statistics feature
-    viewModel {
-        StatisticsViewModel(observeAllCompletedTrainings = get())
-    }
-
     // History feature
-    single<TrainingCalendarRepository> {
-        TrainingCalendarRepositoryImpl(dao = get())
-    }
-
-    viewModel {
-        CalendarViewModel(repository = get())
-    }
+    viewModel { CalendarViewModel(observeActiveTrainingDates = get()) }
 
     viewModel {
         DayHistoryViewModel(
@@ -132,4 +111,10 @@ val appModule = module {
             observeCompletedTrainingsByDate = get(),
         )
     }
+
+    // Home feature
+    viewModel { HomeViewModel(observeAllCompletedTrainings = get()) }
+
+    // Statistics feature
+    viewModel { StatisticsViewModel(observeAllCompletedTrainings = get()) }
 }
