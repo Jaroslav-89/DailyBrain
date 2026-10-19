@@ -25,6 +25,7 @@ import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepos
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWordsUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
+import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel

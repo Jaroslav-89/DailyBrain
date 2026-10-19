@@ -36,7 +36,7 @@ class ArithmeticViewModel(
     private var saveInProgress = false
 
     fun startTraining(
-        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
+        config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 50),
     ) {
         startedAtEpochMs = System.currentTimeMillis()
         activeTimeTracker.reset()

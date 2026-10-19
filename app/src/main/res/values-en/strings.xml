@@ -85,5 +85,8 @@
     <string name="format_percent">%1$s%%</string>
     <string name="memory_recalled_word">✓  %1$s</string>
     <string name="memory_missed_word">•  %1$s</string>
+    <string name="memory_incorrect">Written incorrectly (%1$d)</string>
+    <string name="memory_no_incorrect">No incorrectly written words.</string>
+    <string name="memory_incorrect_word">✕  %1$s</string>
     <string name="format_count_pair">%1$d of %2$d</string>
 </resources>
