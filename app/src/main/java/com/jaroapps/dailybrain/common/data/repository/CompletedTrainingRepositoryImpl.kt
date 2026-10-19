@@ -14,13 +14,11 @@ class CompletedTrainingRepositoryImpl(
     private val database: AppDatabase,
 ) : CompletedTrainingRepository {
 
-    private val sessionDao get() = database.trainingSessionDao()
-
     override suspend fun saveCompletedTraining(session: TrainingSession) {
         val date = formatMillisToDate(session.finishedAtEpochMs)
 
         database.withTransaction {
-            sessionDao.insert(
+            database.trainingSessionDao().insert(
                 TrainingSessionEntity(
                     exerciseType = session.exerciseType,
                     startedAtEpochMs = session.startedAtEpochMs,
@@ -36,6 +34,7 @@ class CompletedTrainingRepositoryImpl(
             val insertedId = database.trainingDayDao().insertIfAbsent(
                 TrainingDayEntity(date = date, exerciseCount = 1)
             )
+
             if (insertedId == -1L) {
                 database.trainingDayDao().incrementExerciseCount(date)
             }
@@ -43,10 +42,19 @@ class CompletedTrainingRepositoryImpl(
     }
 
     override fun observeAllCompletedTrainings(): Flow<List<TrainingSession>> =
-        sessionDao.observeAll().map { entities -> entities.map { it.toDomain() } }
+        database.trainingSessionDao().observeAll().map { sessions ->
+            sessions.map(TrainingSessionEntity::toDomain)
+        }
 
     override fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>> =
-        sessionDao.observeByDate(date).map { entities -> entities.map { it.toDomain() } }
+        database.trainingSessionDao().observeByDate(date).map { sessions ->
+            sessions.map(TrainingSessionEntity::toDomain)
+        }
+
+    override fun observeActiveTrainingDates(): Flow<Set<Int>> =
+        database.trainingDayDao().observeAll().map { days ->
+            days.map { it.date }.toSet()
+        }
 
     private fun TrainingSessionEntity.toDomain() = TrainingSession(
         id = id,
