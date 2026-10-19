@@ -29,6 +29,7 @@ class CheckMemoryAnswersUseCaseTest {
             listOf("Дом"),
             result.missedWords.map { it.text }
         )
+        assertTrue(result.incorrectWords.isEmpty())
     }
 
     @Test
@@ -43,6 +44,7 @@ class CheckMemoryAnswersUseCaseTest {
         )
 
         assertEquals(3, result.correctCount)
+        assertTrue(result.incorrectWords.isEmpty())
     }
 
     @Test
@@ -59,6 +61,7 @@ class CheckMemoryAnswersUseCaseTest {
 
         assertEquals(2, result.correctCount)
         assertEquals(50, result.accuracyPercent)
+        assertTrue(result.incorrectWords.isEmpty())
     }
 
     @Test
@@ -72,6 +75,7 @@ class CheckMemoryAnswersUseCaseTest {
         assertEquals(0, result.accuracyPercent)
         assertEquals(4, result.missedWords.size)
         assertTrue(result.recalledWords.isEmpty())
+        assertTrue(result.incorrectWords.isEmpty())
     }
 
     @Test
@@ -85,14 +89,26 @@ class CheckMemoryAnswersUseCaseTest {
     }
 
     @Test
-    fun `empty word list produces zero accuracy`() {
+    fun `incorrect answers are listed and preserve user spelling`() {
+        val result = checkAnswers(
+            shownWords = words,
+            enteredAnswers = listOf(" яблоко ", "Дмо", "", "РЕКА", "Книгга")
+        )
+
+        assertEquals(listOf("Дмо", "Книгга"), result.incorrectWords)
+        assertEquals(2, result.correctCount)
+    }
+
+    @Test
+    fun `empty word list treats every non blank answer as incorrect`() {
         val result = checkAnswers(
             shownWords = emptyList(),
-            enteredAnswers = listOf("Яблоко")
+            enteredAnswers = listOf("Яблоко", "  ", "Дом")
         )
 
         assertEquals(0, result.correctCount)
         assertEquals(0, result.accuracyPercent)
         assertTrue(result.answers.isEmpty())
+        assertEquals(listOf("Яблоко", "Дом"), result.incorrectWords)
     }
 }
