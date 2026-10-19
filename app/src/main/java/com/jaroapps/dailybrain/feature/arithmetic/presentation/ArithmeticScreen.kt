@@ -18,6 +18,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -119,7 +121,7 @@ private fun TrainingContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedButton(onClick = onExit) {
-                Text("Закрыть")
+                Text(stringResource(R.string.action_close))
             }
 
             Spacer(Modifier.weight(1f))
@@ -257,14 +259,14 @@ private fun ResultContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Тренировка завершена",
+            text = stringResource(R.string.status_training_completed),
             style = MaterialTheme.typography.headlineMedium,
         )
 
         Spacer(Modifier.height(32.dp))
 
         Text(
-            text = "Время",
+            text = stringResource(R.string.label_time),
             style = MaterialTheme.typography.titleMedium,
         )
 
@@ -276,12 +278,12 @@ private fun ResultContent(
         Spacer(Modifier.height(24.dp))
 
         Text(
-            text = "Точность",
+            text = stringResource(R.string.label_accuracy),
             style = MaterialTheme.typography.titleMedium,
         )
 
         Text(
-            text = "${"%.1f".format(state.accuracyPercent ?: 0.0)}%",
+            text = stringResource(R.string.format_percent, "%.1f".format(state.accuracyPercent ?: 0.0)),
             style = MaterialTheme.typography.headlineLarge,
         )
 
@@ -289,11 +291,11 @@ private fun ResultContent(
 
         when {
             state.isSaving -> Text(
-                text = "Сохраняем результат…",
+                text = stringResource(R.string.status_saving),
                 style = MaterialTheme.typography.bodyMedium,
             )
             state.isSaved -> Text(
-                text = "Результат сохранён",
+                text = stringResource(R.string.status_saved),
                 style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.primary,
             )
@@ -309,7 +311,7 @@ private fun ResultContent(
                     enabled = !state.isSaving,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
-                    Text("Повторить сохранение")
+                    Text(stringResource(R.string.action_retry_save))
                 }
             }
         }
@@ -320,7 +322,7 @@ private fun ResultContent(
             onClick = onOpenAnswerReview,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Посмотреть ответы")
+            Text(stringResource(R.string.action_view_answers))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -330,7 +332,7 @@ private fun ResultContent(
             enabled = state.isSaved,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Завершить")
+            Text(stringResource(R.string.action_finish))
         }
     }
 }
@@ -353,13 +355,13 @@ private fun AnswerReviewContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedButton(onClick = onBack) {
-                Text("Назад")
+                Text(stringResource(R.string.action_back))
             }
 
             Spacer(Modifier.weight(1f))
 
             Text(
-                text = "Результаты",
+                text = stringResource(R.string.label_results),
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -395,7 +397,7 @@ private fun AnswerReviewContent(
                         if (!result.isCorrect) {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "Правильный ответ: ${result.correctAnswer}",
+                                text = stringResource(R.string.label_correct_answer, result.correctAnswer),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }
