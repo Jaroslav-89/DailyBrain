@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
-import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
+import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 class StroopViewModel(
     private val generateStimuli: GenerateStroopStimuliUseCase,
-    private val repository: ArithmeticTrainingRepository,
+    private val completedTrainingRepository: CompletedTrainingRepository,
 ) : ViewModel() {
 
     companion object {
@@ -129,7 +129,7 @@ class StroopViewModel(
 
         viewModelScope.launch {
             try {
-                repository.saveCompletedTraining(session)
+                completedTrainingRepository.saveCompletedTraining(session)
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     isSaved = true,
