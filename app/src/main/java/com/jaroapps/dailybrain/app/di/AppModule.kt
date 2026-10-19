@@ -11,8 +11,6 @@ import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
-import com.jaroapps.dailybrain.feature.counting.domain.usecase.ObserveCountingStatisticsUseCase
-import com.jaroapps.dailybrain.feature.counting.presentation.CountingStatisticsViewModel
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
@@ -83,10 +81,7 @@ val appModule = module {
     }
 
     // Counting feature
-    factory { ObserveCountingStatisticsUseCase(completedTrainingRepository = get()) }
-
     viewModel { CountingTrainingViewModel(saveCompletedTraining = get()) }
-    viewModel { CountingStatisticsViewModel(observeCountingStatistics = get()) }
 
     // Stroop feature
     factory { GenerateStroopStimuliUseCase() }
