@@ -7,6 +7,7 @@ import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -36,6 +37,7 @@ class StroopViewModel(
     private var elapsedBeforePauseMs = 0L
     private var activeSegmentStartedAtMs = 0L
     private var saveInProgress = false
+    private var pendingSession: TrainingSession? = null
 
     fun onAppResumed() {
         isForeground = true
@@ -58,11 +60,7 @@ class StroopViewModel(
                     SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
 
                 val elapsedMs = elapsedBeforePauseMs + currentSegmentMs
-
-                _uiState.value = _uiState.value.copy(
-                    elapsedTimeMs = elapsedMs,
-                )
-
+                _uiState.value = _uiState.value.copy(elapsedTimeMs = elapsedMs)
                 delay(TIMER_UPDATE_INTERVAL_MS)
             }
         }
@@ -89,77 +87,60 @@ class StroopViewModel(
         if (current.isFinished || saveInProgress) return
 
         pauseTimer()
-        saveInProgress = true
-
         val finishedAtEpochMs = System.currentTimeMillis()
         val durationMs = elapsedBeforePauseMs
+
+        // Фиксируем сессию один раз: повторная попытка сохраняет те же значения.
+        pendingSession = TrainingSession(
+            exerciseType = ExerciseType.STROOP_TEST.storageValue,
+            startedAtEpochMs = startedAtEpochMs,
+            finishedAtEpochMs = finishedAtEpochMs,
+            durationMs = durationMs,
+            accuracyPercent = 0.0,
+            taskCount = 0,
+            correctCount = 0,
+        )
 
         _uiState.value = current.copy(
             elapsedTimeMs = durationMs,
             isFinished = true,
             isSaving = true,
+            isSaved = false,
             errorMessage = null,
         )
-
-        viewModelScope.launch {
-            try {
-                repository.saveCompletedTraining(
-                    TrainingSession(
-                        exerciseType = ExerciseType.STROOP_TEST.storageValue,
-                        startedAtEpochMs = startedAtEpochMs,
-                        finishedAtEpochMs = finishedAtEpochMs,
-                        durationMs = durationMs,
-                        accuracyPercent = 0.0,
-                        taskCount = 0,
-                        correctCount = 0,
-                    )
-                )
-
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                )
-            } catch (exception: Exception) {
-                // Allow the user to retry saving without rerunning the test.
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    errorMessage = exception.message
-                        ?: "Не удалось сохранить результат. Попробуй ещё раз.",
-                )
-            } finally {
-                saveInProgress = false
-            }
-        }
+        savePendingSession()
     }
 
     fun retrySave() {
         val current = _uiState.value
-        if (!current.isFinished || saveInProgress) return
+        if (!current.isFinished || current.isSaved || saveInProgress) return
+        savePendingSession()
+    }
+
+    private fun savePendingSession() {
+        val session = pendingSession ?: return
+        if (saveInProgress) return
 
         saveInProgress = true
-        val finishedAtEpochMs = System.currentTimeMillis()
-
-        _uiState.value = current.copy(
+        _uiState.value = _uiState.value.copy(
             isSaving = true,
             errorMessage = null,
         )
 
         viewModelScope.launch {
             try {
-                repository.saveCompletedTraining(
-                    TrainingSession(
-                        exerciseType = ExerciseType.STROOP_TEST.storageValue,
-                        startedAtEpochMs = startedAtEpochMs,
-                        finishedAtEpochMs = finishedAtEpochMs,
-                        durationMs = _uiState.value.elapsedTimeMs,
-                        accuracyPercent = 0.0,
-                        taskCount = 0,
-                        correctCount = 0,
-                    )
+                repository.saveCompletedTraining(session)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    isSaved = true,
+                    errorMessage = null,
                 )
-                _uiState.value = _uiState.value.copy(isSaving = false)
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
+                    isSaved = false,
                     errorMessage = exception.message
                         ?: "Не удалось сохранить результат. Попробуй ещё раз.",
                 )
