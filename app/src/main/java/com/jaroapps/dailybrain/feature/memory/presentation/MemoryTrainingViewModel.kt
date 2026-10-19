@@ -40,6 +40,9 @@ class MemoryTrainingViewModel(
     private var memorizationFinished = false
     private var pendingResult: MemoryTrainingResult? = null
     private var pendingFinishedAtEpochMs: Long? = null
+    private var pendingDurationMs: Long? = null
+    private var sessionElapsedBeforePauseMs = 0L
+    private var sessionActiveSegmentStartedAtMs: Long? = null
     private var saveInProgress = false
 
     init {
@@ -55,8 +58,12 @@ class MemoryTrainingViewModel(
                 memorizationFinished = false
                 pendingResult = null
                 pendingFinishedAtEpochMs = null
+                pendingDurationMs = null
+                sessionElapsedBeforePauseMs = 0L
+                sessionActiveSegmentStartedAtMs = null
                 saveInProgress = false
                 startedAtEpochMs = System.currentTimeMillis()
+                if (isForeground) startSessionClock()
 
                 _uiState.value =
                     MemoryTrainingUiState.Memorizing(words = words)
@@ -77,6 +84,7 @@ class MemoryTrainingViewModel(
      */
     fun onAppResumed() {
         isForeground = true
+        startSessionClock()
 
         if (_uiState.value is MemoryTrainingUiState.Memorizing) {
             startTimer()
@@ -90,6 +98,27 @@ class MemoryTrainingViewModel(
     fun onAppPaused() {
         isForeground = false
         pauseTimer()
+        pauseSessionClock()
+    }
+
+    private fun startSessionClock() {
+        if (startedAtEpochMs == 0L || sessionActiveSegmentStartedAtMs != null) return
+        if (_uiState.value is MemoryTrainingUiState.Result || _uiState.value is MemoryTrainingUiState.Error) return
+        sessionActiveSegmentStartedAtMs = SystemClock.elapsedRealtime()
+    }
+
+    private fun pauseSessionClock() {
+        val segmentStartedAt = sessionActiveSegmentStartedAtMs ?: return
+        sessionElapsedBeforePauseMs +=
+            (SystemClock.elapsedRealtime() - segmentStartedAt).coerceAtLeast(0L)
+        sessionActiveSegmentStartedAtMs = null
+    }
+
+    private fun currentSessionDurationMs(): Long {
+        val activeSegment = sessionActiveSegmentStartedAtMs?.let { startedAt ->
+            (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
+        } ?: 0L
+        return sessionElapsedBeforePauseMs + activeSegment
     }
 
     private fun startTimer() {
@@ -192,7 +221,10 @@ class MemoryTrainingViewModel(
         val finishedAtEpochMs = pendingFinishedAtEpochMs
             ?: System.currentTimeMillis().also {
                 pendingFinishedAtEpochMs = it
+                pendingDurationMs = currentSessionDurationMs()
+                pauseSessionClock()
             }
+        val durationMs = pendingDurationMs ?: currentSessionDurationMs()
 
         _uiState.value = previousState.copy(
             isSaving = true,
@@ -204,6 +236,7 @@ class MemoryTrainingViewModel(
                 saveMemoryTraining(
                     startedAtEpochMs = startedAtEpochMs,
                     finishedAtEpochMs = finishedAtEpochMs,
+                    durationMs = durationMs,
                     result = result
                 )
 
