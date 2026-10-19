@@ -10,7 +10,6 @@ import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
-import com.jaroapps.dailybrain.feature.counting.presentation.CountingStatisticsScreen
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
@@ -117,17 +116,6 @@ fun AppNavHost() {
                         route = Route.HOME,
                         inclusive = false,
                     )
-                },
-                onOpenStatistics = {
-                    navController.navigate(Route.COUNTING_STATISTICS)
-                },
-            )
-        }
-
-        composable(Route.COUNTING_STATISTICS) {
-            CountingStatisticsScreen(
-                onBack = {
-                    navController.popBackStack()
                 },
             )
         }

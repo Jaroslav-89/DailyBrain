@@ -18,6 +18,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -70,13 +72,16 @@ fun StroopScreen(
     }
 
     BackHandler {
-        onExit()
+        if (!state.isFinished || state.isSaved) {
+            onExit()
+        }
     }
 
     if (state.isFinished) {
         StroopResultContent(
             elapsedTimeMs = state.elapsedTimeMs,
             isSaving = state.isSaving,
+            isSaved = state.isSaved,
             errorMessage = state.errorMessage,
             onRetrySave = viewModel::retrySave,
             onExit = onExit,
@@ -115,19 +120,19 @@ private fun StroopTrainingContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedButton(onClick = onExit) {
-                Text("Выйти")
+                Text(stringResource(R.string.action_exit))
             }
 
             Spacer(Modifier.weight(1f))
 
             Text(
-                text = "Тест Струпа",
+                text = stringResource(R.string.exercise_stroop),
                 style = MaterialTheme.typography.titleLarge,
             )
         }
 
         Text(
-            text = "Называй цвет текста, а не то, что написано",
+            text = stringResource(R.string.stroop_instruction),
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 4.dp, bottom = 4.dp),
@@ -209,7 +214,7 @@ private fun StroopTrainingContent(
                 .fillMaxWidth()
                 .padding(top = 8.dp),
         ) {
-            Text("Завершить тест")
+            Text(stringResource(R.string.action_finish_test))
         }
     }
 }
@@ -218,6 +223,7 @@ private fun StroopTrainingContent(
 private fun StroopResultContent(
     elapsedTimeMs: Long,
     isSaving: Boolean,
+    isSaved: Boolean,
     errorMessage: String?,
     onRetrySave: () -> Unit,
     onExit: () -> Unit,
@@ -230,7 +236,7 @@ private fun StroopResultContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Тест завершён",
+            text = stringResource(R.string.status_test_completed),
             style = MaterialTheme.typography.headlineMedium,
         )
 
@@ -244,7 +250,7 @@ private fun StroopResultContent(
         if (isSaving) {
             CircularProgressIndicator()
             Text(
-                text = "Сохраняем результат…",
+                text = stringResource(R.string.status_saving),
                 modifier = Modifier.padding(top = 12.dp),
             )
         } else if (errorMessage != null) {
@@ -260,11 +266,11 @@ private fun StroopResultContent(
                     .fillMaxWidth()
                     .padding(top = 16.dp),
             ) {
-                Text("Повторить сохранение")
+                Text(stringResource(R.string.action_retry_save))
             }
         } else {
             Text(
-                text = "Результат сохранён",
+                text = stringResource(R.string.status_saved),
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
@@ -274,9 +280,9 @@ private fun StroopResultContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            enabled = !isSaving,
+            enabled = isSaved,
         ) {
-            Text("Готово")
+            Text(stringResource(R.string.action_done))
         }
     }
 }

@@ -1,26 +1,27 @@
 package com.jaroapps.dailybrain.feature.stroop.presentation
 
-import android.os.SystemClock
+import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
+import com.jaroapps.dailybrain.core.resources.StringProvider
+import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.core.time.elapsedTimeUpdates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
-import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
+import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class StroopViewModel(
     private val generateStimuli: GenerateStroopStimuliUseCase,
-    private val repository: ArithmeticTrainingRepository,
+    private val saveCompletedTraining: SaveCompletedTrainingUseCase,
+    private val strings: StringProvider,
 ) : ViewModel() {
-
-    companion object {
-        private const val TIMER_UPDATE_INTERVAL_MS = 100L
-    }
 
     private val _uiState = MutableStateFlow(
         StroopUiState(
@@ -29,13 +30,13 @@ class StroopViewModel(
     )
     val uiState = _uiState.asStateFlow()
 
-    private val startedAtEpochMs = System.currentTimeMillis()
+    private var startedAtEpochMs: Long? = null
 
     private var timerJob: Job? = null
     private var isForeground = false
-    private var elapsedBeforePauseMs = 0L
-    private var activeSegmentStartedAtMs = 0L
+    private val activeTimeTracker = ActiveTimeTracker()
     private var saveInProgress = false
+    private var pendingSession: TrainingSession? = null
 
     fun onAppResumed() {
         isForeground = true
@@ -50,37 +51,23 @@ class StroopViewModel(
     private fun startTimer() {
         if (timerJob?.isActive == true || _uiState.value.isFinished) return
 
-        activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        if (startedAtEpochMs == null) startedAtEpochMs = System.currentTimeMillis()
+        activeTimeTracker.resume()
 
         timerJob = viewModelScope.launch {
-            while (true) {
-                val currentSegmentMs =
-                    SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-
-                val elapsedMs = elapsedBeforePauseMs + currentSegmentMs
-
-                _uiState.value = _uiState.value.copy(
-                    elapsedTimeMs = elapsedMs,
-                )
-
-                delay(TIMER_UPDATE_INTERVAL_MS)
+            activeTimeTracker.elapsedTimeUpdates().collect { elapsedMs ->
+                _uiState.value = _uiState.value.copy(elapsedTimeMs = elapsedMs)
             }
         }
     }
 
     private fun pauseTimer() {
-        val job = timerJob ?: return
-
-        if (job.isActive) {
-            elapsedBeforePauseMs +=
-                SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-        }
-
-        job.cancel()
+        timerJob?.cancel()
         timerJob = null
+        activeTimeTracker.pause()
 
         _uiState.value = _uiState.value.copy(
-            elapsedTimeMs = elapsedBeforePauseMs,
+            elapsedTimeMs = activeTimeTracker.elapsedMs(),
         )
     }
 
@@ -89,79 +76,61 @@ class StroopViewModel(
         if (current.isFinished || saveInProgress) return
 
         pauseTimer()
-        saveInProgress = true
-
         val finishedAtEpochMs = System.currentTimeMillis()
-        val durationMs = elapsedBeforePauseMs
+        val durationMs = activeTimeTracker.elapsedMs()
+
+        // Фиксируем сессию один раз: повторная попытка сохраняет те же значения.
+        pendingSession = TrainingSession(
+            exerciseType = ExerciseType.STROOP_TEST.storageValue,
+            startedAtEpochMs = startedAtEpochMs ?: finishedAtEpochMs,
+            finishedAtEpochMs = finishedAtEpochMs,
+            durationMs = durationMs,
+            accuracyPercent = 0.0,
+            taskCount = 0,
+            correctCount = 0,
+        )
 
         _uiState.value = current.copy(
             elapsedTimeMs = durationMs,
             isFinished = true,
             isSaving = true,
+            isSaved = false,
             errorMessage = null,
         )
-
-        viewModelScope.launch {
-            try {
-                repository.saveCompletedTraining(
-                    TrainingSession(
-                        exerciseType = ExerciseType.STROOP_TEST.storageValue,
-                        startedAtEpochMs = startedAtEpochMs,
-                        finishedAtEpochMs = finishedAtEpochMs,
-                        durationMs = durationMs,
-                        accuracyPercent = 0.0,
-                        taskCount = 0,
-                        correctCount = 0,
-                    )
-                )
-
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                )
-            } catch (exception: Exception) {
-                // Allow the user to retry saving without rerunning the test.
-                _uiState.value = _uiState.value.copy(
-                    isSaving = false,
-                    errorMessage = exception.message
-                        ?: "Не удалось сохранить результат. Попробуй ещё раз.",
-                )
-            } finally {
-                saveInProgress = false
-            }
-        }
+        savePendingSession()
     }
 
     fun retrySave() {
         val current = _uiState.value
-        if (!current.isFinished || saveInProgress) return
+        if (!current.isFinished || current.isSaved || saveInProgress) return
+        savePendingSession()
+    }
+
+    private fun savePendingSession() {
+        val session = pendingSession ?: return
+        if (saveInProgress) return
 
         saveInProgress = true
-        val finishedAtEpochMs = System.currentTimeMillis()
-
-        _uiState.value = current.copy(
+        _uiState.value = _uiState.value.copy(
             isSaving = true,
             errorMessage = null,
         )
 
         viewModelScope.launch {
             try {
-                repository.saveCompletedTraining(
-                    TrainingSession(
-                        exerciseType = ExerciseType.STROOP_TEST.storageValue,
-                        startedAtEpochMs = startedAtEpochMs,
-                        finishedAtEpochMs = finishedAtEpochMs,
-                        durationMs = _uiState.value.elapsedTimeMs,
-                        accuracyPercent = 0.0,
-                        taskCount = 0,
-                        correctCount = 0,
-                    )
+                saveCompletedTraining(session)
+                _uiState.value = _uiState.value.copy(
+                    isSaving = false,
+                    isSaved = true,
+                    errorMessage = null,
                 )
-                _uiState.value = _uiState.value.copy(isSaving = false)
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
-                    errorMessage = exception.message
-                        ?: "Не удалось сохранить результат. Попробуй ещё раз.",
+                    isSaved = false,
+                    errorMessage = strings.getString(R.string.error_save_failed),
                 )
             } finally {
                 saveInProgress = false

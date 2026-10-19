@@ -18,12 +18,18 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import org.koin.androidx.compose.koinViewModel
@@ -34,6 +40,25 @@ fun ArithmeticScreen(
     viewModel: ArithmeticViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.onAppResumed()
+                Lifecycle.Event.ON_STOP -> viewModel.onAppPaused()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) {
+            viewModel.onAppResumed()
+        }
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.onAppPaused()
+        }
+    }
 
     LaunchedEffect(viewModel) {
         if (!state.isStarted && !state.isCompleted) {
@@ -42,8 +67,11 @@ fun ArithmeticScreen(
     }
 
     BackHandler {
-        viewModel.cancelTraining()
-        onExit()
+        // Пока результат не сохранён, остаёмся на экране и даём пользователю повторить попытку.
+        if (!state.isCompleted || state.isSaved) {
+            viewModel.cancelTraining()
+            onExit()
+        }
     }
 
     if (state.isCompleted && state.isReviewingAnswers) {
@@ -55,6 +83,7 @@ fun ArithmeticScreen(
         ResultContent(
             state = state,
             onOpenAnswerReview = viewModel::openAnswerReview,
+            onRetrySave = viewModel::retrySave,
             onFinish = {
                 viewModel.cancelTraining()
                 onExit()
@@ -92,7 +121,7 @@ private fun TrainingContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedButton(onClick = onExit) {
-                Text("Закрыть")
+                Text(stringResource(R.string.action_close))
             }
 
             Spacer(Modifier.weight(1f))
@@ -220,6 +249,7 @@ private fun ResultContent(
     state: ArithmeticUiState,
     onFinish: () -> Unit,
     onOpenAnswerReview: () -> Unit,
+    onRetrySave: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -229,14 +259,14 @@ private fun ResultContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Тренировка завершена",
+            text = stringResource(R.string.status_training_completed),
             style = MaterialTheme.typography.headlineMedium,
         )
 
         Spacer(Modifier.height(32.dp))
 
         Text(
-            text = "Время",
+            text = stringResource(R.string.label_time),
             style = MaterialTheme.typography.titleMedium,
         )
 
@@ -248,31 +278,61 @@ private fun ResultContent(
         Spacer(Modifier.height(24.dp))
 
         Text(
-            text = "Точность",
+            text = stringResource(R.string.label_accuracy),
             style = MaterialTheme.typography.titleMedium,
         )
 
         Text(
-            text = "${"%.1f".format(state.accuracyPercent ?: 0.0)}%",
+            text = stringResource(R.string.format_percent, "%.1f".format(state.accuracyPercent ?: 0.0)),
             style = MaterialTheme.typography.headlineLarge,
         )
 
-        Spacer(Modifier.height(40.dp))
+        Spacer(Modifier.height(24.dp))
+
+        when {
+            state.isSaving -> Text(
+                text = stringResource(R.string.status_saving),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+            state.isSaved -> Text(
+                text = stringResource(R.string.status_saved),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            state.saveErrorMessage != null -> {
+                Text(
+                    text = state.saveErrorMessage,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedButton(
+                    onClick = onRetrySave,
+                    enabled = !state.isSaving,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.action_retry_save))
+                }
+            }
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         OutlinedButton(
             onClick = onOpenAnswerReview,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Посмотреть ответы")
+            Text(stringResource(R.string.action_view_answers))
         }
 
         Spacer(Modifier.height(12.dp))
 
         Button(
             onClick = onFinish,
+            enabled = state.isSaved,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Завершить")
+            Text(stringResource(R.string.action_finish))
         }
     }
 }
@@ -295,13 +355,13 @@ private fun AnswerReviewContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             OutlinedButton(onClick = onBack) {
-                Text("Назад")
+                Text(stringResource(R.string.action_back))
             }
 
             Spacer(Modifier.weight(1f))
 
             Text(
-                text = "Результаты",
+                text = stringResource(R.string.label_results),
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -337,7 +397,7 @@ private fun AnswerReviewContent(
                         if (!result.isCorrect) {
                             Spacer(Modifier.height(4.dp))
                             Text(
-                                text = "Правильный ответ: ${result.correctAnswer}",
+                                text = stringResource(R.string.label_correct_answer, result.correctAnswer),
                                 style = MaterialTheme.typography.bodyMedium,
                             )
                         }

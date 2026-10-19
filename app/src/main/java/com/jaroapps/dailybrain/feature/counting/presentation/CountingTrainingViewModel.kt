@@ -1,33 +1,33 @@
 package com.jaroapps.dailybrain.feature.counting.presentation
 
-import android.os.SystemClock
+import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
+import com.jaroapps.dailybrain.core.resources.StringProvider
+import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.core.time.elapsedTimeUpdates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
-import com.jaroapps.dailybrain.feature.counting.domain.repository.CountingTrainingRepository
+import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CountingTrainingViewModel(
-    private val repository: CountingTrainingRepository,
+    private val saveCompletedTraining: SaveCompletedTrainingUseCase,
+    private val strings: StringProvider,
 ) : ViewModel() {
-
-    companion object {
-        private const val TIMER_UPDATE_INTERVAL_MS = 100L
-    }
 
     private val _uiState = MutableStateFlow(CountingTrainingUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val startedAtEpochMs = System.currentTimeMillis()
+    private var startedAtEpochMs: Long? = null
 
     private var timerJob: Job? = null
-    private var elapsedBeforePauseMs = 0L
-    private var activeSegmentStartedAtMs = 0L
+    private val activeTimeTracker = ActiveTimeTracker()
     private var pendingSession: TrainingSession? = null
     private var saveInProgress = false
 
@@ -46,35 +46,23 @@ class CountingTrainingViewModel(
             return
         }
 
-        activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        if (startedAtEpochMs == null) startedAtEpochMs = System.currentTimeMillis()
+        activeTimeTracker.resume()
 
         timerJob = viewModelScope.launch {
-            while (true) {
-                val currentSegmentMs =
-                    SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-
-                _uiState.value = _uiState.value.copy(
-                    elapsedTimeMs = elapsedBeforePauseMs + currentSegmentMs,
-                )
-
-                delay(TIMER_UPDATE_INTERVAL_MS)
+            activeTimeTracker.elapsedTimeUpdates().collect { elapsedMs ->
+                _uiState.value = _uiState.value.copy(elapsedTimeMs = elapsedMs)
             }
         }
     }
 
     private fun pauseTimer() {
-        val job = timerJob ?: return
-
-        if (job.isActive) {
-            elapsedBeforePauseMs +=
-                SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-        }
-
-        job.cancel()
+        timerJob?.cancel()
         timerJob = null
+        activeTimeTracker.pause()
 
         _uiState.value = _uiState.value.copy(
-            elapsedTimeMs = elapsedBeforePauseMs,
+            elapsedTimeMs = activeTimeTracker.elapsedMs(),
         )
     }
 
@@ -89,16 +77,16 @@ class CountingTrainingViewModel(
         // сохранения и всех возможных повторных попыток.
         pendingSession = TrainingSession(
             exerciseType = ExerciseType.COUNTING_TRAINING.storageValue,
-            startedAtEpochMs = startedAtEpochMs,
+            startedAtEpochMs = startedAtEpochMs ?: finishedAtEpochMs,
             finishedAtEpochMs = finishedAtEpochMs,
-            durationMs = elapsedBeforePauseMs,
+            durationMs = activeTimeTracker.elapsedMs(),
             accuracyPercent = 0.0,
             taskCount = 0,
             correctCount = 0,
         )
 
         _uiState.value = _uiState.value.copy(
-            elapsedTimeMs = elapsedBeforePauseMs,
+            elapsedTimeMs = activeTimeTracker.elapsedMs(),
             isFinished = true,
             isSaving = true,
             isSaved = false,
@@ -127,19 +115,20 @@ class CountingTrainingViewModel(
 
         viewModelScope.launch {
             try {
-                repository.saveCompletedTraining(session)
+                saveCompletedTraining(session)
 
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     isSaved = true,
                     errorMessage = null,
                 )
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     isSaved = false,
-                    errorMessage = exception.message
-                        ?: "Не удалось сохранить результат. Попробуй ещё раз.",
+                    errorMessage = strings.getString(R.string.error_save_failed),
                 )
             } finally {
                 saveInProgress = false

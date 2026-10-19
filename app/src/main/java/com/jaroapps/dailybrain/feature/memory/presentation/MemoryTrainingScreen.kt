@@ -20,6 +20,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -119,7 +121,7 @@ private fun LoadingContent() {
     ) {
         CircularProgressIndicator()
         Spacer(Modifier.height(16.dp))
-        Text("Подготавливаем слова…")
+        Text(stringResource(R.string.memory_loading))
     }
 }
 
@@ -139,11 +141,11 @@ private fun MemorizingContent(
             verticalAlignment = Alignment.CenterVertically
         ) {
             OutlinedButton(onClick = onExit) {
-                Text("Выйти")
+                Text(stringResource(R.string.action_exit))
             }
             Spacer(Modifier.weight(1f))
             Text(
-                text = "Запоминание",
+                text = stringResource(R.string.memory_title),
                 style = MaterialTheme.typography.titleLarge
             )
         }
@@ -158,7 +160,7 @@ private fun MemorizingContent(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Запомни слова. У тебя 120 секунд.",
+            text = stringResource(R.string.memory_instruction),
             style = MaterialTheme.typography.bodyLarge
         )
 
@@ -192,7 +194,7 @@ private fun MemorizingContent(
         }
 
         Text(
-            text = "Полоса заполнится, когда время закончится.",
+            text = stringResource(R.string.memory_progress_hint),
             modifier = Modifier.padding(top = 12.dp),
             style = MaterialTheme.typography.bodySmall
         )
@@ -221,13 +223,13 @@ private fun RecallContent(
                 onClick = onExit,
                 enabled = !isSaving
             ) {
-                Text("Выйти")
+                Text(stringResource(R.string.action_exit))
             }
 
             Spacer(Modifier.weight(1f))
 
             Text(
-                text = "Вспомни слова",
+                text = stringResource(R.string.memory_recall_title),
                 style = MaterialTheme.typography.titleLarge
             )
         }
@@ -235,8 +237,7 @@ private fun RecallContent(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Введи вспомнившиеся слова в любые поля. " +
-                    "Порядок не важен, пустые поля можно оставить.",
+            text = stringResource(R.string.memory_recall_instruction),
             style = MaterialTheme.typography.bodyMedium
         )
 
@@ -251,7 +252,7 @@ private fun RecallContent(
                     value = answer,
                     onValueChange = { onAnswerChanged(index, it) },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Слово ${index + 1}") },
+                    label = { Text(stringResource(R.string.memory_word_number, index + 1)) },
                     singleLine = true,
                     enabled = !isSaving
                 )
@@ -280,11 +281,11 @@ private fun RecallContent(
                     strokeWidth = 2.dp
                 )
                 Text(
-                    text = "Сохраняем результат…",
+                    text = stringResource(R.string.status_saving),
                     modifier = Modifier.padding(start = 12.dp)
                 )
             } else {
-                Text("Проверить ответы")
+                Text(stringResource(R.string.action_check_answers))
             }
         }
     }
@@ -303,17 +304,17 @@ private fun ResultContent(
     ) {
         item {
             Text(
-                text = "Тренировка завершена!",
+                text = stringResource(R.string.memory_result_title),
                 style = MaterialTheme.typography.headlineMedium
             )
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "${result.correctCount} из ${result.shownWords.size}",
+                text = stringResource(R.string.memory_score, result.correctCount, result.shownWords.size),
                 style = MaterialTheme.typography.headlineLarge,
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = "Точность: ${result.accuracyPercent}%",
+                text = stringResource(R.string.memory_accuracy, result.accuracyPercent),
                 style = MaterialTheme.typography.titleMedium
             )
             Spacer(Modifier.height(12.dp))
@@ -321,23 +322,23 @@ private fun ResultContent(
                 onClick = onExit,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Text("Завершить")
+                Text(stringResource(R.string.action_finish))
             }
         }
 
         item {
             Text(
-                text = "Вспомнил (${result.recalledWords.size})",
+                text = stringResource(R.string.memory_recalled, result.recalledWords.size),
                 style = MaterialTheme.typography.titleLarge
             )
         }
 
         if (result.recalledWords.isEmpty()) {
-            item { Text("Пока нет правильно вспомненных слов.") }
+            item { Text(stringResource(R.string.memory_no_recalled)) }
         } else {
             itemsIndexed(result.recalledWords) { _, word ->
                 Text(
-                    text = "✓  ${word.text}",
+                    text = stringResource(R.string.memory_recalled_word, word.text),
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(vertical = 3.dp)
                 )
@@ -347,17 +348,17 @@ private fun ResultContent(
         item {
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Пропустил (${result.missedWords.size})",
+                text = stringResource(R.string.memory_missed, result.missedWords.size),
                 style = MaterialTheme.typography.titleLarge
             )
         }
 
         if (result.missedWords.isEmpty()) {
-            item { Text("Отлично! Ты вспомнил все слова.") }
+            item { Text(stringResource(R.string.memory_all_recalled)) }
         } else {
             itemsIndexed(result.missedWords) { _, word ->
                 Text(
-                    text = "•  ${word.text}",
+                    text = stringResource(R.string.memory_missed_word, word.text),
                     modifier = Modifier.padding(vertical = 3.dp)
                 )
             }
@@ -378,14 +379,14 @@ private fun ErrorContent(
         verticalArrangement = Arrangement.Center
     ) {
         Text(
-            text = "Не удалось начать тренировку",
+            text = stringResource(R.string.error_start_training),
             style = MaterialTheme.typography.titleLarge
         )
         Spacer(Modifier.height(12.dp))
         Text(message, color = MaterialTheme.colorScheme.error)
         Spacer(Modifier.height(24.dp))
         Button(onClick = onExit) {
-            Text("Назад")
+            Text(stringResource(R.string.action_back))
         }
     }
 }

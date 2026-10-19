@@ -17,6 +17,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -49,11 +51,11 @@ fun CalendarScreen(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             TextButton(onClick = onBack) {
-                Text("Назад")
+                Text(stringResource(R.string.action_back))
             }
 
             Text(
-                text = "Календарь",
+                text = stringResource(R.string.calendar_title),
                 style = MaterialTheme.typography.titleLarge,
             )
         }
@@ -73,9 +75,9 @@ fun CalendarScreen(
                 text = state.displayedMonth.format(
                     DateTimeFormatter.ofPattern(
                         "LLLL yyyy",
-                        Locale("ru"),
+                        Locale.getDefault(),
                     )
-                ).replaceFirstChar { it.uppercase(Locale("ru")) },
+                ).replaceFirstChar { it.uppercase(Locale.getDefault()) },
                 style = MaterialTheme.typography.titleMedium,
             )
 
@@ -86,7 +88,15 @@ fun CalendarScreen(
 
         Spacer(Modifier.size(12.dp))
 
-        val weekdays = listOf("Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс")
+        val weekdays = listOf(
+            R.string.calendar_weekday_monday,
+            R.string.calendar_weekday_tuesday,
+            R.string.calendar_weekday_wednesday,
+            R.string.calendar_weekday_thursday,
+            R.string.calendar_weekday_friday,
+            R.string.calendar_weekday_saturday,
+            R.string.calendar_weekday_sunday,
+        ).map { stringResource(it) }
 
         Row(modifier = Modifier.fillMaxWidth()) {
             weekdays.forEach { day ->

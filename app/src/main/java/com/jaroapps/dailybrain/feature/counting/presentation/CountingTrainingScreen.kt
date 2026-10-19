@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -30,7 +32,6 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun CountingTrainingScreen(
     onExit: () -> Unit,
-    onOpenStatistics: () -> Unit,
     viewModel: CountingTrainingViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -47,7 +48,8 @@ fun CountingTrainingScreen(
 
         lifecycleOwner.lifecycle.addObserver(observer)
 
-        if (lifecycleOwner.lifecycle.currentState.isAtLeast(
+        if (
+            lifecycleOwner.lifecycle.currentState.isAtLeast(
                 Lifecycle.State.STARTED,
             )
         ) {
@@ -61,7 +63,9 @@ fun CountingTrainingScreen(
     }
 
     BackHandler {
-        onExit()
+        if (!state.isFinished || state.isSaved) {
+            onExit()
+        }
     }
 
     if (state.isFinished) {
@@ -71,7 +75,6 @@ fun CountingTrainingScreen(
             isSaved = state.isSaved,
             errorMessage = state.errorMessage,
             onRetrySave = viewModel::retrySave,
-            onOpenStatistics = onOpenStatistics,
             onExit = onExit,
         )
     } else {
@@ -83,7 +86,7 @@ fun CountingTrainingScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Устный счёт",
+                text = stringResource(R.string.exercise_counting),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
@@ -91,7 +94,7 @@ fun CountingTrainingScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Считай вслух от 1 до 120 как можно быстрее.",
+                text = stringResource(R.string.counting_instruction),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
             )
@@ -109,7 +112,7 @@ fun CountingTrainingScreen(
                 onClick = viewModel::finishTraining,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Завершить тренировку")
+                Text(stringResource(R.string.action_finish_training))
             }
         }
     }
@@ -122,7 +125,6 @@ private fun CountingResultContent(
     isSaved: Boolean,
     errorMessage: String?,
     onRetrySave: () -> Unit,
-    onOpenStatistics: () -> Unit,
     onExit: () -> Unit,
 ) {
     Column(
@@ -133,36 +135,24 @@ private fun CountingResultContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Тренировка завершена",
+            text = stringResource(R.string.status_training_completed),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
 
-        Spacer(Modifier.height(24.dp))
-
-        Text(
-            text = "Время тренировки",
-            style = MaterialTheme.typography.titleMedium,
-        )
-
         Text(
             text = formatCountingTime(elapsedTimeMs),
+            modifier = Modifier.padding(top = 16.dp, bottom = 24.dp),
             style = MaterialTheme.typography.displayMedium,
+            color = MaterialTheme.colorScheme.primary,
         )
-
-        Spacer(Modifier.height(24.dp))
 
         when {
             isSaving -> {
                 CircularProgressIndicator()
-                Spacer(Modifier.height(8.dp))
-                Text("Сохраняем результат…")
-            }
-
-            isSaved -> {
                 Text(
-                    text = "Результат сохранён",
-                    color = MaterialTheme.colorScheme.primary,
+                    text = stringResource(R.string.status_saving),
+                    modifier = Modifier.padding(top = 12.dp),
                 )
             }
 
@@ -173,34 +163,32 @@ private fun CountingResultContent(
                     textAlign = TextAlign.Center,
                 )
 
-                Spacer(Modifier.height(8.dp))
-
                 OutlinedButton(
                     onClick = onRetrySave,
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp),
                 ) {
-                    Text("Повторить сохранение")
+                    Text(stringResource(R.string.action_retry_save))
                 }
+            }
+
+            isSaved -> {
+                Text(
+                    text = stringResource(R.string.status_saved),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
             }
         }
 
-        Spacer(Modifier.height(24.dp))
-
-        OutlinedButton(
-            onClick = onOpenStatistics,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text("Статистика упражнения")
-        }
-
-        Spacer(Modifier.height(12.dp))
-
         Button(
             onClick = onExit,
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 16.dp),
+            enabled = isSaved,
         ) {
-            Text("Завершить")
+            Text(stringResource(R.string.action_done))
         }
     }
 }
-
