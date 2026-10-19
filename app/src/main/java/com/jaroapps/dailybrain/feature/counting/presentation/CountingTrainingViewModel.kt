@@ -1,6 +1,6 @@
 package com.jaroapps.dailybrain.feature.counting.presentation
 
-import android.os.SystemClock
+import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
@@ -27,8 +27,7 @@ class CountingTrainingViewModel(
     private var startedAtEpochMs: Long? = null
 
     private var timerJob: Job? = null
-    private var elapsedBeforePauseMs = 0L
-    private var activeSegmentStartedAtMs = 0L
+    private val activeTimeTracker = ActiveTimeTracker()
     private var pendingSession: TrainingSession? = null
     private var saveInProgress = false
 
@@ -48,15 +47,12 @@ class CountingTrainingViewModel(
         }
 
         if (startedAtEpochMs == null) startedAtEpochMs = System.currentTimeMillis()
-        activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        activeTimeTracker.resume()
 
         timerJob = viewModelScope.launch {
             while (true) {
-                val currentSegmentMs =
-                    SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-
                 _uiState.value = _uiState.value.copy(
-                    elapsedTimeMs = elapsedBeforePauseMs + currentSegmentMs,
+                    elapsedTimeMs = activeTimeTracker.elapsedMs(),
                 )
 
                 delay(TIMER_UPDATE_INTERVAL_MS)
@@ -65,18 +61,12 @@ class CountingTrainingViewModel(
     }
 
     private fun pauseTimer() {
-        val job = timerJob ?: return
-
-        if (job.isActive) {
-            elapsedBeforePauseMs +=
-                SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-        }
-
-        job.cancel()
+        timerJob?.cancel()
         timerJob = null
+        activeTimeTracker.pause()
 
         _uiState.value = _uiState.value.copy(
-            elapsedTimeMs = elapsedBeforePauseMs,
+            elapsedTimeMs = activeTimeTracker.elapsedMs(),
         )
     }
 
@@ -93,14 +83,14 @@ class CountingTrainingViewModel(
             exerciseType = ExerciseType.COUNTING_TRAINING.storageValue,
             startedAtEpochMs = startedAtEpochMs ?: finishedAtEpochMs,
             finishedAtEpochMs = finishedAtEpochMs,
-            durationMs = elapsedBeforePauseMs,
+            durationMs = activeTimeTracker.elapsedMs(),
             accuracyPercent = 0.0,
             taskCount = 0,
             correctCount = 0,
         )
 
         _uiState.value = _uiState.value.copy(
-            elapsedTimeMs = elapsedBeforePauseMs,
+            elapsedTimeMs = activeTimeTracker.elapsedMs(),
             isFinished = true,
             isSaving = true,
             isSaved = false,
