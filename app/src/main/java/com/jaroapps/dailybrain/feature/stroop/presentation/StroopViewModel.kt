@@ -30,7 +30,7 @@ class StroopViewModel(
     )
     val uiState = _uiState.asStateFlow()
 
-    private val startedAtEpochMs = System.currentTimeMillis()
+    private var startedAtEpochMs: Long? = null
 
     private var timerJob: Job? = null
     private var isForeground = false
@@ -52,6 +52,7 @@ class StroopViewModel(
     private fun startTimer() {
         if (timerJob?.isActive == true || _uiState.value.isFinished) return
 
+        if (startedAtEpochMs == null) startedAtEpochMs = System.currentTimeMillis()
         activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
 
         timerJob = viewModelScope.launch {
@@ -93,7 +94,7 @@ class StroopViewModel(
         // Фиксируем сессию один раз: повторная попытка сохраняет те же значения.
         pendingSession = TrainingSession(
             exerciseType = ExerciseType.STROOP_TEST.storageValue,
-            startedAtEpochMs = startedAtEpochMs,
+            startedAtEpochMs = startedAtEpochMs ?: finishedAtEpochMs,
             finishedAtEpochMs = finishedAtEpochMs,
             durationMs = durationMs,
             accuracyPercent = 0.0,
