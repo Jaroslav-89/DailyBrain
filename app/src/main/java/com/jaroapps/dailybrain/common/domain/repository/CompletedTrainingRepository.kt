@@ -11,4 +11,6 @@ interface CompletedTrainingRepository {
     fun observeAllCompletedTrainings(): Flow<List<TrainingSession>>
     fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>>
     fun observeActiveTrainingDates(): Flow<Set<Int>>
+    fun observeTrainingDaysBetween(startDate: Int, endDate: Int): Flow<Set<Int>>
+    fun observeTotalTrainingCount(): Flow<Int>
 }

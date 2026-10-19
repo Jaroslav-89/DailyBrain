@@ -6,6 +6,8 @@ import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingReposit
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.ObserveTrainingDaysInRangeUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
@@ -51,6 +53,8 @@ val appModule = module {
     factory { ObserveAllCompletedTrainingsUseCase(repository = get()) }
     factory { ObserveCompletedTrainingsByDateUseCase(repository = get()) }
     factory { ObserveActiveTrainingDatesUseCase(repository = get()) }
+    factory { ObserveTrainingDaysInRangeUseCase(repository = get()) }
+    factory { ObserveTotalTrainingCountUseCase(repository = get()) }
     factory { SaveCompletedTrainingUseCase(repository = get()) }
 
     // Arithmetic feature
@@ -109,7 +113,12 @@ val appModule = module {
     }
 
     // Home feature
-    viewModel { HomeViewModel(observeAllCompletedTrainings = get()) }
+    viewModel {
+        HomeViewModel(
+            observeTrainingDaysInRange = get(),
+            observeTotalTrainingCount = get(),
+        )
+    }
 
     // Statistics feature
     viewModel { StatisticsViewModel(observeAllCompletedTrainings = get()) }

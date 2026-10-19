@@ -24,4 +24,16 @@ interface TrainingDayDao {
 
     @Query("SELECT * FROM training_days ORDER BY date ASC")
     fun observeAll(): Flow<List<TrainingDayEntity>>
+
+    @Query(
+        """
+        SELECT * FROM training_days
+        WHERE date BETWEEN :startDate AND :endDate
+        ORDER BY date ASC
+        """
+    )
+    fun observeBetweenDates(
+        startDate: Int,
+        endDate: Int,
+    ): Flow<List<TrainingDayEntity>>
 }

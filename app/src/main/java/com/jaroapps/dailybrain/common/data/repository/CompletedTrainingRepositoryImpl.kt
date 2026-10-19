@@ -57,6 +57,17 @@ class CompletedTrainingRepositoryImpl(
             days.map { it.date }.toSet()
         }
 
+    override fun observeTrainingDaysBetween(
+        startDate: Int,
+        endDate: Int,
+    ): Flow<Set<Int>> =
+        database.trainingDayDao().observeBetweenDates(startDate, endDate).map { days ->
+            days.map { it.date }.toSet()
+        }
+
+    override fun observeTotalTrainingCount(): Flow<Int> =
+        database.trainingSessionDao().observeTotalCount()
+
     private fun TrainingSessionEntity.toDomain() = TrainingSession(
         id = id,
         exerciseType = exerciseType,

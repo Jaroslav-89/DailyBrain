@@ -22,16 +22,18 @@ interface TrainingSessionDao {
     )
     fun observeAll(): Flow<List<TrainingSessionEntity>>
 
+    @Query("SELECT COUNT(*) FROM training_sessions")
+    fun observeTotalCount(): Flow<Int>
+
     @Query("SELECT * FROM training_sessions WHERE id = :id")
     suspend fun getById(id: Long): TrainingSessionEntity?
 
-
     @Query(
         """
-    SELECT * FROM training_sessions
-    WHERE date = :date
-    ORDER BY finishedAtEpochMs ASC
-    """
+        SELECT * FROM training_sessions
+        WHERE date = :date
+        ORDER BY finishedAtEpochMs ASC
+        """
     )
     fun observeByDate(date: Int): Flow<List<TrainingSessionEntity>>
 }
