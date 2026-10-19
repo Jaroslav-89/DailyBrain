@@ -4,10 +4,14 @@ import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import kotlinx.coroutines.flow.Flow
 
 /**
- * Общий доступ к завершённым тренировкам: сохранение и чтение истории.
+ * Общий контракт для сохранения завершённых тренировок и чтения истории.
  */
 interface CompletedTrainingRepository {
     suspend fun saveCompletedTraining(session: TrainingSession)
+
     fun observeAllCompletedTrainings(): Flow<List<TrainingSession>>
+
     fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>>
+
+    fun observeActiveTrainingDates(): Flow<Set<Int>>
 }
