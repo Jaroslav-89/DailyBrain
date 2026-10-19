@@ -5,8 +5,8 @@ import androidx.room.PrimaryKey
 
 @Entity(tableName = "training_sessions")
 data class TrainingSessionEntity(
-    @PrimaryKey(autoGenerate = true)
-    val id: Long = 0,
+    @PrimaryKey(autoGenerate = false)
+    val id: Long,
     val exerciseType: String,
     val startedAtEpochMs: Long,
     val finishedAtEpochMs: Long,

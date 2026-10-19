@@ -20,6 +20,7 @@ class CompletedTrainingRepositoryImpl(
         database.withTransaction {
             database.trainingSessionDao().insert(
                 TrainingSessionEntity(
+                    id = session.startedAtEpochMs,
                     exerciseType = session.exerciseType,
                     startedAtEpochMs = session.startedAtEpochMs,
                     finishedAtEpochMs = session.finishedAtEpochMs,

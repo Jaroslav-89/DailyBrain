@@ -41,8 +41,6 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            // Не удаляем историю пользователя автоматически при несовместимой схеме.
-            // При изменении схемы нужно добавить явную Room Migration.
             .build()
     }
 
