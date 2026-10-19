@@ -28,6 +28,9 @@ class ArithmeticViewModel(
 
     private var startedAtEpochMs: Long? = null
     private var startedAtElapsedMs: Long? = null
+    private var elapsedBeforePauseMs = 0L
+    private var activeSegmentStartedAtMs: Long? = null
+    private var isForeground = false
     private var pendingSession: TrainingSession? = null
     private var saveInProgress = false
 
@@ -36,6 +39,8 @@ class ArithmeticViewModel(
     ) {
         startedAtEpochMs = System.currentTimeMillis()
         startedAtElapsedMs = SystemClock.elapsedRealtime()
+        elapsedBeforePauseMs = 0L
+        activeSegmentStartedAtMs = if (isForeground) SystemClock.elapsedRealtime() else null
         pendingSession = null
         saveInProgress = false
 
@@ -47,6 +52,32 @@ class ArithmeticViewModel(
             totalTaskCount = config.taskCount,
             isStarted = true,
         )
+    }
+
+    fun onAppResumed() {
+        isForeground = true
+        if (_uiState.value.isStarted && !_uiState.value.isCompleted && activeSegmentStartedAtMs == null) {
+            activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        }
+    }
+
+    fun onAppPaused() {
+        isForeground = false
+        pauseActiveSegment()
+    }
+
+    private fun pauseActiveSegment() {
+        val segmentStartedAt = activeSegmentStartedAtMs ?: return
+        elapsedBeforePauseMs +=
+            (SystemClock.elapsedRealtime() - segmentStartedAt).coerceAtLeast(0L)
+        activeSegmentStartedAtMs = null
+    }
+
+    private fun currentDurationMs(): Long {
+        val activeSegment = activeSegmentStartedAtMs?.let { startedAt ->
+            (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
+        } ?: 0L
+        return elapsedBeforePauseMs + activeSegment
     }
 
     fun onDigitPressed(digit: Int) {
@@ -109,6 +140,8 @@ class ArithmeticViewModel(
 
         startedAtEpochMs = null
         startedAtElapsedMs = null
+        elapsedBeforePauseMs = 0L
+        activeSegmentStartedAtMs = null
         pendingSession = null
         _uiState.value = ArithmeticUiState()
     }
@@ -122,8 +155,8 @@ class ArithmeticViewModel(
 
         val finishedAt = System.currentTimeMillis()
         val startedAt = startedAtEpochMs ?: finishedAt
-        val elapsedStart = startedAtElapsedMs ?: SystemClock.elapsedRealtime()
-        val duration = (SystemClock.elapsedRealtime() - elapsedStart).coerceAtLeast(0L)
+        val duration = currentDurationMs()
+        pauseActiveSegment()
         val correctCount = results.count { it.isCorrect }
         val accuracy = correctCount * 100.0 / results.size
 
