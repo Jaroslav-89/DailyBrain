@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.counting.domain.repository.CountingTrainingRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -134,6 +135,8 @@ class CountingTrainingViewModel(
                     isSaved = true,
                     errorMessage = null,
                 )
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
