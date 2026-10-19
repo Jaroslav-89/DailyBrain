@@ -1,9 +1,9 @@
 package com.jaroapps.dailybrain.app.di
 
 import androidx.room.Room
+import com.jaroapps.dailybrain.common.data.repository.CompletedTrainingRepositoryImpl
+import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.core.database.AppDatabase
-import com.jaroapps.dailybrain.feature.arithmetic.data.ArithmeticTrainingRepositoryImpl
-import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
@@ -18,9 +18,7 @@ import com.jaroapps.dailybrain.feature.history.domain.repository.TrainingCalenda
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
-import com.jaroapps.dailybrain.feature.memory.data.MemoryTrainingRepositoryImpl
 import com.jaroapps.dailybrain.feature.memory.data.MemoryWordsRepositoryImpl
-import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryTrainingRepository
 import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepository
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWordsUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
@@ -47,7 +45,7 @@ val appModule = module {
         ArithmeticViewModel(
             generateProblem = get(),
             checkAnswer = get(),
-            arithmeticTrainingRepository = get(),
+            completedTrainingRepository = get(),
         )
     }
 
@@ -90,13 +88,13 @@ val appModule = module {
         )
     }
 
-    single<ArithmeticTrainingRepository> {
-        ArithmeticTrainingRepositoryImpl(
+    single { get<AppDatabase>().trainingDayDao() }
+
+    single<CompletedTrainingRepository> {
+        CompletedTrainingRepositoryImpl(
             database = get(),
         )
     }
-
-    single { get<AppDatabase>().trainingDayDao() }
 
     viewModel {
         CalendarViewModel(
@@ -113,13 +111,7 @@ val appModule = module {
 
     factory {
         SaveMemoryTrainingUseCase(
-            repository = get()
-        )
-    }
-
-    single<MemoryTrainingRepository> {
-        MemoryTrainingRepositoryImpl(
-            database = get()
+            completedTrainingRepository = get()
         )
     }
 
@@ -154,7 +146,7 @@ val appModule = module {
     viewModel {
         StroopViewModel(
             generateStimuli = get(),
-            repository = get(),
+            completedTrainingRepository = get(),
         )
     }
 
@@ -166,7 +158,7 @@ val appModule = module {
 
     viewModel {
         CountingTrainingViewModel(
-            repository = get(),
+            completedTrainingRepository = get(),
         )
     }
 
