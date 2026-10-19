@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.memory.presentation
 
 import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
+import com.jaroapps.dailybrain.core.resources.StringProvider
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.core.time.elapsedTimeUpdates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -20,7 +22,8 @@ import kotlinx.coroutines.launch
 class MemoryTrainingViewModel(
     private val getRandomMemoryWords: GetRandomMemoryWordsUseCase,
     private val checkMemoryAnswers: CheckMemoryAnswersUseCase,
-    private val saveMemoryTraining: SaveMemoryTrainingUseCase
+    private val saveMemoryTraining: SaveMemoryTrainingUseCase,
+    private val strings: StringProvider,
 ) : ViewModel() {
 
     companion object {
@@ -73,7 +76,7 @@ class MemoryTrainingViewModel(
                 throw exception
             } catch (exception: Exception) {
                 _uiState.value = MemoryTrainingUiState.Error(
-                    exception.message ?: "Не удалось загрузить список слов"
+                    exception.message ?: strings.getString(R.string.error_load_words)
                 )
             }
         }
@@ -176,7 +179,7 @@ class MemoryTrainingViewModel(
 
         if (state.answers.none { it.isNotBlank() }) {
             _uiState.value = state.copy(
-                errorMessage = "Введи хотя бы одно слово"
+                errorMessage = strings.getString(R.string.error_enter_word)
             )
             return
         }
@@ -227,7 +230,7 @@ class MemoryTrainingViewModel(
                 _uiState.value = previousState.copy(
                     isSaving = false,
                     errorMessage = exception.message
-                        ?: "Не удалось сохранить результат. Попробуй ещё раз."
+                        ?: strings.getString(R.string.error_save_failed)
                 )
             } finally {
                 saveInProgress = false
