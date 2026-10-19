@@ -38,7 +38,7 @@ fun DayHistoryScreen(
     val date = viewModel.date
 
     val dateFormatter = DateTimeFormatter
-        .ofPattern("d MMMM yyyy", Locale("ru"))
+        .ofPattern("d MMMM yyyy", Locale.getDefault())
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val zone = ZoneId.systemDefault()
 
