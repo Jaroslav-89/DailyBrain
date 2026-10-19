@@ -8,6 +8,8 @@ import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTraining
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
+import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
+import com.jaroapps.dailybrain.core.resources.StringProvider
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
@@ -29,6 +31,8 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
 val appModule = module {
+
+    single<StringProvider> { AndroidStringProvider(androidContext()) }
 
     // Common data and use cases
     single {
@@ -60,6 +64,7 @@ val appModule = module {
             generateProblem = get(),
             checkAnswer = get(),
             saveCompletedTraining = get(),
+            strings = get(),
         )
     }
 
@@ -77,11 +82,12 @@ val appModule = module {
             getRandomMemoryWords = get(),
             checkMemoryAnswers = get(),
             saveMemoryTraining = get(),
+            strings = get(),
         )
     }
 
     // Counting feature
-    viewModel { CountingTrainingViewModel(saveCompletedTraining = get()) }
+    viewModel { CountingTrainingViewModel(saveCompletedTraining = get(), strings = get()) }
 
     // Stroop feature
     factory { GenerateStroopStimuliUseCase() }
@@ -90,6 +96,7 @@ val appModule = module {
         StroopViewModel(
             generateStimuli = get(),
             saveCompletedTraining = get(),
+            strings = get(),
         )
     }
 
