@@ -1,6 +1,6 @@
 package com.jaroapps.dailybrain.feature.stroop.presentation
 
-import android.os.SystemClock
+import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
@@ -34,8 +34,7 @@ class StroopViewModel(
 
     private var timerJob: Job? = null
     private var isForeground = false
-    private var elapsedBeforePauseMs = 0L
-    private var activeSegmentStartedAtMs = 0L
+    private val activeTimeTracker = ActiveTimeTracker()
     private var saveInProgress = false
     private var pendingSession: TrainingSession? = null
 
@@ -53,33 +52,25 @@ class StroopViewModel(
         if (timerJob?.isActive == true || _uiState.value.isFinished) return
 
         if (startedAtEpochMs == null) startedAtEpochMs = System.currentTimeMillis()
-        activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        activeTimeTracker.resume()
 
         timerJob = viewModelScope.launch {
             while (true) {
-                val currentSegmentMs =
-                    SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-
-                val elapsedMs = elapsedBeforePauseMs + currentSegmentMs
-                _uiState.value = _uiState.value.copy(elapsedTimeMs = elapsedMs)
+                _uiState.value = _uiState.value.copy(
+                    elapsedTimeMs = activeTimeTracker.elapsedMs(),
+                )
                 delay(TIMER_UPDATE_INTERVAL_MS)
             }
         }
     }
 
     private fun pauseTimer() {
-        val job = timerJob ?: return
-
-        if (job.isActive) {
-            elapsedBeforePauseMs +=
-                SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-        }
-
-        job.cancel()
+        timerJob?.cancel()
         timerJob = null
+        activeTimeTracker.pause()
 
         _uiState.value = _uiState.value.copy(
-            elapsedTimeMs = elapsedBeforePauseMs,
+            elapsedTimeMs = activeTimeTracker.elapsedMs(),
         )
     }
 
@@ -89,7 +80,7 @@ class StroopViewModel(
 
         pauseTimer()
         val finishedAtEpochMs = System.currentTimeMillis()
-        val durationMs = elapsedBeforePauseMs
+        val durationMs = activeTimeTracker.elapsedMs()
 
         // Фиксируем сессию один раз: повторная попытка сохраняет те же значения.
         pendingSession = TrainingSession(
