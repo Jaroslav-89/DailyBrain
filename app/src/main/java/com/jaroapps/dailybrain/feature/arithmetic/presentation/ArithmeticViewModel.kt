@@ -119,8 +119,9 @@ class ArithmeticViewModel(
         if (_uiState.value.isCompleted) return
 
         val finishedAt = System.currentTimeMillis()
-        val startedAt = startedAtMs ?: finishedAt
-        val duration = (finishedAt - startedAt).coerceAtLeast(0L)
+        val startedAt = startedAtEpochMs ?: finishedAt
+        val elapsedStart = startedAtElapsedMs ?: SystemClock.elapsedRealtime()
+        val duration = (SystemClock.elapsedRealtime() - elapsedStart).coerceAtLeast(0L)
         val correctCount = results.count { it.isCorrect }
         val accuracy = correctCount * 100.0 / results.size
 
