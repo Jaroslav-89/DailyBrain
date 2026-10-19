@@ -10,6 +10,7 @@ import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUs
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveTrainingDaysInRangeUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
+import com.jaroapps.dailybrain.core.database.DatabaseMigrations
 import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
 import com.jaroapps.dailybrain.core.resources.StringProvider
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
@@ -24,7 +25,6 @@ import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepos
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWordsUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
-import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
@@ -43,6 +43,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2)
             .build()
     }
 
