@@ -77,7 +77,7 @@ fun CalendarScreen(
                         "LLLL yyyy",
                         Locale.getDefault(),
                     )
-                ).replaceFirstChar { it.uppercase(Locale("ru")) },
+                ).replaceFirstChar { it.uppercase(Locale.getDefault()) },
                 style = MaterialTheme.typography.titleMedium,
             )
 
