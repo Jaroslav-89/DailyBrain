@@ -19,6 +19,8 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,7 +61,7 @@ fun HomeScreen(
         Spacer(Modifier.height(8.dp))
 
         Text(
-            text = "Твоя ежедневная тренировка мозга",
+            text = stringResource(R.string.home_tagline),
             style = MaterialTheme.typography.bodyLarge,
         )
 
@@ -67,9 +69,9 @@ fun HomeScreen(
 
         Text(
             text = if (state.isTrainingCompletedToday) {
-                "Тренировка выполнена"
+                stringResource(R.string.home_training_done_today)
             } else {
-                "Сегодня ещё не тренировался"
+                stringResource(R.string.home_not_trained_today)
             },
             style = MaterialTheme.typography.titleMedium,
         )
@@ -90,7 +92,7 @@ fun HomeScreen(
                     Text(
                         text = day.date.dayOfWeek.getDisplayName(
                             TextStyle.SHORT,
-                            Locale("ru"),
+                            Locale.getDefault(),
                         ).replaceFirstChar { it.uppercase() },
                         style = MaterialTheme.typography.labelSmall,
                     )
@@ -140,7 +142,7 @@ fun HomeScreen(
                 )
 
                 Text(
-                    text = "Завершённых тренировок",
+                    text = stringResource(R.string.label_training_count_total),
                     style = MaterialTheme.typography.bodyMedium,
                 )
             }
@@ -152,7 +154,7 @@ fun HomeScreen(
             onClick = onOpenStatistics,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Моя статистика")
+            Text(stringResource(R.string.home_statistics))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -161,7 +163,7 @@ fun HomeScreen(
             onClick = onStartTraining,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Арифметика")
+            Text(stringResource(R.string.exercise_arithmetic))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -170,7 +172,7 @@ fun HomeScreen(
             onClick = onStartMemoryTraining,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Запоминание слов")
+            Text(stringResource(R.string.exercise_memory))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -179,7 +181,7 @@ fun HomeScreen(
             onClick = onStartStroopTest,
             modifier = Modifier.fillMaxWidth()
         ) {
-            Text("Тест Струпа")
+            Text(stringResource(R.string.exercise_stroop))
         }
 
         Spacer(Modifier.height(12.dp))
@@ -188,7 +190,7 @@ fun HomeScreen(
             onClick = onStartCountingTraining,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text("Устный счёт до 120")
+            Text(stringResource(R.string.exercise_counting))
         }
     }
 }
