@@ -203,8 +203,7 @@ class ArithmeticViewModel(
                     it.copy(
                         isSaving = false,
                         isSaved = false,
-                        saveErrorMessage = exception.message
-                            ?: strings.getString(R.string.error_save_failed),
+                        saveErrorMessage = strings.getString(R.string.error_save_failed),
                     )
                 }
             } finally {
