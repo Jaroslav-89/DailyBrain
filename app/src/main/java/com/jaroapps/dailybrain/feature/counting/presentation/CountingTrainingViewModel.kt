@@ -24,7 +24,7 @@ class CountingTrainingViewModel(
     private val _uiState = MutableStateFlow(CountingTrainingUiState())
     val uiState = _uiState.asStateFlow()
 
-    private val startedAtEpochMs = System.currentTimeMillis()
+    private var startedAtEpochMs: Long? = null
 
     private var timerJob: Job? = null
     private var elapsedBeforePauseMs = 0L
@@ -47,6 +47,7 @@ class CountingTrainingViewModel(
             return
         }
 
+        if (startedAtEpochMs == null) startedAtEpochMs = System.currentTimeMillis()
         activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
 
         timerJob = viewModelScope.launch {
@@ -90,7 +91,7 @@ class CountingTrainingViewModel(
         // сохранения и всех возможных повторных попыток.
         pendingSession = TrainingSession(
             exerciseType = ExerciseType.COUNTING_TRAINING.storageValue,
-            startedAtEpochMs = startedAtEpochMs,
+            startedAtEpochMs = startedAtEpochMs ?: finishedAtEpochMs,
             finishedAtEpochMs = finishedAtEpochMs,
             durationMs = elapsedBeforePauseMs,
             accuracyPercent = 0.0,
