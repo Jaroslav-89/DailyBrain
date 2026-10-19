@@ -82,4 +82,5 @@
     <string name="calendar_weekday_friday">Fr</string>
     <string name="calendar_weekday_saturday">Sa</string>
     <string name="calendar_weekday_sunday">Su</string>
+    <string name="format_percent">%1$s%%</string>
 </resources>
