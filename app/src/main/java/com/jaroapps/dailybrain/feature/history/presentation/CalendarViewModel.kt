@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
@@ -18,7 +19,7 @@ class CalendarViewModel(
 
     private val displayedMonth = MutableStateFlow(YearMonth.now())
 
-    val uiState = combine(
+    private val _uiState: StateFlow<CalendarUiState> = combine(
         displayedMonth,
         observeActiveTrainingDates(),
     ) { month, dateKeys ->
@@ -40,6 +41,8 @@ class CalendarViewModel(
         started = SharingStarted.WhileSubscribed(5_000),
         initialValue = CalendarUiState(),
     )
+
+    val uiState: StateFlow<CalendarUiState> = _uiState
 
     fun previousMonth() {
         displayedMonth.update { it.minusMonths(1) }
