@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.counting.presentation
 
 import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
+import com.jaroapps.dailybrain.core.time.elapsedTimeUpdates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
@@ -8,7 +9,7 @@ import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
@@ -16,10 +17,6 @@ import kotlinx.coroutines.launch
 class CountingTrainingViewModel(
     private val saveCompletedTraining: SaveCompletedTrainingUseCase,
 ) : ViewModel() {
-
-    companion object {
-        private const val TIMER_UPDATE_INTERVAL_MS = 100L
-    }
 
     private val _uiState = MutableStateFlow(CountingTrainingUiState())
     val uiState = _uiState.asStateFlow()
@@ -50,12 +47,8 @@ class CountingTrainingViewModel(
         activeTimeTracker.resume()
 
         timerJob = viewModelScope.launch {
-            while (true) {
-                _uiState.value = _uiState.value.copy(
-                    elapsedTimeMs = activeTimeTracker.elapsedMs(),
-                )
-
-                delay(TIMER_UPDATE_INTERVAL_MS)
+            activeTimeTracker.elapsedTimeUpdates().collect { elapsedMs ->
+                _uiState.value = _uiState.value.copy(elapsedTimeMs = elapsedMs)
             }
         }
     }
