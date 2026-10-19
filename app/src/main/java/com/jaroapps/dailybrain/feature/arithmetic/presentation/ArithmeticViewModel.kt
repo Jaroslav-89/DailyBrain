@@ -1,35 +1,40 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
+import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
-import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.common.domain.model.ExerciseType
-import com.jaroapps.dailybrain.common.domain.model.TrainingSession
-import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
 import kotlinx.coroutines.launch
 
 class ArithmeticViewModel(
     private val generateProblem: GenerateArithmeticProblemUseCase,
     private val checkAnswer: CheckArithmeticAnswerUseCase,
-    private val arithmeticTrainingRepository: ArithmeticTrainingRepository
+    private val arithmeticTrainingRepository: ArithmeticTrainingRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArithmeticUiState())
     val uiState: StateFlow<ArithmeticUiState> = _uiState.asStateFlow()
 
     private var startedAtMs: Long? = null
+    private var pendingSession: TrainingSession? = null
+    private var saveInProgress = false
 
     fun startTraining(
         config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
         startedAtMs = System.currentTimeMillis()
+        pendingSession = null
+        saveInProgress = false
 
         val firstProblem = generateProblem.execute()
 
@@ -46,11 +51,7 @@ class ArithmeticViewModel(
 
         val state = _uiState.value
         if (!state.isStarted || state.isCompleted) return
-
-        // Не допускаем неограниченный ввод.
         if (state.answerInput.length >= 2) return
-
-        // Не допускаем ведущие нули вроде 007.
         if (state.answerInput == "0") return
 
         _uiState.update {
@@ -74,13 +75,10 @@ class ArithmeticViewModel(
         if (state.answerInput.isBlank()) return
 
         val answer = state.answerInput.toIntOrNull() ?: return
-
-
         val result = ArithmeticTaskResult(
             problem = problem,
             userAnswer = answer,
         )
-
         val results = state.taskResults + result
         val completedCount = state.completedTaskCount + 1
 
@@ -92,7 +90,6 @@ class ArithmeticViewModel(
             )
         } else {
             val nextProblem = generateProblem.execute()
-
             _uiState.value = state.copy(
                 operation = nextProblem.operation,
                 currentProblem = nextProblem,
@@ -104,7 +101,11 @@ class ArithmeticViewModel(
     }
 
     fun cancelTraining() {
+        // Не теряем неподтверждённый результат при случайном сбросе экрана.
+        if (_uiState.value.isCompleted && !_uiState.value.isSaved) return
+
         startedAtMs = null
+        pendingSession = null
         _uiState.value = ArithmeticUiState()
     }
 
@@ -113,12 +114,23 @@ class ArithmeticViewModel(
         results: List<ArithmeticTaskResult>,
         completedCount: Int,
     ) {
+        if (_uiState.value.isCompleted) return
+
         val finishedAt = System.currentTimeMillis()
         val startedAt = startedAtMs ?: finishedAt
-
         val duration = (finishedAt - startedAt).coerceAtLeast(0L)
         val correctCount = results.count { it.isCorrect }
         val accuracy = correctCount * 100.0 / results.size
+
+        pendingSession = TrainingSession(
+            exerciseType = ExerciseType.ARITHMETIC.storageValue,
+            startedAtEpochMs = startedAt,
+            finishedAtEpochMs = finishedAt,
+            durationMs = duration,
+            accuracyPercent = accuracy,
+            taskCount = completedCount,
+            correctCount = correctCount,
+        )
 
         _uiState.value = state.copy(
             completedTaskCount = completedCount,
@@ -127,23 +139,50 @@ class ArithmeticViewModel(
             durationMs = duration,
             accuracyPercent = accuracy,
             answerInput = "",
+            isSaving = true,
+            isSaved = false,
+            saveErrorMessage = null,
         )
 
-        viewModelScope.launch {
-            arithmeticTrainingRepository.saveCompletedTraining(
-                TrainingSession(
-                    exerciseType = ExerciseType.ARITHMETIC.storageValue,
-                    startedAtEpochMs = startedAt,
-                    finishedAtEpochMs = finishedAt,
-                    durationMs = duration,
-                    accuracyPercent = accuracy,
-                    taskCount = completedCount,
-                    correctCount = correctCount,
-                )
-            )
+        startedAtMs = null
+        savePendingSession()
+    }
+
+    fun retrySave() {
+        if (!_uiState.value.isCompleted || _uiState.value.isSaved || saveInProgress) return
+        savePendingSession()
+    }
+
+    private fun savePendingSession() {
+        val session = pendingSession ?: return
+        if (saveInProgress) return
+
+        saveInProgress = true
+        _uiState.update {
+            it.copy(isSaving = true, saveErrorMessage = null)
         }
 
-        startedAtMs = null
+        viewModelScope.launch {
+            try {
+                arithmeticTrainingRepository.saveCompletedTraining(session)
+                _uiState.update {
+                    it.copy(isSaving = false, isSaved = true, saveErrorMessage = null)
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isSaving = false,
+                        isSaved = false,
+                        saveErrorMessage = exception.message
+                            ?: "Не удалось сохранить результат. Попробуй ещё раз.",
+                    )
+                }
+            } finally {
+                saveInProgress = false
+            }
+        }
     }
 
     fun openAnswerReview() {
