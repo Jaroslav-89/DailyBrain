@@ -71,6 +71,8 @@ class MemoryTrainingViewModel(
                 if (isForeground) {
                     startTimer()
                 }
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.value = MemoryTrainingUiState.Error(
                     exception.message ?: "Не удалось загрузить список слов"
