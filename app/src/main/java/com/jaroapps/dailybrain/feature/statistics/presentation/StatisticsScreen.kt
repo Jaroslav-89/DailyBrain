@@ -128,7 +128,7 @@ fun StatisticsScreen(
 
         StatisticCard(
             title = stringResource(R.string.label_correct_count),
-            value = stringResource(R.string.label_correct_answers, stats.totalCorrectCount, stats.totalTaskCount),
+            value = stringResource(R.string.format_count_pair, stats.totalCorrectCount, stats.totalTaskCount),
         )
 
         Spacer(Modifier.height(24.dp))
