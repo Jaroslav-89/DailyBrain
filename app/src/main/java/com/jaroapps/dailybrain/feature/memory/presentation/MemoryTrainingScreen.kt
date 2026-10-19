@@ -348,6 +348,30 @@ private fun ResultContent(
         item {
             Spacer(Modifier.height(8.dp))
             Text(
+                text = stringResource(
+                    R.string.memory_incorrect,
+                    result.incorrectWords.size
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        if (result.incorrectWords.isEmpty()) {
+            item { Text(stringResource(R.string.memory_no_incorrect)) }
+        } else {
+            itemsIndexed(result.incorrectWords) { _, word ->
+                Text(
+                    text = stringResource(R.string.memory_incorrect_word, word),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(8.dp))
+            Text(
                 text = stringResource(R.string.memory_missed, result.missedWords.size),
                 style = MaterialTheme.typography.titleLarge
             )
