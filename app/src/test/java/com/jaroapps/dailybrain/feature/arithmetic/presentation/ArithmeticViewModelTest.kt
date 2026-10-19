@@ -1,6 +1,5 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
-import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.core.resources.StringProvider
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
