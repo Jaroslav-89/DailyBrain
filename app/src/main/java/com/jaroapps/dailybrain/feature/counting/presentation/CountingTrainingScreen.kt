@@ -14,6 +14,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -84,7 +86,7 @@ fun CountingTrainingScreen(
             verticalArrangement = Arrangement.Center,
         ) {
             Text(
-                text = "Устный счёт",
+                text = stringResource(R.string.exercise_counting),
                 style = MaterialTheme.typography.headlineMedium,
                 textAlign = TextAlign.Center,
             )
@@ -92,7 +94,7 @@ fun CountingTrainingScreen(
             Spacer(Modifier.height(24.dp))
 
             Text(
-                text = "Считай вслух от 1 до 120 как можно быстрее.",
+                text = stringResource(R.string.counting_instruction),
                 style = MaterialTheme.typography.titleLarge,
                 textAlign = TextAlign.Center,
             )
@@ -110,7 +112,7 @@ fun CountingTrainingScreen(
                 onClick = viewModel::finishTraining,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Завершить тренировку")
+                Text(stringResource(R.string.action_finish_training))
             }
         }
     }
@@ -133,7 +135,7 @@ private fun CountingResultContent(
         verticalArrangement = Arrangement.Center,
     ) {
         Text(
-            text = "Тренировка завершена",
+            text = stringResource(R.string.status_training_completed),
             style = MaterialTheme.typography.headlineMedium,
             textAlign = TextAlign.Center,
         )
@@ -149,7 +151,7 @@ private fun CountingResultContent(
             isSaving -> {
                 CircularProgressIndicator()
                 Text(
-                    text = "Сохраняем результат…",
+                    text = stringResource(R.string.status_saving),
                     modifier = Modifier.padding(top = 12.dp),
                 )
             }
@@ -167,13 +169,13 @@ private fun CountingResultContent(
                         .fillMaxWidth()
                         .padding(top = 16.dp),
                 ) {
-                    Text("Повторить сохранение")
+                    Text(stringResource(R.string.action_retry_save))
                 }
             }
 
             isSaved -> {
                 Text(
-                    text = "Результат сохранён",
+                    text = stringResource(R.string.status_saved),
                     style = MaterialTheme.typography.bodyLarge,
                 )
             }
@@ -186,7 +188,7 @@ private fun CountingResultContent(
                 .padding(top = 16.dp),
             enabled = isSaved,
         ) {
-            Text("Готово")
+            Text(stringResource(R.string.action_done))
         }
     }
 }
