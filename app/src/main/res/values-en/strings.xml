@@ -30,7 +30,7 @@
     <string name="error_start_training">Could not start the training</string>
     <string name="home_tagline">Your daily brain workout</string>
     <string name="home_training_done_today">Training completed today</string>
-    <string name="home_not_trained_today">You haven't trained today yet</string>
+    <string name="home_not_trained_today">You haven\'t trained today yet</string>
     <string name="home_statistics">My statistics</string>
     <string name="exercise_arithmetic">Arithmetic</string>
     <string name="exercise_memory">Word memorization</string>
@@ -51,7 +51,7 @@
     <string name="memory_instruction">Memorize the words. You have 120 seconds.</string>
     <string name="memory_progress_hint">The bar fills up when the time is over.</string>
     <string name="memory_recall_title">Recall the words</string>
-    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn't matter; you can leave fields empty.</string>
+    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn\'t matter; you can leave fields empty.</string>
     <string name="memory_word_number">Word %1$d</string>
     <string name="memory_result_title">Training completed!</string>
     <string name="memory_score">%1$d of %2$d</string>
