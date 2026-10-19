@@ -70,13 +70,16 @@ fun StroopScreen(
     }
 
     BackHandler {
-        onExit()
+        if (!state.isFinished || state.isSaved) {
+            onExit()
+        }
     }
 
     if (state.isFinished) {
         StroopResultContent(
             elapsedTimeMs = state.elapsedTimeMs,
             isSaving = state.isSaving,
+            isSaved = state.isSaved,
             errorMessage = state.errorMessage,
             onRetrySave = viewModel::retrySave,
             onExit = onExit,
@@ -218,6 +221,7 @@ private fun StroopTrainingContent(
 private fun StroopResultContent(
     elapsedTimeMs: Long,
     isSaving: Boolean,
+    isSaved: Boolean,
     errorMessage: String?,
     onRetrySave: () -> Unit,
     onExit: () -> Unit,
@@ -274,7 +278,7 @@ private fun StroopResultContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 16.dp),
-            enabled = !isSaving,
+            enabled = isSaved,
         ) {
             Text("Готово")
         }
