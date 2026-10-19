@@ -2,7 +2,7 @@ package com.jaroapps.dailybrain.feature.home.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.history.domain.repository.HistoryRepository
+import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
@@ -11,20 +11,15 @@ import java.time.LocalDate
 import java.time.ZoneId
 
 class HomeViewModel(
-    repository: HistoryRepository,
+    observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
 ) : ViewModel() {
 
-    val uiState = repository.observeAll()
+    val uiState = observeAllCompletedTrainings()
         .map { sessions ->
             val zone = ZoneId.systemDefault()
-
-            val completedDates = sessions
-                .map { session ->
-                    Instant.ofEpochMilli(session.finishedAtEpochMs)
-                        .atZone(zone)
-                        .toLocalDate()
-                }
-                .toSet()
+            val completedDates = sessions.map { session ->
+                Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
+            }.toSet()
 
             HomeUiState(
                 today = LocalDate.now(zone),
