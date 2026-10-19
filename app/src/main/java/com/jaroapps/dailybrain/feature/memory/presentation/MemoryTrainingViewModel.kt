@@ -76,7 +76,7 @@ class MemoryTrainingViewModel(
                 throw exception
             } catch (exception: Exception) {
                 _uiState.value = MemoryTrainingUiState.Error(
-                    exception.message ?: strings.getString(R.string.error_load_words)
+                    strings.getString(R.string.error_load_words)
                 )
             }
         }
@@ -229,8 +229,7 @@ class MemoryTrainingViewModel(
             } catch (exception: Exception) {
                 _uiState.value = previousState.copy(
                     isSaving = false,
-                    errorMessage = exception.message
-                        ?: strings.getString(R.string.error_save_failed)
+                    errorMessage = strings.getString(R.string.error_save_failed)
                 )
             } finally {
                 saveInProgress = false
