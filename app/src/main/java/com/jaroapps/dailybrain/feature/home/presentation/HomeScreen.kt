@@ -53,7 +53,7 @@ fun HomeScreen(
         Spacer(Modifier.height(32.dp))
 
         Text(
-            text = "Daily Brain",
+            text = stringResource(R.string.app_name),
             style = MaterialTheme.typography.headlineMedium,
             fontWeight = FontWeight.Bold,
         )
