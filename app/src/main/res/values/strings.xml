@@ -84,4 +84,5 @@
     <string name="calendar_weekday_friday">Пт</string>
     <string name="calendar_weekday_saturday">Сб</string>
     <string name="calendar_weekday_sunday">Вс</string>
+    <string name="format_percent">%1$s%%</string>
 </resources>
