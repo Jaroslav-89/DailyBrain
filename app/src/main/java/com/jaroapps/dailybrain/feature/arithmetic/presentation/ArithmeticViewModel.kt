@@ -27,7 +27,6 @@ class ArithmeticViewModel(
     val uiState: StateFlow<ArithmeticUiState> = _uiState.asStateFlow()
 
     private var startedAtEpochMs: Long? = null
-    private var startedAtElapsedMs: Long? = null
     private var elapsedBeforePauseMs = 0L
     private var activeSegmentStartedAtMs: Long? = null
     private var isForeground = false
@@ -38,7 +37,6 @@ class ArithmeticViewModel(
         config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
         startedAtEpochMs = System.currentTimeMillis()
-        startedAtElapsedMs = SystemClock.elapsedRealtime()
         elapsedBeforePauseMs = 0L
         activeSegmentStartedAtMs = if (isForeground) SystemClock.elapsedRealtime() else null
         pendingSession = null
@@ -139,7 +137,6 @@ class ArithmeticViewModel(
         if (_uiState.value.isCompleted && !_uiState.value.isSaved) return
 
         startedAtEpochMs = null
-        startedAtElapsedMs = null
         elapsedBeforePauseMs = 0L
         activeSegmentStartedAtMs = null
         pendingSession = null
