@@ -34,7 +34,8 @@ class ArithmeticViewModel(
     fun startTraining(
         config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
-        startedAtEpochMs = System.currentTimeMillis()\n        startedAtElapsedMs = SystemClock.elapsedRealtime()
+        startedAtEpochMs = System.currentTimeMillis()
+        startedAtElapsedMs = SystemClock.elapsedRealtime()
         pendingSession = null
         saveInProgress = false
 
@@ -106,7 +107,8 @@ class ArithmeticViewModel(
         // Не теряем неподтверждённый результат при случайном сбросе экрана.
         if (_uiState.value.isCompleted && !_uiState.value.isSaved) return
 
-        startedAtEpochMs = null\n        startedAtElapsedMs = null
+        startedAtEpochMs = null
+        startedAtElapsedMs = null
         pendingSession = null
         _uiState.value = ArithmeticUiState()
     }
@@ -147,7 +149,8 @@ class ArithmeticViewModel(
             saveErrorMessage = null,
         )
 
-        startedAtEpochMs = null\n        startedAtElapsedMs = null
+        startedAtEpochMs = null
+        startedAtElapsedMs = null
         savePendingSession()
     }
 
