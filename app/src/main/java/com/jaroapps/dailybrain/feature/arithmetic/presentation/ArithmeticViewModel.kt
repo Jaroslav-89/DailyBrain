@@ -1,6 +1,6 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
-import android.os.SystemClock
+import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
@@ -27,8 +27,7 @@ class ArithmeticViewModel(
     val uiState: StateFlow<ArithmeticUiState> = _uiState.asStateFlow()
 
     private var startedAtEpochMs: Long? = null
-    private var elapsedBeforePauseMs = 0L
-    private var activeSegmentStartedAtMs: Long? = null
+    private val activeTimeTracker = ActiveTimeTracker()
     private var isForeground = false
     private var pendingSession: TrainingSession? = null
     private var saveInProgress = false
@@ -37,8 +36,8 @@ class ArithmeticViewModel(
         config: ArithmeticTrainingConfig = ArithmeticTrainingConfig(taskCount = 10),
     ) {
         startedAtEpochMs = System.currentTimeMillis()
-        elapsedBeforePauseMs = 0L
-        activeSegmentStartedAtMs = if (isForeground) SystemClock.elapsedRealtime() else null
+        activeTimeTracker.reset()
+        if (isForeground) activeTimeTracker.resume()
         pendingSession = null
         saveInProgress = false
 
@@ -54,8 +53,8 @@ class ArithmeticViewModel(
 
     fun onAppResumed() {
         isForeground = true
-        if (_uiState.value.isStarted && !_uiState.value.isCompleted && activeSegmentStartedAtMs == null) {
-            activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        if (_uiState.value.isStarted && !_uiState.value.isCompleted) {
+            activeTimeTracker.resume()
         }
     }
 
@@ -65,18 +64,10 @@ class ArithmeticViewModel(
     }
 
     private fun pauseActiveSegment() {
-        val segmentStartedAt = activeSegmentStartedAtMs ?: return
-        elapsedBeforePauseMs +=
-            (SystemClock.elapsedRealtime() - segmentStartedAt).coerceAtLeast(0L)
-        activeSegmentStartedAtMs = null
+        activeTimeTracker.pause()
     }
 
-    private fun currentDurationMs(): Long {
-        val activeSegment = activeSegmentStartedAtMs?.let { startedAt ->
-            (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
-        } ?: 0L
-        return elapsedBeforePauseMs + activeSegment
-    }
+    private fun currentDurationMs(): Long = activeTimeTracker.elapsedMs()
 
     fun onDigitPressed(digit: Int) {
         if (digit !in 0..9) return
@@ -137,8 +128,7 @@ class ArithmeticViewModel(
         if (_uiState.value.isCompleted && !_uiState.value.isSaved) return
 
         startedAtEpochMs = null
-        elapsedBeforePauseMs = 0L
-        activeSegmentStartedAtMs = null
+        activeTimeTracker.reset()
         pendingSession = null
         _uiState.value = ArithmeticUiState()
     }
@@ -152,8 +142,8 @@ class ArithmeticViewModel(
 
         val finishedAt = System.currentTimeMillis()
         val startedAt = startedAtEpochMs ?: finishedAt
-        val duration = currentDurationMs()
         pauseActiveSegment()
+        val duration = currentDurationMs()
         val correctCount = results.count { it.isCorrect }
         val accuracy = correctCount * 100.0 / results.size
 
