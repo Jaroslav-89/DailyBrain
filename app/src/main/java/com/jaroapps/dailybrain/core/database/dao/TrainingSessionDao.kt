@@ -17,7 +17,7 @@ interface TrainingSessionDao {
     @Query(
         """
         SELECT * FROM training_sessions
-        ORDER BY finishedAtEpochMs DESC
+        ORDER BY finishedAtEpochMs ASC
         """
     )
     fun observeAll(): Flow<List<TrainingSessionEntity>>
@@ -30,7 +30,7 @@ interface TrainingSessionDao {
         """
     SELECT * FROM training_sessions
     WHERE date = :date
-    ORDER BY finishedAtEpochMs DESC
+    ORDER BY finishedAtEpochMs ASC
     """
     )
     fun observeByDate(date: Int): Flow<List<TrainingSessionEntity>>
