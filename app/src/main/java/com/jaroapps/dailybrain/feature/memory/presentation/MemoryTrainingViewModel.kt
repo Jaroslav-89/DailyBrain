@@ -1,6 +1,6 @@
 package com.jaroapps.dailybrain.feature.memory.presentation
 
-import android.os.SystemClock
+import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.memory.domain.model.MemoryTrainingResult
@@ -34,15 +34,13 @@ class MemoryTrainingViewModel(
 
     private var timerJob: Job? = null
     private var isForeground = false
-    private var elapsedBeforePauseMs = 0L
-    private var activeSegmentStartedAtMs = 0L
+    private val memorizationTimer = ActiveTimeTracker()
     private var startedAtEpochMs = 0L
     private var memorizationFinished = false
     private var pendingResult: MemoryTrainingResult? = null
     private var pendingFinishedAtEpochMs: Long? = null
     private var pendingDurationMs: Long? = null
-    private var sessionElapsedBeforePauseMs = 0L
-    private var sessionActiveSegmentStartedAtMs: Long? = null
+    private val sessionTimer = ActiveTimeTracker()
     private var saveInProgress = false
 
     init {
@@ -54,13 +52,12 @@ class MemoryTrainingViewModel(
             try {
                 val words = getRandomMemoryWords()
 
-                elapsedBeforePauseMs = 0L
+                memorizationTimer.reset()
+                sessionTimer.reset()
                 memorizationFinished = false
                 pendingResult = null
                 pendingFinishedAtEpochMs = null
                 pendingDurationMs = null
-                sessionElapsedBeforePauseMs = 0L
-                sessionActiveSegmentStartedAtMs = null
                 saveInProgress = false
                 startedAtEpochMs = System.currentTimeMillis()
                 if (isForeground) startSessionClock()
@@ -104,36 +101,25 @@ class MemoryTrainingViewModel(
     }
 
     private fun startSessionClock() {
-        if (startedAtEpochMs == 0L || sessionActiveSegmentStartedAtMs != null) return
+        if (startedAtEpochMs == 0L || sessionTimer.isRunning) return
         if (_uiState.value is MemoryTrainingUiState.Result || _uiState.value is MemoryTrainingUiState.Error) return
-        sessionActiveSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        sessionTimer.resume()
     }
 
     private fun pauseSessionClock() {
-        val segmentStartedAt = sessionActiveSegmentStartedAtMs ?: return
-        sessionElapsedBeforePauseMs +=
-            (SystemClock.elapsedRealtime() - segmentStartedAt).coerceAtLeast(0L)
-        sessionActiveSegmentStartedAtMs = null
+        sessionTimer.pause()
     }
 
-    private fun currentSessionDurationMs(): Long {
-        val activeSegment = sessionActiveSegmentStartedAtMs?.let { startedAt ->
-            (SystemClock.elapsedRealtime() - startedAt).coerceAtLeast(0L)
-        } ?: 0L
-        return sessionElapsedBeforePauseMs + activeSegment
-    }
+    private fun currentSessionDurationMs(): Long = sessionTimer.elapsedMs()
 
     private fun startTimer() {
         if (timerJob?.isActive == true || memorizationFinished) return
 
-        activeSegmentStartedAtMs = SystemClock.elapsedRealtime()
+        memorizationTimer.resume()
 
         timerJob = viewModelScope.launch {
             while (true) {
-                val currentSegmentMs =
-                    SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-
-                val elapsedMs = elapsedBeforePauseMs + currentSegmentMs
+                val elapsedMs = memorizationTimer.elapsedMs()
                 val progress = (
                         elapsedMs.toFloat() / MEMORIZATION_DURATION_MS
                         ).coerceIn(0f, 1f)
@@ -146,7 +132,7 @@ class MemoryTrainingViewModel(
                 _uiState.value = currentState.copy(progress = progress)
 
                 if (elapsedMs >= MEMORIZATION_DURATION_MS) {
-                    elapsedBeforePauseMs = MEMORIZATION_DURATION_MS
+                    memorizationTimer.pause()
                     memorizationFinished = true
                     timerJob = null
 
@@ -163,15 +149,9 @@ class MemoryTrainingViewModel(
     }
 
     private fun pauseTimer() {
-        val job = timerJob ?: return
-
-        if (job.isActive) {
-            elapsedBeforePauseMs +=
-                SystemClock.elapsedRealtime() - activeSegmentStartedAtMs
-        }
-
-        job.cancel()
+        timerJob?.cancel()
         timerJob = null
+        memorizationTimer.pause()
     }
 
     fun updateAnswer(index: Int, value: String) {
