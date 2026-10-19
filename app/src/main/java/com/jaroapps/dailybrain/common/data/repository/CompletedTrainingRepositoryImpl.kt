@@ -43,7 +43,7 @@ class CompletedTrainingRepositoryImpl(
 
     override fun observeAllCompletedTrainings(): Flow<List<TrainingSession>> =
         database.trainingSessionDao().observeAll().map { sessions ->
-            sessions.map(TrainingSessionEntity::toDomain)
+            sessions.map { entity -> entity.toDomain() }
         }
 
     override fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>> =
