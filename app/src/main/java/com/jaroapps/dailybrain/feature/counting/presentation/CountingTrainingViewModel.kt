@@ -128,8 +128,7 @@ class CountingTrainingViewModel(
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
                     isSaved = false,
-                    errorMessage = exception.message
-                        ?: strings.getString(R.string.error_save_failed),
+                    errorMessage = strings.getString(R.string.error_save_failed),
                 )
             } finally {
                 saveInProgress = false
