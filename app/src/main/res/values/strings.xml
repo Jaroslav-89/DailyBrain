@@ -85,4 +85,6 @@
     <string name="calendar_weekday_saturday">Сб</string>
     <string name="calendar_weekday_sunday">Вс</string>
     <string name="format_percent">%1$s%%</string>
+    <string name="memory_recalled_word">✓  %1$s</string>
+    <string name="memory_missed_word">•  %1$s</string>
 </resources>
