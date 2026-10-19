@@ -6,6 +6,7 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import java.time.Instant
@@ -16,7 +17,7 @@ class StatisticsViewModel(
     observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
 ) : ViewModel() {
 
-    val uiState = observeAllCompletedTrainings()
+    private val _uiState: StateFlow<StatisticsUiState> = observeAllCompletedTrainings()
         .map { sessions ->
             val zone = ZoneId.systemDefault()
             val today = LocalDate.now(zone)
@@ -64,4 +65,7 @@ class StatisticsViewModel(
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = StatisticsUiState(),
         )
+
+
+    val uiState: StateFlow<StatisticsUiState> = _uiState
 }
