@@ -20,12 +20,14 @@ class DayHistoryViewModel(
         LocalDate.parse(dateKey.toString(), DateTimeFormatter.BASIC_ISO_DATE)
     } ?: LocalDate.now()
 
-    val sessions: StateFlow<List<TrainingSession>> =
+    private val _sessions: StateFlow<List<TrainingSession>> =
         observeCompletedTrainingsByDate(date.toIntKey()).stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5_000),
             initialValue = emptyList(),
         )
+
+    val sessions: StateFlow<List<TrainingSession>> = _sessions
 }
 
 private fun LocalDate.toIntKey(): Int =
