@@ -6,7 +6,7 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
-import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
+import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import kotlinx.coroutines.CancellationException
@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
 class ArithmeticViewModel(
     private val generateProblem: GenerateArithmeticProblemUseCase,
     private val checkAnswer: CheckArithmeticAnswerUseCase,
-    private val arithmeticTrainingRepository: ArithmeticTrainingRepository,
+    private val completedTrainingRepository: CompletedTrainingRepository,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(ArithmeticUiState())
@@ -164,7 +164,7 @@ class ArithmeticViewModel(
 
         viewModelScope.launch {
             try {
-                arithmeticTrainingRepository.saveCompletedTraining(session)
+                completedTrainingRepository.saveCompletedTraining(session)
                 _uiState.update {
                     it.copy(isSaving = false, isSaved = true, saveErrorMessage = null)
                 }
