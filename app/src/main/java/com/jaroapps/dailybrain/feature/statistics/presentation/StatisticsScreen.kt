@@ -174,6 +174,7 @@ private fun StatisticCard(
 private fun formatPercent(value: Double): String =
     String.format(Locale.getDefault(), "%.1f%%", value)
 
+@Composable
 private fun formatDuration(durationMs: Long): String {
     val totalSeconds = durationMs / 1000
     val hours = totalSeconds / 3600
