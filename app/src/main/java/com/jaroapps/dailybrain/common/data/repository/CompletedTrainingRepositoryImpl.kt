@@ -48,7 +48,7 @@ class CompletedTrainingRepositoryImpl(
 
     override fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>> =
         database.trainingSessionDao().observeByDate(date).map { sessions ->
-            sessions.map(TrainingSessionEntity::toDomain)
+            sessions.map { session -> session.toDomain() }
         }
 
     override fun observeActiveTrainingDates(): Flow<Set<Int>> =
