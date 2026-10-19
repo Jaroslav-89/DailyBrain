@@ -15,9 +15,6 @@ class SaveMemoryTrainingUseCase(
         durationMs: Long,
         result: MemoryTrainingResult,
     ) {
-        require(finishedAtEpochMs >= startedAtEpochMs) {
-            "Finish time cannot be earlier than start time"
-        }
         require(durationMs >= 0L) { "Duration cannot be negative" }
 
         val session = TrainingSession(
