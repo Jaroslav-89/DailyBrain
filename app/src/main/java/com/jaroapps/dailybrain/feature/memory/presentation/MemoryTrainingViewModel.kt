@@ -7,6 +7,7 @@ import com.jaroapps.dailybrain.feature.memory.domain.model.MemoryTrainingResult
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWordsUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -38,6 +39,7 @@ class MemoryTrainingViewModel(
     private var startedAtEpochMs = 0L
     private var memorizationFinished = false
     private var pendingResult: MemoryTrainingResult? = null
+    private var pendingFinishedAtEpochMs: Long? = null
     private var saveInProgress = false
 
     init {
@@ -52,6 +54,7 @@ class MemoryTrainingViewModel(
                 elapsedBeforePauseMs = 0L
                 memorizationFinished = false
                 pendingResult = null
+                pendingFinishedAtEpochMs = null
                 saveInProgress = false
                 startedAtEpochMs = System.currentTimeMillis()
 
@@ -186,6 +189,11 @@ class MemoryTrainingViewModel(
         if (saveInProgress) return
         saveInProgress = true
 
+        val finishedAtEpochMs = pendingFinishedAtEpochMs
+            ?: System.currentTimeMillis().also {
+                pendingFinishedAtEpochMs = it
+            }
+
         _uiState.value = previousState.copy(
             isSaving = true,
             errorMessage = null
@@ -193,8 +201,6 @@ class MemoryTrainingViewModel(
 
         viewModelScope.launch {
             try {
-                val finishedAtEpochMs = System.currentTimeMillis()
-
                 saveMemoryTraining(
                     startedAtEpochMs = startedAtEpochMs,
                     finishedAtEpochMs = finishedAtEpochMs,
@@ -202,6 +208,8 @@ class MemoryTrainingViewModel(
                 )
 
                 _uiState.value = MemoryTrainingUiState.Result(result)
+            } catch (exception: CancellationException) {
+                throw exception
             } catch (exception: Exception) {
                 _uiState.value = previousState.copy(
                     isSaving = false,
