@@ -70,7 +70,11 @@ class ArithmeticViewModelTest {
             private set
         val savedSessions = mutableListOf<TrainingSession>()
 
-        override fun observeAllCompletedTrainings(): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()\n\n        override fun observeCompletedTrainingsByDate(date: Int): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()\n\n        override suspend fun saveCompletedTraining(session: TrainingSession) {
+        override fun observeAllCompletedTrainings(): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()
+
+        override fun observeCompletedTrainingsByDate(date: Int): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()
+
+        override suspend fun saveCompletedTraining(session: TrainingSession) {
             calls += 1
             savedSessions += session
             if (calls == 1) throw IOException("Temporary database error")
