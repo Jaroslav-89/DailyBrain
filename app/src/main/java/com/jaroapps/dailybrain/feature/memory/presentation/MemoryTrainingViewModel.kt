@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.memory.presentation
 
 import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
+import com.jaroapps.dailybrain.core.time.elapsedTimeUpdates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.memory.domain.model.MemoryTrainingResult
@@ -9,7 +10,8 @@ import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWord
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.takeWhile
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
@@ -23,7 +25,6 @@ class MemoryTrainingViewModel(
 
     companion object {
         const val MEMORIZATION_DURATION_MS = 120_000L
-        private const val TIMER_UPDATE_INTERVAL_MS = 100L
     }
 
     private val _uiState =
@@ -118,32 +119,29 @@ class MemoryTrainingViewModel(
         memorizationTimer.resume()
 
         timerJob = viewModelScope.launch {
-            while (true) {
-                val elapsedMs = memorizationTimer.elapsedMs()
-                val progress = (
-                        elapsedMs.toFloat() / MEMORIZATION_DURATION_MS
+            memorizationTimer.elapsedTimeUpdates()
+                .takeWhile { it < MEMORIZATION_DURATION_MS }
+                .collect { elapsedMs ->
+                    val currentState = _uiState.value
+                    if (currentState is MemoryTrainingUiState.Memorizing) {
+                        val progress = (
+                            elapsedMs.toFloat() / MEMORIZATION_DURATION_MS
                         ).coerceIn(0f, 1f)
-
-                val currentState = _uiState.value
-                if (currentState !is MemoryTrainingUiState.Memorizing) {
-                    break
+                        _uiState.value = currentState.copy(progress = progress)
+                    }
                 }
 
-                _uiState.value = currentState.copy(progress = progress)
-
-                if (elapsedMs >= MEMORIZATION_DURATION_MS) {
-                    memorizationTimer.pause()
-                    memorizationFinished = true
-                    timerJob = null
-
-                    _uiState.value = MemoryTrainingUiState.Recall(
-                        words = currentState.words,
-                        answers = List(currentState.words.size) { "" }
-                    )
-                    break
-                }
-
-                delay(TIMER_UPDATE_INTERVAL_MS)
+            val currentState = _uiState.value
+            if (currentState is MemoryTrainingUiState.Memorizing &&
+                memorizationTimer.elapsedMs() >= MEMORIZATION_DURATION_MS
+            ) {
+                memorizationTimer.pause()
+                memorizationFinished = true
+                timerJob = null
+                _uiState.value = MemoryTrainingUiState.Recall(
+                    words = currentState.words,
+                    answers = List(currentState.words.size) { "" }
+                )
             }
         }
     }
