@@ -17,6 +17,16 @@ class CheckMemoryAnswersUseCase {
             .filter { it.isNotEmpty() }
             .toSet()
 
+        val normalizedShownWords = shownWords
+            .map { normalize(it.text) }
+            .toSet()
+
+        val incorrectWords = enteredAnswers
+            .map { it.trim() }
+            .filter { answer ->
+                answer.isNotEmpty() && normalize(answer) !in normalizedShownWords
+            }
+
         val results = shownWords.map { word ->
             MemoryAnswerResult(
                 word = word,
@@ -36,7 +46,8 @@ class CheckMemoryAnswersUseCase {
             shownWords = shownWords,
             answers = results,
             correctCount = correctCount,
-            accuracyPercent = accuracyPercent
+            accuracyPercent = accuracyPercent,
+            incorrectWords = incorrectWords
         )
     }
 
