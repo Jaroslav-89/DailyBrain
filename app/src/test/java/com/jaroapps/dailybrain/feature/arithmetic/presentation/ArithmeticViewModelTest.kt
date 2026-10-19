@@ -2,7 +2,7 @@ package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
-import com.jaroapps.dailybrain.feature.arithmetic.domain.repository.ArithmeticTrainingRepository
+import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import kotlinx.coroutines.Dispatchers
@@ -26,11 +26,11 @@ class ArithmeticViewModelTest {
     fun `failed save can be retried without rebuilding the session`() = runTest {
         Dispatchers.setMain(StandardTestDispatcher(testScheduler))
         try {
-            val repository = FailOnceArithmeticRepository()
+            val repository = FailOnceCompletedTrainingRepository()
             val viewModel = ArithmeticViewModel(
                 generateProblem = GenerateArithmeticProblemUseCase(),
                 checkAnswer = CheckArithmeticAnswerUseCase(),
-                arithmeticTrainingRepository = repository,
+                completedTrainingRepository = repository,
             )
 
             viewModel.startTraining(ArithmeticTrainingConfig(taskCount = 1))
@@ -63,7 +63,7 @@ class ArithmeticViewModelTest {
         }
     }
 
-    private class FailOnceArithmeticRepository : ArithmeticTrainingRepository {
+    private class FailOnceCompletedTrainingRepository : CompletedTrainingRepository {
         var calls: Int = 0
             private set
         val savedSessions = mutableListOf<TrainingSession>()
