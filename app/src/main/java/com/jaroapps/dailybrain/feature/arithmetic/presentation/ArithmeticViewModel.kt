@@ -180,7 +180,6 @@ class ArithmeticViewModel(
         )
 
         startedAtEpochMs = null
-        startedAtElapsedMs = null
         savePendingSession()
     }
 
