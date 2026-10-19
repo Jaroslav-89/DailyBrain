@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
-import com.jaroapps.dailybrain.feature.counting.domain.repository.CountingTrainingRepository
+import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -14,7 +14,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 class CountingTrainingViewModel(
-    private val repository: CountingTrainingRepository,
+    private val completedTrainingRepository: CompletedTrainingRepository,
 ) : ViewModel() {
 
     companion object {
@@ -128,7 +128,7 @@ class CountingTrainingViewModel(
 
         viewModelScope.launch {
             try {
-                repository.saveCompletedTraining(session)
+                completedTrainingRepository.saveCompletedTraining(session)
 
                 _uiState.value = _uiState.value.copy(
                     isSaving = false,
