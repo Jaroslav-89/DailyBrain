@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.feature.arithmetic.presentation
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import kotlinx.coroutines.Dispatchers
@@ -30,7 +31,7 @@ class ArithmeticViewModelTest {
             val viewModel = ArithmeticViewModel(
                 generateProblem = GenerateArithmeticProblemUseCase(),
                 checkAnswer = CheckArithmeticAnswerUseCase(),
-                completedTrainingRepository = repository,
+                saveCompletedTraining = SaveCompletedTrainingUseCase(repository),
             )
 
             viewModel.startTraining(ArithmeticTrainingConfig(taskCount = 1))
@@ -68,7 +69,7 @@ class ArithmeticViewModelTest {
             private set
         val savedSessions = mutableListOf<TrainingSession>()
 
-        override suspend fun saveCompletedTraining(session: TrainingSession) {
+        override fun observeAllCompletedTrainings(): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()\n\n        override fun observeCompletedTrainingsByDate(date: Int): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()\n\n        override suspend fun saveCompletedTraining(session: TrainingSession) {
             calls += 1
             savedSessions += session
             if (calls == 1) throw IOException("Temporary database error")
