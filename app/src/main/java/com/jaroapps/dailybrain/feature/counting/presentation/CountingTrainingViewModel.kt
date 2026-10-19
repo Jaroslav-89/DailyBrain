@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.counting.presentation
 
 import com.jaroapps.dailybrain.core.time.ActiveTimeTracker
+import com.jaroapps.dailybrain.core.resources.StringProvider
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.core.time.elapsedTimeUpdates
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -16,6 +18,7 @@ import kotlinx.coroutines.launch
 
 class CountingTrainingViewModel(
     private val saveCompletedTraining: SaveCompletedTrainingUseCase,
+    private val strings: StringProvider,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CountingTrainingUiState())
@@ -126,7 +129,7 @@ class CountingTrainingViewModel(
                     isSaving = false,
                     isSaved = false,
                     errorMessage = exception.message
-                        ?: "Не удалось сохранить результат. Попробуй ещё раз.",
+                        ?: strings.getString(R.string.error_save_failed),
                 )
             } finally {
                 saveInProgress = false
