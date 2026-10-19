@@ -14,6 +14,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.pluralStringResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
@@ -45,23 +48,26 @@ fun DayHistoryScreen(
             .padding(16.dp),
     ) {
         TextButton(onClick = onBack) {
-            Text("‹ Назад")
+            Text("‹ " + stringResource(R.string.action_back))
         }
 
         Text(
             text = date.format(dateFormatter)
-                .replaceFirstChar { it.uppercase(Locale("ru")) },
+                .replaceFirstChar { it.uppercase(Locale.getDefault()) },
             style = MaterialTheme.typography.headlineSmall,
         )
 
         Spacer(Modifier.size(8.dp))
 
         Text(
-            text = when (sessions.size) {
-                0 -> "Тренировок нет"
-                1 -> "1 тренировка"
-                in 2..4 -> "${sessions.size} тренировки"
-                else -> "${sessions.size} тренировок"
+            text = if (sessions.isEmpty()) {
+                stringResource(R.string.history_no_trainings)
+            } else {
+                pluralStringResource(
+                    R.plurals.history_training_count,
+                    sessions.size,
+                    sessions.size,
+                )
             },
             style = MaterialTheme.typography.bodyLarge,
         )
@@ -70,7 +76,7 @@ fun DayHistoryScreen(
 
         if (sessions.isEmpty()) {
             Text(
-                text = "В этот день ещё нет завершённых тренировок.",
+                text = stringResource(R.string.history_empty_day),
                 style = MaterialTheme.typography.bodyMedium,
             )
         } else {
@@ -87,9 +93,15 @@ fun DayHistoryScreen(
                         Column(
                             modifier = Modifier.padding(16.dp),
                         ) {
+                            val exerciseName = when (ExerciseType.fromStorage(session.exerciseType)) {
+                                ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
+                                ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
+                                ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
+                                ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
+                                null -> session.exerciseType
+                            }
                             Text(
-                                text = ExerciseType.fromStorage(session.exerciseType)?.displayName
-                                    ?: session.exerciseType,
+                                text = exerciseName,
                                 style = MaterialTheme.typography.titleMedium,
                             )
 
@@ -100,26 +112,29 @@ fun DayHistoryScreen(
                                 .atZone(zone)
                                 .format(timeFormatter)
 
-                            Text("Завершена в $finishedTime")
+                            Text(stringResource(R.string.label_finished_at, finishedTime))
 
                             Spacer(Modifier.size(4.dp))
 
-                            Text("Длительность: ${formatDuration(session.durationMs)}")
+                            Text(stringResource(R.string.label_duration, formatDuration(session.durationMs)))
 
                             Spacer(Modifier.size(4.dp))
 
                             Text(
-                                "Точность: ${
-                                    session.accuracyPercent
-                                        .let { String.format(Locale.getDefault(), "%.0f", it) }
-                                }%"
+                                stringResource(
+                                    R.string.history_accuracy,
+                                    String.format(Locale.getDefault(), "%.0f", session.accuracyPercent),
+                                )
                             )
 
                             Spacer(Modifier.size(4.dp))
 
                             Text(
-                                "Правильных ответов: " +
-                                        "${session.correctCount} из ${session.taskCount}"
+                                stringResource(
+                                    R.string.history_correct_answers,
+                                    session.correctCount,
+                                    session.taskCount,
+                                )
                             )
                         }
                     }
@@ -129,14 +144,15 @@ fun DayHistoryScreen(
     }
 }
 
+@Composable
 private fun formatDuration(durationMs: Long): String {
     val totalSeconds = durationMs.coerceAtLeast(0L) / 1_000
     val minutes = totalSeconds / 60
     val seconds = totalSeconds % 60
 
     return if (minutes > 0) {
-        "${minutes} мин ${seconds} сек"
+        stringResource(R.string.statistics_duration_minutes, minutes, seconds)
     } else {
-        "${seconds} сек"
+        stringResource(R.string.statistics_duration_seconds, seconds)
     }
 }
