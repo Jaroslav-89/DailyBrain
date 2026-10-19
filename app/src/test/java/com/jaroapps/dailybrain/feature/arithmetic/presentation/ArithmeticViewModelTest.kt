@@ -1,14 +1,15 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
-import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
-import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.SaveArithmeticTrainingUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
+import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTrainingConfig
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runCurrent
@@ -70,14 +71,16 @@ class ArithmeticViewModelTest {
             private set
         val savedSessions = mutableListOf<TrainingSession>()
 
-        override fun observeAllCompletedTrainings(): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()
-
-        override fun observeCompletedTrainingsByDate(date: Int): kotlinx.coroutines.flow.Flow<List<TrainingSession>> = kotlinx.coroutines.flow.emptyFlow()
-
         override suspend fun saveCompletedTraining(session: TrainingSession) {
             calls += 1
             savedSessions += session
             if (calls == 1) throw IOException("Temporary database error")
         }
+
+        override fun observeAllCompletedTrainings(): Flow<List<TrainingSession>> = emptyFlow()
+
+        override fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>> = emptyFlow()
+
+        override fun observeActiveTrainingDates(): Flow<Set<Int>> = emptyFlow()
     }
 }
