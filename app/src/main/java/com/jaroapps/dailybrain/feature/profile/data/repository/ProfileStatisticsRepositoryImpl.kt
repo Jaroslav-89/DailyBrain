@@ -2,7 +2,8 @@ package com.jaroapps.dailybrain.feature.profile.data.repository
 
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.core.database.AppDatabase
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
+import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResultRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -54,7 +55,7 @@ class ProfileStatisticsRepositoryImpl(
             currentStreakDays = streak,
             bestStreakDays = overall?.bestStreakDays ?: 0,
             firstTrainingDate = trainingDates.minOrNull(),
-            bestExerciseStats = exerciseStats,
+            bestExerciseStats = exerciseStats.map { BestExerciseResult(it.exerciseType, it.bestDurationMs, it.bestCorrectCount) },
         )
     }
 }
