@@ -131,10 +131,9 @@
     <string name="profile_gender_not_set">Not specified</string>
     <string name="profile_gender_female">Female</string>
     <string name="profile_gender_male">Male</string>
-    <string name="profile_gender_other">Other</string>
-    <string name="profile_gender_prefer_not_to_say">Prefer not to say</string>
     <string name="profile_birth_date">Date of birth</string>
-    <string name="profile_birth_date_hint">Optional, format YYYY-MM-DD</string>
+    <string name="profile_birth_date_hint">Optional</string>
+    <string name="profile_choose_date">Choose</string>
     <string name="profile_country">Country (optional)</string>
     <string name="profile_city">City (optional)</string>
     <string name="profile_save_error">Could not save the profile. Check the date format (YYYY-MM-DD).</string>
