@@ -2,19 +2,11 @@ package com.jaroapps.dailybrain.core.database
 
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
-/**
- * Database schema migrations are kept together here.
- */
+/** Database schema migrations are kept together here. */
 object DatabaseMigrations {
-
-    /**
-     * Version 1 used an auto-generated training session ID.
-     * Version 2 uses the session start timestamp as the ID instead.
-     *
-     * Rebuild the table to remove SQLite's AUTOINCREMENT declaration while
-     * preserving existing training records and their IDs.
-     */
     val MIGRATION_1_2 = object : Migration(1, 2) {
         override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
@@ -32,37 +24,105 @@ object DatabaseMigrations {
                 )
                 """.trimIndent(),
             )
-
             database.execSQL(
                 """
                 INSERT INTO training_sessions_new (
-                    id,
-                    exerciseType,
-                    startedAtEpochMs,
-                    finishedAtEpochMs,
-                    date,
-                    durationMs,
-                    accuracyPercent,
-                    taskCount,
-                    correctCount
+                    id, exerciseType, startedAtEpochMs, finishedAtEpochMs, date,
+                    durationMs, accuracyPercent, taskCount, correctCount
                 )
                 SELECT
-                    id,
-                    exerciseType,
-                    startedAtEpochMs,
-                    finishedAtEpochMs,
-                    date,
-                    durationMs,
-                    accuracyPercent,
-                    taskCount,
-                    correctCount
+                    id, exerciseType, startedAtEpochMs, finishedAtEpochMs, date,
+                    durationMs, accuracyPercent, taskCount, correctCount
                 FROM training_sessions
                 """.trimIndent(),
             )
-
             database.execSQL("DROP TABLE training_sessions")
+            database.execSQL("ALTER TABLE training_sessions_new RENAME TO training_sessions")
+        }
+    }
+
+    /** Reconstruct cached statistics from existing history without deleting sessions. */
+    val MIGRATION_2_3 = object : Migration(2, 3) {
+        override fun migrate(database: SupportSQLiteDatabase) {
             database.execSQL(
-                "ALTER TABLE training_sessions_new RENAME TO training_sessions",
+                """
+                CREATE TABLE overall_statistics (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    totalTrainingCount INTEGER NOT NULL,
+                    totalDurationMs INTEGER NOT NULL,
+                    currentStreakDays INTEGER NOT NULL,
+                    bestStreakDays INTEGER NOT NULL,
+                    lastTrainingDate INTEGER,
+                    updatedAtEpochMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                CREATE TABLE exercise_statistics (
+                    exerciseType TEXT NOT NULL PRIMARY KEY,
+                    trainingCount INTEGER NOT NULL,
+                    totalDurationMs INTEGER NOT NULL,
+                    bestDurationMs INTEGER,
+                    bestAccuracyPercent REAL,
+                    bestCorrectCount INTEGER,
+                    lastTrainingAtEpochMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+
+            val dates = mutableListOf<Int>()
+            database.query("SELECT date FROM training_days ORDER BY date ASC").use { cursor ->
+                while (cursor.moveToNext()) dates += cursor.getInt(0)
+            }
+
+            var currentStreak = 0
+            var bestStreak = 0
+            var previousDate: LocalDate? = null
+            for (storedDate in dates) {
+                val date = LocalDate.parse(storedDate.toString(), DateTimeFormatter.BASIC_ISO_DATE)
+                currentStreak = if (previousDate?.plusDays(1) == date) currentStreak + 1 else 1
+                bestStreak = maxOf(bestStreak, currentStreak)
+                previousDate = date
+            }
+
+            val lastTrainingDateSql = dates.lastOrNull()?.toString() ?: "NULL"
+            database.execSQL(
+                """
+                INSERT INTO overall_statistics (
+                    id, totalTrainingCount, totalDurationMs, currentStreakDays,
+                    bestStreakDays, lastTrainingDate, updatedAtEpochMs
+                )
+                SELECT 1, COUNT(*), COALESCE(SUM(durationMs), 0),
+                    $currentStreak, $bestStreak, $lastTrainingDateSql, ${System.currentTimeMillis()}
+                FROM training_sessions
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO exercise_statistics (
+                    exerciseType, trainingCount, totalDurationMs, bestDurationMs,
+                    bestAccuracyPercent, bestCorrectCount, lastTrainingAtEpochMs
+                )
+                SELECT
+                    exerciseType,
+                    COUNT(*),
+                    COALESCE(SUM(durationMs), 0),
+                    CASE
+                        WHEN exerciseType = 'ARITHMETIC'
+                            THEN MIN(CASE WHEN accuracyPercent >= ${StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT} THEN durationMs END)
+                        ELSE MIN(durationMs)
+                    END,
+                    CASE
+                        WHEN exerciseType IN ('ARITHMETIC', 'MEMORY_WORDS') AND MAX(taskCount) > 0
+                            THEN MAX(accuracyPercent)
+                        ELSE NULL
+                    END,
+                    CASE WHEN exerciseType = 'MEMORY_WORDS' THEN MAX(correctCount) ELSE NULL END,
+                    MAX(finishedAtEpochMs)
+                FROM training_sessions
+                GROUP BY exerciseType
+                """.trimIndent(),
             )
         }
     }

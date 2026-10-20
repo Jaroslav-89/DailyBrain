@@ -89,4 +89,11 @@
     <string name="memory_no_incorrect">No incorrectly written words.</string>
     <string name="memory_incorrect_word">✕  %1$s</string>
     <string name="format_count_pair">%1$d of %2$d</string>
+    <string name="statistics_current_streak">Current streak</string>
+    <string name="statistics_best_streak">Best streak</string>
+    <string name="statistics_days_count">%1$d days</string>
+    <string name="statistics_best_time_95_accuracy">Best time (accuracy at least 95%)</string>
+    <string name="statistics_memory_record">Most words recalled correctly</string>
+    <string name="statistics_no_record">No record yet</string>
+    <string name="statistics_best_time">Shortest time</string>
 </resources>
