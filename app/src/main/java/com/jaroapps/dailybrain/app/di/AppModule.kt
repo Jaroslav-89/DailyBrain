@@ -28,6 +28,12 @@ import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWord
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
+import com.jaroapps.dailybrain.feature.profile.data.repository.UserProfileRepositoryImpl
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
 import org.koin.android.ext.koin.androidContext
@@ -45,7 +51,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5)
             .build()
     }
 
@@ -60,6 +66,13 @@ val appModule = module {
     factory { ObserveTotalTrainingCountUseCase(repository = get()) }
     factory { SaveCompletedTrainingUseCase(repository = get()) }
     factory { DeleteCompletedTrainingUseCase(repository = get()) }
+
+    // Local profile/account feature
+    single<UserProfileRepository> { UserProfileRepositoryImpl(database = get()) }
+    factory { ObserveUserProfileUseCase(repository = get()) }
+    factory { SaveUserProfileUseCase(repository = get()) }
+    factory { ObserveProfileStatisticsUseCase(observeAllCompletedTrainings = get(), database = get()) }
+    viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get()) }
 
     // Arithmetic feature
     factory { GenerateArithmeticProblemUseCase() }
