@@ -311,6 +311,7 @@ private fun DailyResultChart(
             }
         } else {
             val lineColor = MaterialTheme.colorScheme.primary
+            val averageColor = MaterialTheme.colorScheme.tertiary
             val gridColor = MaterialTheme.colorScheme.outlineVariant
             val minValue = datedValues.minOf { it.second }
             val maxValue = datedValues.maxOf { it.second }
@@ -345,7 +346,7 @@ private fun DailyResultChart(
 
                         val averageY = bottom - averageFraction * (bottom - top)
                         drawLine(
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = averageColor,
                             start = Offset(left, averageY),
                             end = Offset(right, averageY),
                             strokeWidth = 2.dp.toPx(),
