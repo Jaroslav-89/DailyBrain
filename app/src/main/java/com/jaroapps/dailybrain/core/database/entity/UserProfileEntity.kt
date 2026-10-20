@@ -17,6 +17,8 @@ data class UserProfileEntity(
     val city: String? = null,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    /** Versioned, local-only avatar configuration JSON. */
+    val avatarJson: String? = null,
 ) {
     companion object {
         const val SINGLETON_ID = 1
