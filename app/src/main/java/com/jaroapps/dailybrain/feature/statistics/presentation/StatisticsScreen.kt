@@ -126,13 +126,6 @@ fun StatisticsScreen(
                 value = state.memoryBestCorrectCount?.toString()
                     ?: stringResource(R.string.statistics_no_record),
             )
-            Spacer(Modifier.height(12.dp))
-            StatisticCard(
-                title = stringResource(R.string.statistics_best_time),
-                value = state.memoryBestDurationMs?.let { duration ->
-                    formatDuration(duration)
-                } ?: stringResource(R.string.statistics_no_record),
-            )
         } else if (selectedTab == 3 || selectedTab == 4) {
             val bestDuration = if (selectedTab == 3) {
                 state.countingBestDurationMs
