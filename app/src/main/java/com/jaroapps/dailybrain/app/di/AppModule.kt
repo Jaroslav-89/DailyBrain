@@ -81,15 +81,6 @@ val appModule = module {
     factory { GenerateArithmeticProblemUseCase() }
     factory { CheckArithmeticAnswerUseCase() }
 
-    viewModel {
-        ArithmeticViewModel(
-            generateProblem = get(),
-            checkAnswer = get(),
-            saveCompletedTraining = get(),
-            strings = get(),
-        )
-    }
-
     // Memory feature
     single<MemoryWordsRepository> {
         MemoryWordsRepositoryImpl(context = androidContext())
@@ -98,15 +89,6 @@ val appModule = module {
     factory { GetRandomMemoryWordsUseCase(repository = get()) }
     factory { CheckMemoryAnswersUseCase() }
     factory { SaveMemoryTrainingUseCase(completedTrainingRepository = get()) }
-
-    viewModel {
-        MemoryTrainingViewModel(
-            getRandomMemoryWords = get(),
-            checkMemoryAnswers = get(),
-            saveMemoryTraining = get(),
-            strings = get(),
-        )
-    }
 
     // Counting feature
     viewModel { CountingTrainingViewModel(saveCompletedTraining = get(), strings = get()) }
@@ -122,7 +104,7 @@ val appModule = module {
         )
     }
 
-    // History feature
+    // History
     viewModel { CalendarViewModel(observeActiveTrainingDates = get()) }
 
     viewModel {
@@ -133,14 +115,6 @@ val appModule = module {
         )
     }
 
-    // Home feature
-    viewModel {
-        HomeViewModel(
-            observeTrainingDaysInRange = get(),
-            observeTotalTrainingCount = get(),
-        )
-    }
-
-    // Statistics feature
+    viewModel { HomeViewModel(observeTrainingDaysInRange = get(), observeTotalTrainingCount = get()) }
     viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), database = get()) }
 }
