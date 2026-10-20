@@ -139,4 +139,6 @@
     <string name="profile_city">City (optional)</string>
     <string name="profile_save_error">Could not save the profile. Check the date format (YYYY-MM-DD).</string>
     <string name="action_save">Save</string>
+    <string name="profile_gender_display">Gender: %1$s</string>
+    <string name="profile_birth_date_display">Date of birth: %1$s</string>
 </resources>
