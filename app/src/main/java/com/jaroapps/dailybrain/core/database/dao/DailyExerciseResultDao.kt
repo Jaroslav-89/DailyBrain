@@ -4,6 +4,7 @@ import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
+import androidx.room.Transaction
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import kotlinx.coroutines.flow.Flow
 
@@ -22,49 +23,45 @@ interface DailyExerciseResultDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsert(result: DailyExerciseResultEntity)
 
-    @Query("""
-        INSERT INTO daily_exercise_results(date, arithmeticBestTimeMs, memoryBestCorrectCount, stroopBestTimeMs, countingBestTimeMs)
-        VALUES(:date, :durationMs, NULL, NULL, NULL)
-        ON CONFLICT(date) DO UPDATE SET
-            arithmeticBestTimeMs = CASE
-                WHEN excluded.arithmeticBestTimeMs IS NOT NULL AND
-                    (daily_exercise_results.arithmeticBestTimeMs IS NULL OR excluded.arithmeticBestTimeMs < daily_exercise_results.arithmeticBestTimeMs)
-                THEN excluded.arithmeticBestTimeMs ELSE daily_exercise_results.arithmeticBestTimeMs END
-    """)
-    suspend fun recordArithmeticBest(date: Int, durationMs: Long)
+    @Transaction
+    suspend fun recordArithmeticBest(date: Int, durationMs: Long) {
+        val current = getByDate(date)
+        if (current == null) {
+            upsert(DailyExerciseResultEntity(date, durationMs, null, null, null))
+        } else if (current.arithmeticBestTimeMs == null || durationMs < current.arithmeticBestTimeMs) {
+            upsert(current.copy(arithmeticBestTimeMs = durationMs))
+        }
+    }
 
-    @Query("""
-        INSERT INTO daily_exercise_results(date, arithmeticBestTimeMs, memoryBestCorrectCount, stroopBestTimeMs, countingBestTimeMs)
-        VALUES(:date, NULL, :correctCount, NULL, NULL)
-        ON CONFLICT(date) DO UPDATE SET
-            memoryBestCorrectCount = CASE
-                WHEN excluded.memoryBestCorrectCount IS NOT NULL AND
-                    (daily_exercise_results.memoryBestCorrectCount IS NULL OR excluded.memoryBestCorrectCount > daily_exercise_results.memoryBestCorrectCount)
-                THEN excluded.memoryBestCorrectCount ELSE daily_exercise_results.memoryBestCorrectCount END
-    """)
-    suspend fun recordMemoryBest(date: Int, correctCount: Int)
+    @Transaction
+    suspend fun recordMemoryBest(date: Int, correctCount: Int) {
+        val current = getByDate(date)
+        if (current == null) {
+            upsert(DailyExerciseResultEntity(date, null, correctCount, null, null))
+        } else if (current.memoryBestCorrectCount == null || correctCount > current.memoryBestCorrectCount) {
+            upsert(current.copy(memoryBestCorrectCount = correctCount))
+        }
+    }
 
-    @Query("""
-        INSERT INTO daily_exercise_results(date, arithmeticBestTimeMs, memoryBestCorrectCount, stroopBestTimeMs, countingBestTimeMs)
-        VALUES(:date, NULL, NULL, :durationMs, NULL)
-        ON CONFLICT(date) DO UPDATE SET
-            stroopBestTimeMs = CASE
-                WHEN excluded.stroopBestTimeMs IS NOT NULL AND
-                    (daily_exercise_results.stroopBestTimeMs IS NULL OR excluded.stroopBestTimeMs < daily_exercise_results.stroopBestTimeMs)
-                THEN excluded.stroopBestTimeMs ELSE daily_exercise_results.stroopBestTimeMs END
-    """)
-    suspend fun recordStroopBest(date: Int, durationMs: Long)
+    @Transaction
+    suspend fun recordStroopBest(date: Int, durationMs: Long) {
+        val current = getByDate(date)
+        if (current == null) {
+            upsert(DailyExerciseResultEntity(date, null, null, durationMs, null))
+        } else if (current.stroopBestTimeMs == null || durationMs < current.stroopBestTimeMs) {
+            upsert(current.copy(stroopBestTimeMs = durationMs))
+        }
+    }
 
-    @Query("""
-        INSERT INTO daily_exercise_results(date, arithmeticBestTimeMs, memoryBestCorrectCount, stroopBestTimeMs, countingBestTimeMs)
-        VALUES(:date, NULL, NULL, NULL, :durationMs)
-        ON CONFLICT(date) DO UPDATE SET
-            countingBestTimeMs = CASE
-                WHEN excluded.countingBestTimeMs IS NOT NULL AND
-                    (daily_exercise_results.countingBestTimeMs IS NULL OR excluded.countingBestTimeMs < daily_exercise_results.countingBestTimeMs)
-                THEN excluded.countingBestTimeMs ELSE daily_exercise_results.countingBestTimeMs END
-    """)
-    suspend fun recordCountingBest(date: Int, durationMs: Long)
+    @Transaction
+    suspend fun recordCountingBest(date: Int, durationMs: Long) {
+        val current = getByDate(date)
+        if (current == null) {
+            upsert(DailyExerciseResultEntity(date, null, null, null, durationMs))
+        } else if (current.countingBestTimeMs == null || durationMs < current.countingBestTimeMs) {
+            upsert(current.copy(countingBestTimeMs = durationMs))
+        }
+    }
 
     @Query("DELETE FROM daily_exercise_results WHERE date = :date")
     suspend fun deleteByDate(date: Int)
