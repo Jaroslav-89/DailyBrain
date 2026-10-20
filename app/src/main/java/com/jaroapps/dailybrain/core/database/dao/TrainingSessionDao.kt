@@ -28,6 +28,9 @@ interface TrainingSessionDao {
     @Query("SELECT MIN(startedAtEpochMs) FROM training_sessions")
     suspend fun getFirstTrainingStartedAtEpochMs(): Long?
 
+    @Query("SELECT MIN(startedAtEpochMs) FROM training_sessions")
+    fun observeFirstTrainingStartedAtEpochMs(): Flow<Long?>
+
     @Query("SELECT * FROM training_sessions WHERE id = :id")
     suspend fun getById(id: Long): TrainingSessionEntity?
 
