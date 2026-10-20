@@ -1,6 +1,9 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -65,20 +68,36 @@ fun ProfileScreen(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceVariant,
         ) {
-            Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                Text(
-                    text = profile?.effectiveDisplayName ?: stringResource(R.string.profile_loading),
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
-                )
-                profile?.let { user ->
-                    val location = listOfNotNull(
-                        user.city?.takeIf(String::isNotBlank),
-                        user.country?.takeIf(String::isNotBlank),
-                    ).joinToString(", ")
-                    if (location.isNotBlank()) {
-                        Text(location, style = MaterialTheme.typography.bodyMedium)
+            Row(
+                modifier = Modifier.padding(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.Top,
+            ) {
+                Surface(
+                    modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
+                    shape = MaterialTheme.shapes.medium,
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("👤", style = MaterialTheme.typography.headlineLarge)
                     }
+                }
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    Text(
+                        text = profile?.effectiveDisplayName ?: stringResource(R.string.profile_loading),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    profile?.let { user ->
+                        user.country?.takeIf(String::isNotBlank)?.let { country ->
+                            Text(country, style = MaterialTheme.typography.bodyMedium)
+                        }
+                        user.city?.takeIf(String::isNotBlank)?.let { city ->
+                            Text(city, style = MaterialTheme.typography.bodyMedium)
+                        }
                     user.gender?.let { gender ->
                         val genderText = when (gender) {
                             com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
@@ -91,12 +110,13 @@ fun ProfileScreen(
                     user.birthDate?.let { birthDate ->
                         Text(stringResource(R.string.profile_birth_date_display, birthDate.toString()), style = MaterialTheme.typography.bodyMedium)
                     }
-                    if (!user.displayName.isNullOrBlank()) {
+                    if (user.displayName.isNullOrBlank()) {
                         Text(
                             text = stringResource(R.string.profile_alias, user.generatedAlias),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                    }
                     }
                 }
             }
