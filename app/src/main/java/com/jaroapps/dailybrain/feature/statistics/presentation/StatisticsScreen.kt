@@ -309,7 +309,8 @@ private fun DailyResultChart(
         } else {
             val lineColor = MaterialTheme.colorScheme.primary
             val gridColor = MaterialTheme.colorScheme.outlineVariant
-            Canvas(Modifier.fillMaxSize().padding(16.dp)) {
+            Column(Modifier.fillMaxSize().padding(12.dp)) {
+            Canvas(Modifier.weight(1f).fillMaxWidth()) {
                 val left = 8.dp.toPx()
                 val right = size.width - 8.dp.toPx()
                 val top = 8.dp.toPx()
@@ -348,6 +349,20 @@ private fun DailyResultChart(
                 points.forEach { (_, _, point) ->
                     drawCircle(lineColor, radius = 4.dp.toPx(), center = point)
                 }
+            }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+            ) {
+                Text(
+                    text = datedValues.first().first.format(DateTimeFormatter.ofPattern("d MMM")),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+                Text(
+                    text = datedValues.last().first.format(DateTimeFormatter.ofPattern("d MMM")),
+                    style = MaterialTheme.typography.labelSmall,
+                )
+            }
             }
         }
     }
