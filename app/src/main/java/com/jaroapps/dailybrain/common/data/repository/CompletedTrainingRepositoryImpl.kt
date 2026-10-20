@@ -52,6 +52,16 @@ class CompletedTrainingRepositoryImpl(
     }
 
 
+    override suspend fun recalculateDailyExerciseResult(date: Int) {
+        database.withTransaction {
+            val dao = database.dailyExerciseResultDao()
+            dao.deleteByDate(date)
+            database.trainingSessionDao().getAllByDate(date).forEach { entity ->
+                updateDailyExerciseResult(entity.toDomain(), date)
+            }
+        }
+    }
+
     private suspend fun updateDailyExerciseResult(session: TrainingSession, date: Int) {
         val dao = database.dailyExerciseResultDao()
         val duration = session.durationMs.coerceAtLeast(0L)
