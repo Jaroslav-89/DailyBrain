@@ -5,8 +5,6 @@ import java.time.LocalDate
 enum class UserGender {
     FEMALE,
     MALE,
-    OTHER,
-    PREFER_NOT_TO_SAY,
 }
 
 data class UserProfile(
