@@ -2,7 +2,6 @@ package com.jaroapps.dailybrain.feature.statistics.presentation
 
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 
-package com.jaroapps.dailybrain.feature.statistics.presentation
 data class ExerciseStatistics(
     val trainingCount: Int = 0,
     val weeklyTrainingCount: Int = 0,
