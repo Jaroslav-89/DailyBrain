@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarEditorScreen
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticScreen
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
@@ -63,7 +64,14 @@ fun AppNavHost() {
         }
 
         composable(Route.EDIT_PROFILE) {
-            EditProfileScreen(onBack = { navController.popBackStack() })
+            EditProfileScreen(
+                onBack = { navController.popBackStack() },
+                onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
+            )
+        }
+
+        composable(Route.AVATAR_EDITOR) {
+            AvatarEditorScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Route.STATISTICS) {
