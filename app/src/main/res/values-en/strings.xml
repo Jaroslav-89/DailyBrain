@@ -108,4 +108,52 @@
     <string name="statistics_period_all">All time</string>
     <string name="statistics_chart_average">Avg. %1$s</string>
     <string name="statistics_chart_no_data">No results in this period</string>
+    <string name="home_profile">My profile</string>
+    <string name="profile_title">My profile</string>
+    <string name="profile_loading">Loading profile…</string>
+    <string name="profile_edit">Edit profile</string>
+    <string name="profile_alias">Account alias: %1$s</string>
+    <string name="profile_summary">Training summary</string>
+    <string name="profile_current_streak">Current streak (days)</string>
+    <string name="profile_best_streak">Record streak (days)</string>
+    <string name="profile_total_exercises">Completed exercises</string>
+    <string name="profile_week_exercises">Last 7 days</string>
+    <string name="profile_total_duration">Total training time</string>
+    <string name="profile_training_period">Training journey</string>
+    <string name="profile_best_results">Best results by exercise</string>
+    <string name="profile_years">%1$d yr</string>
+    <string name="profile_months">%1$d mo</string>
+    <string name="profile_days">%1$d days</string>
+    <plurals name="profile_age_years">
+        <item quantity="one">%d year old</item>
+        <item quantity="other">%d years old</item>
+    </plurals>
+    <plurals name="profile_tenure_years">
+        <item quantity="one">%d year</item>
+        <item quantity="other">%d years</item>
+    </plurals>
+    <plurals name="profile_tenure_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+    <plurals name="profile_tenure_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="profile_member_since">With DailyBrain for %1$s</string>
+    <string name="profile_edit_title">Edit profile</string>
+    <string name="profile_name">Display name</string>
+    <string name="profile_name_optional">Optional. If empty, an automatically generated alias is shown.</string>
+    <string name="profile_gender">Gender</string>
+    <string name="profile_gender_not_set">Not specified</string>
+    <string name="profile_gender_female">Female</string>
+    <string name="profile_gender_male">Male</string>
+    <string name="profile_birth_date">Date of birth</string>
+    <string name="profile_birth_date_hint">Optional</string>
+    <string name="profile_choose_date">Choose</string>
+    <string name="profile_country">Country (optional)</string>
+    <string name="profile_city">City (optional)</string>
+    <string name="profile_save_error">Could not save the profile. Check the date format (YYYY-MM-DD).</string>
+    <string name="action_save">Save</string>
+    <string name="profile_gender_display">Gender: %1$s</string>
 </resources>

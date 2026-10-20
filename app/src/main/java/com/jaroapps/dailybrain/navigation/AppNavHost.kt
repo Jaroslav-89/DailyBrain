@@ -7,6 +7,8 @@ import androidx.navigation.compose.rememberNavController
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticScreen
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
@@ -32,6 +34,7 @@ fun AppNavHost() {
                 onStartTraining = {
                     navController.navigate(Route.ARITHMETIC)
                 },
+                onOpenProfile = { navController.navigate(Route.PROFILE) },
                 onOpenStatistics = {
                     navController.navigate(Route.STATISTICS)
                 },
@@ -53,6 +56,14 @@ fun AppNavHost() {
                     navController.popBackStack()
                 },
             )
+        }
+
+        composable(Route.PROFILE) {
+            ProfileScreen(onBack = { navController.popBackStack() }, onEditProfile = { navController.navigate(Route.EDIT_PROFILE) })
+        }
+
+        composable(Route.EDIT_PROFILE) {
+            EditProfileScreen(onBack = { navController.popBackStack() })
         }
 
         composable(Route.STATISTICS) {

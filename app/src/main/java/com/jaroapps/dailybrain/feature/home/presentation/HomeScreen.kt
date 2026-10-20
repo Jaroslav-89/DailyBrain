@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +37,7 @@ import java.util.Locale
 fun HomeScreen(
     onStartTraining: () -> Unit,
     onOpenStatistics: () -> Unit,
+    onOpenProfile: () -> Unit,
     onOpenCalendar: () -> Unit,
     onStartMemoryTraining: () -> Unit,
     onStartStroopTest: () -> Unit,
@@ -148,7 +151,16 @@ fun HomeScreen(
             }
         }
 
-        Spacer(Modifier.weight(1f))
+        Spacer(Modifier.height(24.dp))
+
+        OutlinedButton(
+            onClick = onOpenProfile,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.home_profile))
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         OutlinedButton(
             onClick = onOpenStatistics,
