@@ -17,6 +17,9 @@ interface StatisticsDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveOverall(statistics: OverallStatisticsEntity)
 
+    @Query("DELETE FROM overall_statistics WHERE id = 1")
+    suspend fun deleteOverall()
+
     @Query("SELECT * FROM overall_statistics WHERE id = 1")
     fun observeOverall(): Flow<OverallStatisticsEntity?>
 
@@ -28,4 +31,7 @@ interface StatisticsDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveExerciseStatistics(statistics: ExerciseStatisticsEntity)
+
+    @Query("DELETE FROM exercise_statistics")
+    suspend fun deleteAllExerciseStatistics()
 }

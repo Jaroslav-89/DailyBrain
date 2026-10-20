@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.app.di
 import androidx.room.Room
 import com.jaroapps.dailybrain.common.data.repository.CompletedTrainingRepositoryImpl
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.common.domain.usecase.DeleteCompletedTrainingUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
@@ -58,6 +59,7 @@ val appModule = module {
     factory { ObserveTrainingDaysInRangeUseCase(repository = get()) }
     factory { ObserveTotalTrainingCountUseCase(repository = get()) }
     factory { SaveCompletedTrainingUseCase(repository = get()) }
+    factory { DeleteCompletedTrainingUseCase(repository = get()) }
 
     // Arithmetic feature
     factory { GenerateArithmeticProblemUseCase() }
@@ -111,6 +113,7 @@ val appModule = module {
         DayHistoryViewModel(
             savedStateHandle = get(),
             observeCompletedTrainingsByDate = get(),
+            deleteCompletedTraining = get(),
         )
     }
 

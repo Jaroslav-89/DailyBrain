@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -9,19 +10,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.res.pluralStringResource
-import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -36,11 +44,35 @@ fun DayHistoryScreen(
 ) {
     val sessions by viewModel.sessions.collectAsState()
     val date = viewModel.date
+    var sessionToDelete by remember { mutableStateOf<TrainingSession?>(null) }
 
     val dateFormatter = DateTimeFormatter
         .ofPattern("d MMMM yyyy", Locale.getDefault())
     val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
     val zone = ZoneId.systemDefault()
+
+    sessionToDelete?.let { session ->
+        AlertDialog(
+            onDismissRequest = { sessionToDelete = null },
+            title = { Text(stringResource(R.string.history_delete_title)) },
+            text = { Text(stringResource(R.string.history_delete_warning)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTraining(session.id)
+                        sessionToDelete = null
+                    },
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { sessionToDelete = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
 
     Column(
         modifier = modifier
@@ -90,52 +122,80 @@ fun DayHistoryScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                        ) {
-                            val exerciseName = when (ExerciseType.fromStorage(session.exerciseType)) {
-                                ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
-                                ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
-                                ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
-                                ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
-                                null -> session.exerciseType
+                        Box {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            ) {
+                                val exerciseName = when (ExerciseType.fromStorage(session.exerciseType)) {
+                                    ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
+                                    ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
+                                    ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
+                                    ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
+                                    null -> session.exerciseType
+                                }
+
+                                Text(
+                                    text = exerciseName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(end = 40.dp),
+                                )
+
+                                Spacer(Modifier.size(8.dp))
+
+                                val finishedTime = Instant
+                                    .ofEpochMilli(session.finishedAtEpochMs)
+                                    .atZone(zone)
+                                    .format(timeFormatter)
+
+                                Text(stringResource(R.string.label_finished_at, finishedTime))
+
+                                Spacer(Modifier.size(4.dp))
+
+                                Text(
+                                    stringResource(
+                                        R.string.label_duration,
+                                        formatDuration(session.durationMs),
+                                    )
+                                )
+
+                                Spacer(Modifier.size(4.dp))
+
+                                Text(
+                                    stringResource(
+                                        R.string.history_accuracy,
+                                        String.format(
+                                            Locale.getDefault(),
+                                            "%.0f",
+                                            session.accuracyPercent,
+                                        ),
+                                    )
+                                )
+
+                                Spacer(Modifier.size(4.dp))
+
+                                Text(
+                                    stringResource(
+                                        R.string.history_correct_answers,
+                                        session.correctCount,
+                                        session.taskCount,
+                                    )
+                                )
                             }
-                            Text(
-                                text = exerciseName,
-                                style = MaterialTheme.typography.titleMedium,
-                            )
 
-                            Spacer(Modifier.size(8.dp))
-
-                            val finishedTime = Instant
-                                .ofEpochMilli(session.finishedAtEpochMs)
-                                .atZone(zone)
-                                .format(timeFormatter)
-
-                            Text(stringResource(R.string.label_finished_at, finishedTime))
-
-                            Spacer(Modifier.size(4.dp))
-
-                            Text(stringResource(R.string.label_duration, formatDuration(session.durationMs)))
-
-                            Spacer(Modifier.size(4.dp))
-
-                            Text(
-                                stringResource(
-                                    R.string.history_accuracy,
-                                    String.format(Locale.getDefault(), "%.0f", session.accuracyPercent),
+                            IconButton(
+                                onClick = { sessionToDelete = session },
+                                modifier = Modifier.align(Alignment.TopEnd),
+                            ) {
+                                Text(
+                                    text = "×",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.error,
                                 )
-                            )
-
-                            Spacer(Modifier.size(4.dp))
-
-                            Text(
-                                stringResource(
-                                    R.string.history_correct_answers,
-                                    session.correctCount,
-                                    session.taskCount,
-                                )
-                            )
+                            }
                         }
                     }
                 }

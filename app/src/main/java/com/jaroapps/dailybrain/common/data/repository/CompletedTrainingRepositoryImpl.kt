@@ -54,13 +54,48 @@ class CompletedTrainingRepositoryImpl(
 
     override suspend fun recalculateDailyExerciseResult(date: Int) {
         database.withTransaction {
-            val dao = database.dailyExerciseResultDao()
-            dao.deleteByDate(date)
-            database.trainingSessionDao().getAllByDate(date).forEach { entity ->
-                updateDailyExerciseResult(entity.toDomain(), date)
-            }
+            recalculateDailyExerciseResultInTransaction(date)
         }
     }
+
+    private suspend fun recalculateDailyExerciseResultInTransaction(date: Int) {
+        val dao = database.dailyExerciseResultDao()
+        dao.deleteByDate(date)
+        database.trainingSessionDao().getAllByDate(date).forEach { entity ->
+            updateDailyExerciseResult(entity.toDomain(), date)
+        }
+    }
+
+    override suspend fun deleteCompletedTraining(id: Long): Boolean =
+        database.withTransaction {
+            val sessionDao = database.trainingSessionDao()
+            val deletedSession = sessionDao.getById(id) ?: return@withTransaction false
+            if (sessionDao.deleteById(id) == 0) return@withTransaction false
+
+            // Rebuild date index and cached aggregate statistics from source sessions.
+            val remainingSessions = sessionDao.getAll()
+            val trainingDayDao = database.trainingDayDao()
+            trainingDayDao.deleteAll()
+            remainingSessions
+                .groupingBy { it.date }
+                .eachCount()
+                .map { (date, count) -> TrainingDayEntity(date = date, exerciseCount = count) }
+                .takeIf { it.isNotEmpty() }
+                ?.let { trainingDayDao.insertAll(it) }
+
+            val statisticsDao = database.statisticsDao()
+            statisticsDao.deleteOverall()
+            statisticsDao.deleteAllExerciseStatistics()
+            remainingSessions.forEach { entity ->
+                val training = entity.toDomain()
+                updateOverallStatistics(training, entity.date)
+                updateExerciseStatistics(training)
+            }
+
+            recalculateDailyExerciseResultInTransaction(deletedSession.date)
+
+            true
+        }
 
     private suspend fun updateDailyExerciseResult(session: TrainingSession, date: Int) {
         val dao = database.dailyExerciseResultDao()

@@ -2,6 +2,8 @@
     <string name="app_name">DailyBrain</string>
     <string name="action_back">Назад</string>
     <string name="action_close">Закрыть</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_cancel">Отмена</string>
     <string name="action_exit">Выйти</string>
     <string name="action_done">Готово</string>
     <string name="action_finish">Завершить</string>
@@ -37,6 +39,8 @@
     <string name="exercise_counting">Устный счёт до 120</string>
     <string name="exercise_stroop">Тест Струпа</string>
     <string name="calendar_title">Календарь</string>
+    <string name="history_delete_title">Удалить тренировку?</string>
+    <string name="history_delete_warning">Результаты этой тренировки будут удалены без возможности восстановления. Статистика и рекорды будут пересчитаны.</string>
     <string name="history_no_trainings">Тренировок нет</string>
     <string name="history_empty_day">В этот день ещё нет завершённых тренировок.</string>
     <string name="history_accuracy">Точность: %1$s%%</string>

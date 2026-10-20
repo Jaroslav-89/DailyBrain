@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
  */
 interface CompletedTrainingRepository {
     suspend fun saveCompletedTraining(session: TrainingSession)
+    suspend fun deleteCompletedTraining(id: Long): Boolean
     suspend fun recalculateDailyExerciseResult(date: Int)
     fun observeAllCompletedTrainings(): Flow<List<TrainingSession>>
     fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>>
