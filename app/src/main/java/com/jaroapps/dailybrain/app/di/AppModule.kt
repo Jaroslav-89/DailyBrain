@@ -111,6 +111,7 @@ val appModule = module {
         DayHistoryViewModel(
             savedStateHandle = get(),
             observeCompletedTrainingsByDate = get(),
+            completedTrainingRepository = get(),
         )
     }
 
