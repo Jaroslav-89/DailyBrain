@@ -52,12 +52,13 @@ class UserProfileRepositoryImpl(
         )
     }
 
-    private fun createInitialProfile(): UserProfileEntity {
+    private suspend fun createInitialProfile(): UserProfileEntity {
         val now = System.currentTimeMillis()
+        val registeredAt = database.trainingSessionDao().getFirstTrainingStartedAtEpochMs() ?: now
         return UserProfileEntity(
             localAccountId = UUID.randomUUID().toString(),
             generatedAlias = "brain#${Random.nextInt(100, 1000)}",
-            createdAtEpochMs = now,
+            createdAtEpochMs = registeredAt,
             updatedAtEpochMs = now,
         )
     }
