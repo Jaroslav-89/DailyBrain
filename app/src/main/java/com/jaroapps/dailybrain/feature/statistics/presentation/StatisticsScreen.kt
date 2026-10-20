@@ -108,11 +108,9 @@ fun StatisticsScreen(
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_best_time_95_accuracy),
-                value = if (state.arithmeticBestDurationMs != null) {
-                    formatDuration(state.arithmeticBestDurationMs)
-                } else {
-                    stringResource(R.string.statistics_no_record)
-                },
+                value = state.arithmeticBestDurationMs?.let { duration ->
+                    formatDuration(duration)
+                } ?: stringResource(R.string.statistics_no_record),
             )
         } else if (selectedTab == 2) {
             Spacer(Modifier.height(12.dp))
@@ -124,11 +122,9 @@ fun StatisticsScreen(
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_best_time),
-                value = if (state.memoryBestDurationMs != null) {
-                    formatDuration(state.memoryBestDurationMs)
-                } else {
-                    stringResource(R.string.statistics_no_record)
-                },
+                value = state.memoryBestDurationMs?.let { duration ->
+                    formatDuration(duration)
+                } ?: stringResource(R.string.statistics_no_record),
             )
         } else if (selectedTab == 3 || selectedTab == 4) {
             val bestDuration = if (selectedTab == 3) {
