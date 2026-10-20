@@ -43,11 +43,15 @@ fun StatisticsScreen(
         stringResource(R.string.statistics_tab_overall),
         stringResource(R.string.statistics_arithmetic),
         stringResource(R.string.statistics_memory),
+        stringResource(R.string.exercise_counting),
+        stringResource(R.string.exercise_stroop),
     )
 
     val stats = when (selectedTab) {
         1 -> state.arithmetic
         2 -> state.memoryWords
+        3 -> state.countingTraining
+        4 -> state.stroopTest
         else -> state.overall
     }
 
@@ -96,40 +100,78 @@ fun StatisticsScreen(
             value = stats.weeklyTrainingCount.toString(),
         )
 
-        Spacer(Modifier.height(12.dp))
+        if (selectedTab == 0) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_current_streak),
+                value = stringResource(R.string.statistics_days_count, state.currentStreakDays),
+            )
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_best_streak),
+                value = stringResource(R.string.statistics_days_count, state.bestStreakDays),
+            )
+        } else if (selectedTab == 1) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_best_time_95_accuracy),
+                value = state.arithmeticBestDurationMs?.let { duration ->
+                    formatDuration(duration)
+                } ?: stringResource(R.string.statistics_no_record),
+            )
+        } else if (selectedTab == 2) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_memory_record),
+                value = state.memoryBestCorrectCount?.toString()
+                    ?: stringResource(R.string.statistics_no_record),
+            )
+        } else if (selectedTab == 3 || selectedTab == 4) {
+            val bestDuration = if (selectedTab == 3) {
+                state.countingBestDurationMs
+            } else {
+                state.stroopBestDurationMs
+            }
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_best_time),
+                value = if (bestDuration != null) {
+                    formatDuration(bestDuration)
+                } else {
+                    stringResource(R.string.statistics_no_record)
+                },
+            )
+        }
 
-        StatisticCard(
-            title = stringResource(R.string.statistics_total_duration),
-            value = formatDuration(stats.totalDurationMs),
-        )
+        if (selectedTab != 2) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_total_duration),
+                value = formatDuration(stats.totalDurationMs),
+            )
+        }
 
-        Spacer(Modifier.height(12.dp))
+        if (selectedTab != 0 && selectedTab != 2) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_average_duration),
+                value = formatDuration(stats.averageDurationMs),
+            )
+        }
 
-        StatisticCard(
-            title = stringResource(R.string.statistics_average_duration),
-            value = formatDuration(stats.averageDurationMs),
-        )
+        if (selectedTab == 1) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_average_accuracy),
+                value = formatPercent(stats.averageAccuracyPercent),
+            )
 
-        Spacer(Modifier.height(12.dp))
-
-        StatisticCard(
-            title = stringResource(R.string.statistics_average_accuracy),
-            value = formatPercent(stats.averageAccuracyPercent),
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        StatisticCard(
-            title = stringResource(R.string.statistics_best_accuracy),
-            value = formatPercent(stats.bestAccuracyPercent),
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        StatisticCard(
-            title = stringResource(R.string.label_correct_count),
-            value = stringResource(R.string.format_count_pair, stats.totalCorrectCount, stats.totalTaskCount),
-        )
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_best_accuracy),
+                value = formatPercent(stats.bestAccuracyPercent),
+            )
+        }
 
         Spacer(Modifier.height(24.dp))
 
