@@ -114,11 +114,14 @@ fun ProfileScreen(
         Spacer(Modifier.height(10.dp))
         ProfileStatCard(stringResource(R.string.profile_total_duration), formatDuration(stats.totalDurationMs), Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
-        period?.let {
+        period?.let { elapsed ->
+            val yearsText = stringResource(R.string.profile_years, elapsed.years)
+            val monthsText = stringResource(R.string.profile_months, elapsed.months)
+            val daysText = stringResource(R.string.profile_days, elapsed.days)
             val durationText = listOfNotNull(
-                stringResource(R.string.profile_years, it.years).takeIf { _ -> it.years > 0 },
-                stringResource(R.string.profile_months, it.months).takeIf { _ -> it.months > 0 },
-                stringResource(R.string.profile_days, it.days),
+                yearsText.takeIf { elapsed.years > 0 },
+                monthsText.takeIf { elapsed.months > 0 },
+                daysText,
             ).joinToString(" ")
             ProfileStatCard(stringResource(R.string.profile_training_period), durationText, Modifier.fillMaxWidth())
         }
