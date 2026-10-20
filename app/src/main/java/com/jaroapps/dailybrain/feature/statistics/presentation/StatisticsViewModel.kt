@@ -25,8 +25,9 @@ class StatisticsViewModel(
     private val aggregateState = combine(
         database.statisticsDao().observeOverall(),
         database.statisticsDao().observeExerciseStatistics(),
-    ) { overall, exerciseStats ->
-        AggregateStatistics(overall = overall, exerciseStats = exerciseStats)
+        database.dailyExerciseResultDao().observeAll(),
+    ) { overall, exerciseStats, dailyResults ->
+        AggregateStatistics(overall = overall, exerciseStats = exerciseStats, dailyResults = dailyResults)
     }
 
     private val _uiState: StateFlow<StatisticsUiState> = combine(
@@ -102,6 +103,7 @@ class StatisticsViewModel(
                 memoryBestDurationMs = memoryAggregate?.bestDurationMs,
                 countingBestDurationMs = countingAggregate?.bestDurationMs,
                 stroopBestDurationMs = stroopAggregate?.bestDurationMs,
+                dailyResults = aggregate.dailyResults,
             )
         }
         .stateIn(
@@ -116,5 +118,6 @@ class StatisticsViewModel(
     private data class AggregateStatistics(
         val overall: OverallStatisticsEntity?,
         val exerciseStats: List<ExerciseStatisticsEntity>,
+        val dailyResults: List<com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity>,
     )
 }
