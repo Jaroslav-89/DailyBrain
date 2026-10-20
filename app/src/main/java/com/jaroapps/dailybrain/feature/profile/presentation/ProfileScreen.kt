@@ -30,7 +30,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
-import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
+import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Period
@@ -143,7 +143,7 @@ private fun ProfileStatCard(title: String, value: String, modifier: Modifier = M
 private enum class BestKind { DURATION, MEMORY }
 
 @Composable
-private fun BestResultCard(title: String, stats: ExerciseStatisticsEntity?, kind: BestKind) {
+private fun BestResultCard(title: String, stats: BestExerciseResult?, kind: BestKind) {
     val value = when (kind) {
         BestKind.DURATION -> stats?.bestDurationMs?.let(::formatDuration)
         BestKind.MEMORY -> stats?.bestCorrectCount?.toString()
