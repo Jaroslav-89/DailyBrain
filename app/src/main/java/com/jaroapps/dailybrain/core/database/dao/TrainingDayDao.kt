@@ -13,6 +13,12 @@ interface TrainingDayDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(day: TrainingDayEntity): Long
 
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertAll(days: List<TrainingDayEntity>)
+
+    @Query("DELETE FROM training_days")
+    suspend fun deleteAll()
+
     @Query(
         """
         UPDATE training_days
