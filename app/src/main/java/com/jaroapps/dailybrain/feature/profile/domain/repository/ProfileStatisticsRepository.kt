@@ -1,8 +1,13 @@
 package com.jaroapps.dailybrain.feature.profile.domain.repository
 
-import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
 import kotlinx.coroutines.flow.Flow
 import java.time.LocalDate
+
+data class BestExerciseResult(
+    val exerciseType: String,
+    val bestDurationMs: Long?,
+    val bestCorrectCount: Int?,
+)
 
 data class ProfileStatistics(
     val totalExerciseCount: Int = 0,
@@ -11,7 +16,7 @@ data class ProfileStatistics(
     val currentStreakDays: Int = 0,
     val bestStreakDays: Int = 0,
     val firstTrainingDate: LocalDate? = null,
-    val bestExerciseStats: List<ExerciseStatisticsEntity> = emptyList(),
+    val bestExerciseStats: List<BestExerciseResult> = emptyList(),
 )
 
 interface ProfileStatisticsRepository {
