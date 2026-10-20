@@ -4,7 +4,9 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
+import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -14,6 +16,7 @@ import java.time.format.DateTimeFormatter
 class DayHistoryViewModel(
     savedStateHandle: SavedStateHandle,
     observeCompletedTrainingsByDate: ObserveCompletedTrainingsByDateUseCase,
+    private val completedTrainingRepository: CompletedTrainingRepository,
 ) : ViewModel() {
 
     val date: LocalDate = savedStateHandle.get<Int>("date")?.let { dateKey ->
@@ -28,6 +31,12 @@ class DayHistoryViewModel(
         )
 
     val sessions: StateFlow<List<TrainingSession>> = _sessions
+
+    fun deleteTraining(id: Long) {
+        viewModelScope.launch {
+            completedTrainingRepository.deleteCompletedTraining(id)
+        }
+    }
 }
 
 private fun LocalDate.toIntKey(): Int =
