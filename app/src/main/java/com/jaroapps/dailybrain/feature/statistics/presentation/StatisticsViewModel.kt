@@ -6,7 +6,6 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
-import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.OverallStatisticsEntity
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -82,8 +81,8 @@ class StatisticsViewModel(
         val periodStart = when (period) {
             ChartPeriod.WEEK -> today.minusDays(6)
             ChartPeriod.MONTH -> today.minusDays(29)
-            ChartPeriod.HALF_YEAR -> today.minusMonths(6).plusDays(1)
-            ChartPeriod.YEAR -> today.minusMonths(12).plusDays(1)
+            ChartPeriod.HALF_YEAR -> today.minusMonths(6)
+            ChartPeriod.YEAR -> today.minusMonths(12)
             ChartPeriod.ALL_TIME -> null
         }
         val filteredDailyResults = dailyResults.filter { row ->
