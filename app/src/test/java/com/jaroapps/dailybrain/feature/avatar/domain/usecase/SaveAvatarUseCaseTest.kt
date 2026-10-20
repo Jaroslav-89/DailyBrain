@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertThrows
+import org.junit.Assert.assertNotNull
 import org.junit.Test
 
 class SaveAvatarUseCaseTest {
@@ -25,9 +25,14 @@ class SaveAvatarUseCaseTest {
         val repository = FakeAvatarRepository()
         val useCase = SaveAvatarUseCase(repository)
 
-        assertThrows(IllegalArgumentException::class.java) {
-            runTest { useCase(AvatarConfiguration(hairStyleId = 99)) }
+        var failure: IllegalArgumentException? = null
+        try {
+            useCase(AvatarConfiguration(hairStyleId = 99))
+        } catch (error: IllegalArgumentException) {
+            failure = error
         }
+
+        assertNotNull(failure)
         assertEquals(null, repository.saved)
     }
 
