@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.navigation
 object Route {
     const val HOME = "home"
     const val PROFILE = "profile"
+    const val EDIT_PROFILE = "edit_profile"
     const val STATISTICS = "statistics"
     const val ARITHMETIC = "arithmetic"
     const val CALENDAR = "calendar"
