@@ -6,7 +6,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.combine
 import java.time.LocalDate
 import java.util.UUID
 import kotlin.random.Random
@@ -15,13 +15,24 @@ class UserProfileRepositoryImpl(
     private val database: AppDatabase,
 ) : UserProfileRepository {
     override fun observeProfile(): Flow<UserProfile> =
-        database.userProfileDao().observeProfile().map { entity ->
-            if (entity != null) {
-                entity.toDomain()
-            } else {
-                val dao = database.userProfileDao()
-                dao.insertIfAbsent(createInitialProfile())
+        combine(
+            database.userProfileDao().observeProfile(),
+            database.trainingSessionDao().observeFirstTrainingStartedAtEpochMs(),
+        ) { entity, firstTrainingAt ->
+            val dao = database.userProfileDao()
+            if (entity == null) {
+                dao.insertIfAbsent(createInitialProfile(firstTrainingAt))
                 requireNotNull(dao.getProfile()).toDomain()
+            } else {
+                // Existing installs may have created a profile before this backfill existed.
+                // Keep the earliest exercise as the account's effective registration date.
+                if (firstTrainingAt != null && firstTrainingAt < entity.createdAtEpochMs) {
+                    val updated = entity.copy(createdAtEpochMs = firstTrainingAt)
+                    dao.save(updated)
+                    updated.toDomain()
+                } else {
+                    entity.toDomain()
+                }
             }
         }
 
@@ -34,7 +45,7 @@ class UserProfileRepositoryImpl(
     ) {
         val dao = database.userProfileDao()
         val current = dao.getProfile() ?: run {
-            dao.insertIfAbsent(createInitialProfile())
+            dao.insertIfAbsent(createInitialProfile(database.trainingSessionDao().getFirstTrainingStartedAtEpochMs()))
             requireNotNull(dao.getProfile())
         }
         val normalizedBirthDate = birthDate?.trim()?.takeIf(String::isNotEmpty)?.let {
@@ -52,13 +63,12 @@ class UserProfileRepositoryImpl(
         )
     }
 
-    private suspend fun createInitialProfile(): UserProfileEntity {
+    private fun createInitialProfile(firstTrainingAt: Long?): UserProfileEntity {
         val now = System.currentTimeMillis()
-        val registeredAt = database.trainingSessionDao().getFirstTrainingStartedAtEpochMs() ?: now
         return UserProfileEntity(
             localAccountId = UUID.randomUUID().toString(),
             generatedAlias = "brain#${Random.nextInt(100, 1000)}",
-            createdAtEpochMs = registeredAt,
+            createdAtEpochMs = firstTrainingAt ?: now,
             updatedAtEpochMs = now,
         )
     }
