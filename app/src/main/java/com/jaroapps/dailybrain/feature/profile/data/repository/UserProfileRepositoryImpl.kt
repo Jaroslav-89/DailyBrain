@@ -33,7 +33,10 @@ class UserProfileRepositoryImpl(
         city: String?,
     ) {
         val dao = database.userProfileDao()
-        val current = dao.getProfile() ?: createInitialProfile().also { dao.insertIfAbsent(it) }.let { requireNotNull(dao.getProfile()) }
+        val current = dao.getProfile() ?: run {
+            dao.insertIfAbsent(createInitialProfile())
+            requireNotNull(dao.getProfile())
+        }
         val normalizedBirthDate = birthDate?.trim()?.takeIf(String::isNotEmpty)?.let {
             LocalDate.parse(it).toString()
         }
