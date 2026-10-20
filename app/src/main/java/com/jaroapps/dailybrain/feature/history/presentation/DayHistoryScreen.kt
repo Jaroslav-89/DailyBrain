@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -189,9 +188,7 @@ fun DayHistoryScreen(
 
                             IconButton(
                                 onClick = { sessionToDelete = session },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .offset(x = 8.dp, y = (-8).dp),
+                                modifier = Modifier.align(Alignment.TopEnd),
                             ) {
                                 Text(
                                     text = "×",
