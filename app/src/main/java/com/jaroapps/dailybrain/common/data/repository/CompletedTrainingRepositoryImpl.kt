@@ -54,11 +54,15 @@ class CompletedTrainingRepositoryImpl(
 
     override suspend fun recalculateDailyExerciseResult(date: Int) {
         database.withTransaction {
-            val dao = database.dailyExerciseResultDao()
-            dao.deleteByDate(date)
-            database.trainingSessionDao().getAllByDate(date).forEach { entity ->
-                updateDailyExerciseResult(entity.toDomain(), date)
-            }
+            recalculateDailyExerciseResultInTransaction(date)
+        }
+    }
+
+    private suspend fun recalculateDailyExerciseResultInTransaction(date: Int) {
+        val dao = database.dailyExerciseResultDao()
+        dao.deleteByDate(date)
+        database.trainingSessionDao().getAllByDate(date).forEach { entity ->
+            updateDailyExerciseResult(entity.toDomain(), date)
         }
     }
 
@@ -88,14 +92,7 @@ class CompletedTrainingRepositoryImpl(
                 updateExerciseStatistics(training)
             }
 
-            val dailyResultDao = database.dailyExerciseResultDao()
-            dailyResultDao.deleteByDate(deletedSession.date)
-            remainingSessions
-                .asSequence()
-                .filter { it.date == deletedSession.date }
-                .forEach { entity ->
-                    updateDailyExerciseResult(entity.toDomain(), deletedSession.date)
-                }
+            recalculateDailyExerciseResultInTransaction(deletedSession.date)
 
             true
         }
