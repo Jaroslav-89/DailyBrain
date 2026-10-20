@@ -5,9 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
-import com.jaroapps.dailybrain.core.database.AppDatabase
-import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
-import com.jaroapps.dailybrain.core.database.entity.OverallStatisticsEntity
+import com.jaroapps.dailybrain.feature.statistics.domain.model.StatisticsAggregate
+import com.jaroapps.dailybrain.feature.statistics.domain.usecase.ObserveStatisticsUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -20,7 +19,7 @@ import java.time.format.DateTimeFormatter
 
 class StatisticsViewModel(
     observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
-    database: AppDatabase,
+    observeStatistics: ObserveStatisticsUseCase,
 ) : ViewModel() {
 
     private val selectedChartPeriod = MutableStateFlow(ChartPeriod.MONTH)
@@ -29,19 +28,11 @@ class StatisticsViewModel(
         selectedChartPeriod.value = period
     }
 
-    private val aggregateState = combine(
-        database.statisticsDao().observeOverall(),
-        database.statisticsDao().observeExerciseStatistics(),
-    ) { overall, exerciseStats ->
-        AggregateStatistics(overall = overall, exerciseStats = exerciseStats)
-    }
-
     private val _uiState: StateFlow<StatisticsUiState> = combine(
         observeAllCompletedTrainings(),
-        aggregateState,
-        database.dailyExerciseResultDao().observeAll(),
+        observeStatistics(),
         selectedChartPeriod,
-    ) { sessions, aggregate, dailyResults, period ->
+    ) { sessions, aggregate, period ->
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
         val weekStart = today.minusDays(6)
@@ -73,10 +64,10 @@ class StatisticsViewModel(
             )
         }
 
-        val arithmeticAggregate = aggregate.exerciseStats.firstOrNull { it.exerciseType == ExerciseType.ARITHMETIC.storageValue }
-        val memoryAggregate = aggregate.exerciseStats.firstOrNull { it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue }
-        val countingAggregate = aggregate.exerciseStats.firstOrNull { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }
-        val stroopAggregate = aggregate.exerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }
+        val arithmeticAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.ARITHMETIC.storageValue }
+        val memoryAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue }
+        val countingAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }
+        val stroopAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }
 
         val periodStart = when (period) {
             ChartPeriod.WEEK -> today.minusDays(6)
@@ -85,7 +76,7 @@ class StatisticsViewModel(
             ChartPeriod.YEAR -> today.minusMonths(12)
             ChartPeriod.ALL_TIME -> null
         }
-        val filteredDailyResults = dailyResults.filter { row ->
+        val filteredDailyResults = aggregate.dailyResults.filter { row ->
             val rowDate = row.date.toLocalDate()
             !rowDate.isAfter(today) && (periodStart == null || !rowDate.isBefore(periodStart))
         }
@@ -116,9 +107,4 @@ class StatisticsViewModel(
 
     private fun Int.toLocalDate(): LocalDate =
         LocalDate.parse(toString(), DateTimeFormatter.BASIC_ISO_DATE)
-
-    private data class AggregateStatistics(
-        val overall: OverallStatisticsEntity?,
-        val exerciseStats: List<ExerciseStatisticsEntity>,
-    )
 }
