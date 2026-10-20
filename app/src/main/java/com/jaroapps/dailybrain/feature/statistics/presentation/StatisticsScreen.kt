@@ -93,6 +93,13 @@ fun StatisticsScreen(
             value = stats.trainingCount.toString(),
         )
 
+        Spacer(Modifier.height(12.dp))
+
+        StatisticCard(
+            title = stringResource(R.string.statistics_last_seven_days),
+            value = stats.weeklyTrainingCount.toString(),
+        )
+
         if (selectedTab == 0) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
@@ -143,50 +150,34 @@ fun StatisticsScreen(
             )
         }
 
-        Spacer(Modifier.height(12.dp))
+        if (selectedTab != 2) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_total_duration),
+                value = formatDuration(stats.totalDurationMs),
+            )
+        }
 
-        StatisticCard(
-            title = stringResource(R.string.statistics_last_seven_days),
-            value = stats.weeklyTrainingCount.toString(),
-        )
+        if (selectedTab != 0 && selectedTab != 2) {
+            Spacer(Modifier.height(12.dp))
+            StatisticCard(
+                title = stringResource(R.string.statistics_average_duration),
+                value = formatDuration(stats.averageDurationMs),
+            )
+        }
 
-        Spacer(Modifier.height(12.dp))
-
-        StatisticCard(
-            title = stringResource(R.string.statistics_total_duration),
-            value = formatDuration(stats.totalDurationMs),
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        StatisticCard(
-            title = stringResource(R.string.statistics_average_duration),
-            value = formatDuration(stats.averageDurationMs),
-        )
-
-        Spacer(Modifier.height(12.dp))
-
-        if (selectedTab <= 2) {
+        if (selectedTab == 1) {
+            Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_average_accuracy),
                 value = formatPercent(stats.averageAccuracyPercent),
             )
-    
+
             Spacer(Modifier.height(12.dp))
-    
             StatisticCard(
                 title = stringResource(R.string.statistics_best_accuracy),
                 value = formatPercent(stats.bestAccuracyPercent),
             )
-    
-            Spacer(Modifier.height(12.dp))
-    
-            StatisticCard(
-                title = stringResource(R.string.label_correct_count),
-                value = stringResource(R.string.format_count_pair, stats.totalCorrectCount, stats.totalTaskCount),
-            )
-    
-    
         }
 
         Spacer(Modifier.height(24.dp))
