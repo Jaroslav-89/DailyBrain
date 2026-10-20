@@ -5,7 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.ProfileStatistics
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
