@@ -184,5 +184,20 @@ object DatabaseMigrations {
             )
         }
     }
-}
 
+    /** Backfill existing profile registration dates from the first recorded training. */
+    val MIGRATION_5_6 = object : Migration(5, 6) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                UPDATE user_profile
+                SET createdAtEpochMs = (
+                    SELECT MIN(startedAtEpochMs) FROM training_sessions
+                )
+                WHERE id = 1
+                    AND EXISTS (SELECT 1 FROM training_sessions)
+                """.trimIndent(),
+            )
+        }
+    }
+}
