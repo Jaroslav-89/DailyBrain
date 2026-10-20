@@ -396,7 +396,7 @@ private fun DailyResultChart(
                             maxLines = 1,
                         )
                         Text(
-                            text = formatChartValue(averageValue, isMemory, showDecimal = isMemory),
+                            text = formatChartValue(averageValue, isMemory, showDecimal = false),
                             style = axisLabelStyle,
                             color = MaterialTheme.colorScheme.tertiary,
                             modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd).offset(y = maxHeight * (1f - averageFraction) - 8.dp),
