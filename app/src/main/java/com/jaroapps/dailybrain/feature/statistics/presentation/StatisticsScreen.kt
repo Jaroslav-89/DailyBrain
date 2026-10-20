@@ -14,7 +14,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
@@ -141,7 +140,6 @@ fun StatisticsScreen(
             DailyResultChart(
                 rows = state.dailyResults,
                 selectedTab = selectedTab,
-                period = state.chartPeriod,
                 modifier = Modifier.fillMaxWidth().height(220.dp),
             )
         }
@@ -281,7 +279,6 @@ private fun formatDuration(durationMs: Long): String {
 private fun DailyResultChart(
     rows: List<DailyExerciseResultEntity>,
     selectedTab: Int,
-    period: ChartPeriod,
     modifier: Modifier = Modifier,
 ) {
     val datedValues = rows.mapNotNull { row ->
