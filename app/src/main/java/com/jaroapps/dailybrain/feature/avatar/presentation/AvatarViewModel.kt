@@ -30,8 +30,11 @@ class AvatarViewModel(
     init {
         viewModelScope.launch {
             observeAvatar().collect { stored ->
-                if (!hasLocalDraft) {
-                    _uiState.value = _uiState.value.copy(configuration = stored, isLoading = false)
+                val current = _uiState.value
+                _uiState.value = if (hasLocalDraft) {
+                    current.copy(isLoading = false)
+                } else {
+                    current.copy(configuration = stored, isLoading = false)
                 }
             }
         }
