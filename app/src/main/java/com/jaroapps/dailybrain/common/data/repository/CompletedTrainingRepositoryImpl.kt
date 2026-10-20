@@ -74,6 +74,7 @@ class CompletedTrainingRepositoryImpl(
             ExerciseType.MEMORY_WORDS -> dao.recordMemoryBest(date, session.correctCount.coerceAtLeast(0))
             ExerciseType.STROOP_TEST -> dao.recordStroopBest(date, duration)
             ExerciseType.COUNTING_TRAINING -> dao.recordCountingBest(date, duration)
+            null -> Unit
         }
     }
 
