@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -18,8 +17,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -34,8 +31,6 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseRes
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Period
-import java.time.format.DateTimeFormatter
-import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,7 +53,7 @@ fun ProfileScreen(
             title = { Text(stringResource(R.string.profile_title)) },
             actions = {
                 IconButton(onClick = onEditProfile) {
-                    Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.profile_edit))
+                    Text("⚙", style = MaterialTheme.typography.titleLarge)
                 }
             },
         )
@@ -106,11 +101,11 @@ fun ProfileScreen(
         ProfileStatCard(stringResource(R.string.profile_total_duration), formatDuration(stats.totalDurationMs), Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
         period?.let {
-            val durationText = buildList {
-                if (it.years > 0) add(stringResource(R.string.profile_years, it.years))
-                if (it.months > 0) add(stringResource(R.string.profile_months, it.months))
-                add(stringResource(R.string.profile_days, it.days))
-            }.joinToString(" ")
+            val durationText = listOfNotNull(
+                stringResource(R.string.profile_years, it.years).takeIf { _ -> it.years > 0 },
+                stringResource(R.string.profile_months, it.months).takeIf { _ -> it.months > 0 },
+                stringResource(R.string.profile_days, it.days),
+            ).joinToString(" ")
             ProfileStatCard(stringResource(R.string.profile_training_period), durationText, Modifier.fillMaxWidth())
         }
         Spacer(Modifier.height(22.dp))
