@@ -15,6 +15,12 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profile WHERE id = 1")
     suspend fun getProfile(): UserProfileEntity?
 
+    @Query("SELECT avatarJson FROM user_profile WHERE id = 1")
+    fun observeAvatarJson(): Flow<String?>
+
+    @Query("UPDATE user_profile SET avatarJson = :avatarJson, updatedAtEpochMs = :updatedAtEpochMs WHERE id = 1")
+    suspend fun updateAvatarJson(avatarJson: String?, updatedAtEpochMs: Long)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(profile: UserProfileEntity): Long
 

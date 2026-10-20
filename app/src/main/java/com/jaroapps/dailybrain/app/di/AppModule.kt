@@ -14,6 +14,12 @@ import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.DatabaseMigrations
 import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
 import com.jaroapps.dailybrain.core.resources.StringProvider
+import com.jaroapps.dailybrain.feature.avatar.data.AvatarRepositoryImpl
+import com.jaroapps.dailybrain.feature.avatar.domain.repository.AvatarRepository
+import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
+import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ResetAvatarUseCase
+import com.jaroapps.dailybrain.feature.avatar.domain.usecase.SaveAvatarUseCase
+import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.CheckArithmeticAnswerUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithmeticProblemUseCase
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
@@ -53,7 +59,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7)
             .build()
     }
 
@@ -76,6 +82,13 @@ val appModule = module {
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get()) }
+
+    // Local avatar feature: domain use cases depend on the repository contract.
+    single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao()) }
+    factory { ObserveAvatarUseCase(repository = get()) }
+    factory { SaveAvatarUseCase(repository = get()) }
+    factory { ResetAvatarUseCase(repository = get()) }
+    viewModel { AvatarViewModel(observeAvatar = get(), saveAvatar = get(), resetAvatar = get()) }
 
     // Arithmetic feature
     factory { GenerateArithmeticProblemUseCase() }

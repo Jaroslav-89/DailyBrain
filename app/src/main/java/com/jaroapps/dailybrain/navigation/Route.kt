@@ -4,6 +4,7 @@ object Route {
     const val HOME = "home"
     const val PROFILE = "profile"
     const val EDIT_PROFILE = "edit_profile"
+    const val AVATAR_EDITOR = "avatar_editor"
     const val STATISTICS = "statistics"
     const val ARITHMETIC = "arithmetic"
     const val CALENDAR = "calendar"
