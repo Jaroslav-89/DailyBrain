@@ -35,6 +35,7 @@ import java.util.Locale
 fun HomeScreen(
     onStartTraining: () -> Unit,
     onOpenStatistics: () -> Unit,
+    onOpenProfile: () -> Unit,
     onOpenCalendar: () -> Unit,
     onStartMemoryTraining: () -> Unit,
     onStartStroopTest: () -> Unit,
@@ -149,6 +150,15 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.weight(1f))
+
+        OutlinedButton(
+            onClick = onOpenProfile,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.home_profile))
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         OutlinedButton(
             onClick = onOpenStatistics,
