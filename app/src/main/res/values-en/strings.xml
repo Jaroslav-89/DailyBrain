@@ -96,4 +96,11 @@
     <string name="statistics_memory_record">Most words recalled correctly</string>
     <string name="statistics_no_record">No record yet</string>
     <string name="statistics_best_time">Shortest time</string>
+    <string name="statistics_progress_chart">Progress over time</string>
+    <string name="statistics_period_week">7 days</string>
+    <string name="statistics_period_month">30 days</string>
+    <string name="statistics_period_half_year">6 mo.</string>
+    <string name="statistics_period_year">1 year</string>
+    <string name="statistics_period_all">All time</string>
+    <string name="statistics_chart_no_data">No results in this period</string>
 </resources>
