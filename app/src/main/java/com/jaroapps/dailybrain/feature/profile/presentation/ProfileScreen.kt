@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
+import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
@@ -51,6 +53,8 @@ fun ProfileScreen(
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val avatarViewModel: AvatarViewModel = koinViewModel()
+    val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
     val stats = state.statistics
     val today = LocalDate.now()
@@ -89,9 +93,10 @@ fun ProfileScreen(
                         shape = MaterialTheme.shapes.medium,
                         color = MaterialTheme.colorScheme.surface,
                     ) {
-                        Box(contentAlignment = Alignment.Center) {
-                            Text("👤", style = MaterialTheme.typography.headlineLarge)
-                        }
+                        AvatarPreview(
+                            configuration = avatarState.configuration,
+                            modifier = Modifier.fillMaxSize(),
+                        )
                     }
                     Column(
                         modifier = Modifier.weight(1f),
