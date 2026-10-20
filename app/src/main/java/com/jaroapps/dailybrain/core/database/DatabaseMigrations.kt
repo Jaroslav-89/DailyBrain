@@ -161,4 +161,28 @@ object DatabaseMigrations {
             )
         }
     }
+
+    /** Add the local account/profile table without touching existing training data. */
+    val MIGRATION_4_5 = object : Migration(4, 5) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE user_profile (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    localAccountId TEXT NOT NULL,
+                    firebaseUid TEXT,
+                    displayName TEXT,
+                    generatedAlias TEXT NOT NULL,
+                    gender TEXT,
+                    birthDate TEXT,
+                    country TEXT,
+                    city TEXT,
+                    createdAtEpochMs INTEGER NOT NULL,
+                    updatedAtEpochMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+        }
+    }
 }
+
