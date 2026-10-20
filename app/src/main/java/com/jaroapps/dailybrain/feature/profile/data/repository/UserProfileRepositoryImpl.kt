@@ -16,7 +16,13 @@ class UserProfileRepositoryImpl(
 ) : UserProfileRepository {
     override fun observeProfile(): Flow<UserProfile> =
         database.userProfileDao().observeProfile().map { entity ->
-            (entity ?: createInitialProfile().also { database.userProfileDao().save(it) }).toDomain()
+            if (entity != null) {
+                entity.toDomain()
+            } else {
+                val dao = database.userProfileDao()
+                dao.insertIfAbsent(createInitialProfile())
+                requireNotNull(dao.getProfile()).toDomain()
+            }
         }
 
     override suspend fun saveProfile(
@@ -27,7 +33,7 @@ class UserProfileRepositoryImpl(
         city: String?,
     ) {
         val dao = database.userProfileDao()
-        val current = dao.getProfile() ?: createInitialProfile()
+        val current = dao.getProfile() ?: createInitialProfile().also { dao.insertIfAbsent(it) }.let { requireNotNull(dao.getProfile()) }
         val normalizedBirthDate = birthDate?.trim()?.takeIf(String::isNotEmpty)?.let {
             LocalDate.parse(it).toString()
         }
