@@ -21,6 +21,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -53,7 +55,7 @@ fun ProfileScreen(
             title = { Text(stringResource(R.string.profile_title)) },
             actions = {
                 IconButton(onClick = onEditProfile) {
-                    Text("⚙", style = MaterialTheme.typography.titleLarge)
+                    Text("⚙", modifier = Modifier.semantics { contentDescription = "Edit profile" }, style = MaterialTheme.typography.titleLarge)
                 }
             },
         )
@@ -76,6 +78,18 @@ fun ProfileScreen(
                     ).joinToString(", ")
                     if (location.isNotBlank()) {
                         Text(location, style = MaterialTheme.typography.bodyMedium)
+                    }
+                    user.gender?.let { gender ->
+                        val genderText = when (gender) {
+                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
+                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.MALE -> stringResource(R.string.profile_gender_male)
+                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.OTHER -> stringResource(R.string.profile_gender_other)
+                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.PREFER_NOT_TO_SAY -> stringResource(R.string.profile_gender_prefer_not_to_say)
+                        }
+                        Text(stringResource(R.string.profile_gender_display, genderText), style = MaterialTheme.typography.bodyMedium)
+                    }
+                    user.birthDate?.let { birthDate ->
+                        Text(stringResource(R.string.profile_birth_date_display, birthDate.toString()), style = MaterialTheme.typography.bodyMedium)
                     }
                     Text(
                         text = stringResource(R.string.profile_alias, user.generatedAlias),
