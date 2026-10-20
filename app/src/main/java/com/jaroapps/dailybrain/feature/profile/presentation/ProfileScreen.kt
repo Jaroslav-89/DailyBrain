@@ -91,11 +91,13 @@ fun ProfileScreen(
                     user.birthDate?.let { birthDate ->
                         Text(stringResource(R.string.profile_birth_date_display, birthDate.toString()), style = MaterialTheme.typography.bodyMedium)
                     }
-                    Text(
-                        text = stringResource(R.string.profile_alias, user.generatedAlias),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    if (!user.displayName.isNullOrBlank()) {
+                        Text(
+                            text = stringResource(R.string.profile_alias, user.generatedAlias),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
