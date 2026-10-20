@@ -3,8 +3,9 @@ package com.jaroapps.dailybrain.feature.profile.data.repository
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
-import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResultRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
