@@ -53,6 +53,41 @@ class CompletedTrainingRepositoryImpl(
     }
 
 
+    override suspend fun deleteCompletedTraining(id: Long) {
+        database.withTransaction {
+            val sessionsDao = database.trainingSessionDao()
+            val deleted = sessionsDao.getById(id) ?: return@withTransaction
+            sessionsDao.deleteById(id)
+            val remaining = sessionsDao.getForDate(deleted.date)
+            if (remaining.isEmpty()) {
+                database.dailyExerciseResultDao().deleteByDate(deleted.date)
+            } else {
+                val arithmetic = remaining.filter {
+                    it.exerciseType == ExerciseType.ARITHMETIC.storageValue &&
+                        it.accuracyPercent >= StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT
+                }.minOfOrNull { it.durationMs }
+                val memory = remaining.filter {
+                    it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue
+                }.maxOfOrNull { it.correctCount }
+                val stroop = remaining.filter {
+                    it.exerciseType == ExerciseType.STROOP_TEST.storageValue
+                }.minOfOrNull { it.durationMs }
+                val counting = remaining.filter {
+                    it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue
+                }.minOfOrNull { it.durationMs }
+                database.dailyExerciseResultDao().upsert(
+                    DailyExerciseResultEntity(
+                        date = deleted.date,
+                        arithmeticBestTimeMs = arithmetic,
+                        memoryBestCorrectCount = memory,
+                        stroopBestTimeMs = stroop,
+                        countingBestTimeMs = counting,
+                    )
+                )
+            }
+        }
+    }
+
     private suspend fun updateDailyBestResult(session: TrainingSession, date: Int) {
         val dao = database.dailyExerciseResultDao()
         val previous = dao.getByDate(date)
