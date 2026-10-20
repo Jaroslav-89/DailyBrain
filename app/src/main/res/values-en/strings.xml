@@ -2,6 +2,8 @@
     <string name="app_name">DailyBrain</string>
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
     <string name="action_exit">Exit</string>
     <string name="action_done">Done</string>
     <string name="action_finish">Finish</string>
@@ -37,6 +39,8 @@
     <string name="exercise_counting">Counting aloud to 120</string>
     <string name="exercise_stroop">Stroop test</string>
     <string name="calendar_title">Calendar</string>
+    <string name="history_delete_title">Delete training?</string>
+    <string name="history_delete_warning">This training result will be permanently deleted and cannot be restored. Statistics and records will be recalculated.</string>
     <string name="history_no_trainings">No trainings</string>
     <string name="history_empty_day">There are no completed trainings on this day yet.</string>
     <string name="history_accuracy">Accuracy: %1$s%%</string>
