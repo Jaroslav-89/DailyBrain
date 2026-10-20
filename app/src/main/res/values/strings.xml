@@ -141,4 +141,6 @@
     <string name="profile_city">Город (необязательно)</string>
     <string name="profile_save_error">Не удалось сохранить профиль. Проверь формат даты (ГГГГ-ММ-ДД).</string>
     <string name="action_save">Сохранить</string>
+    <string name="profile_gender_display">Пол: %1$s</string>
+    <string name="profile_birth_date_display">Дата рождения: %1$s</string>
 </resources>
