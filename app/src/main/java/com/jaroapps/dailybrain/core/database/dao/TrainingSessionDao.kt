@@ -28,6 +28,12 @@ interface TrainingSessionDao {
     @Query("SELECT * FROM training_sessions WHERE id = :id")
     suspend fun getById(id: Long): TrainingSessionEntity?
 
+    @Query("SELECT * FROM training_sessions WHERE date = :date")
+    suspend fun getForDate(date: Int): List<TrainingSessionEntity>
+
+    @Query("DELETE FROM training_sessions WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
+
     @Query(
         """
         SELECT * FROM training_sessions
