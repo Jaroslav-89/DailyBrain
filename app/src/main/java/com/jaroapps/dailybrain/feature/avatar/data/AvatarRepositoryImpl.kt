@@ -13,10 +13,10 @@ class AvatarRepositoryImpl(
         userProfileDao.observeAvatarJson().map(AvatarJsonCodec::decode)
 
     override suspend fun saveAvatar(configuration: AvatarConfiguration) {
-        userProfileDao.updateAvatarJson(AvatarJsonCodec.encode(configuration))
+        userProfileDao.updateAvatarJson(AvatarJsonCodec.encode(configuration), System.currentTimeMillis())
     }
 
     override suspend fun resetAvatar() {
-        userProfileDao.updateAvatarJson(null)
+        userProfileDao.updateAvatarJson(null, System.currentTimeMillis())
     }
 }
