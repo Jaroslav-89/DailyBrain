@@ -396,7 +396,7 @@ private fun DailyResultChart(
                         Text(
                             text = stringResource(
                                 R.string.statistics_chart_average,
-                                formatChartValue(averageValue, isMemory),
+                                formatChartValue(averageValue, isMemory, showDecimal = isMemory),
                             ),
                             style = axisLabelStyle,
                             color = MaterialTheme.colorScheme.tertiary,
@@ -425,9 +425,13 @@ private fun DailyResultChart(
 }
 
 @Composable
-private fun formatChartValue(value: Float, isMemory: Boolean): String {
+private fun formatChartValue(
+    value: Float,
+    isMemory: Boolean,
+    showDecimal: Boolean = false,
+): String {
     return if (isMemory) {
-        value.toInt().toString()
+        if (showDecimal) String.format(Locale.getDefault(), "%.1f", value) else value.toInt().toString()
     } else {
         formatDuration(value.toLong())
     }
