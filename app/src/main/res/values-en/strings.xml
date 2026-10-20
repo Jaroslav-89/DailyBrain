@@ -96,4 +96,7 @@
     <string name="statistics_memory_record">Most words recalled correctly</string>
     <string name="statistics_no_record">No record yet</string>
     <string name="statistics_best_time">Shortest time</string>
+    <string name="statistics_graph_title">Daily results</string>
+    <string name="statistics_graph_empty">No results for the selected period.</string>
+    <string name="statistics_graph_best">Best result: %1$s</string>
 </resources>
