@@ -124,6 +124,23 @@
     <string name="profile_years">%1$d yr</string>
     <string name="profile_months">%1$d mo</string>
     <string name="profile_days">%1$d days</string>
+    <plurals name="profile_age_years">
+        <item quantity="one">%d year old</item>
+        <item quantity="other">%d years old</item>
+    </plurals>
+    <plurals name="profile_tenure_years">
+        <item quantity="one">%d year</item>
+        <item quantity="other">%d years</item>
+    </plurals>
+    <plurals name="profile_tenure_months">
+        <item quantity="one">%d month</item>
+        <item quantity="other">%d months</item>
+    </plurals>
+    <plurals name="profile_tenure_days">
+        <item quantity="one">%d day</item>
+        <item quantity="other">%d days</item>
+    </plurals>
+    <string name="profile_member_since">With DailyBrain for %1$s</string>
     <string name="profile_edit_title">Edit profile</string>
     <string name="profile_name">Display name</string>
     <string name="profile_name_optional">Optional. If empty, an automatically generated alias is shown.</string>
@@ -139,5 +156,4 @@
     <string name="profile_save_error">Could not save the profile. Check the date format (YYYY-MM-DD).</string>
     <string name="action_save">Save</string>
     <string name="profile_gender_display">Gender: %1$s</string>
-    <string name="profile_birth_date_display">Date of birth: %1$s</string>
 </resources>
