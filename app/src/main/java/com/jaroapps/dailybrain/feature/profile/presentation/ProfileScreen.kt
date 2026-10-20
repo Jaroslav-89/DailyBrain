@@ -102,8 +102,6 @@ fun ProfileScreen(
                         val genderText = when (gender) {
                             com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
                             com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.MALE -> stringResource(R.string.profile_gender_male)
-                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.OTHER -> stringResource(R.string.profile_gender_other)
-                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.PREFER_NOT_TO_SAY -> stringResource(R.string.profile_gender_prefer_not_to_say)
                         }
                         Text(stringResource(R.string.profile_gender_display, genderText), style = MaterialTheme.typography.bodyMedium)
                     }
