@@ -1,17 +1,20 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -121,39 +124,29 @@ fun DayHistoryScreen(
                     Card(
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        Column(
-                            modifier = Modifier.padding(16.dp),
-                        ) {
-                            val exerciseName = when (ExerciseType.fromStorage(session.exerciseType)) {
-                                ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
-                                ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
-                                ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
-                                ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
-                                null -> session.exerciseType
-                            }
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically,
+                        Box {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
                             ) {
+                                val exerciseName = when (ExerciseType.fromStorage(session.exerciseType)) {
+                                    ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
+                                    ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
+                                    ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
+                                    ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
+                                    null -> session.exerciseType
+                                }
+
                                 Text(
                                     text = exerciseName,
                                     style = MaterialTheme.typography.titleMedium,
-                                    modifier = Modifier.weight(1f),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(end = 40.dp),
                                 )
-                                TextButton(
-                                    onClick = { sessionToDelete = session },
-                                ) {
-                                    Text(
-                                        text = "×",
-                                        style = MaterialTheme.typography.titleLarge,
-                                        color = MaterialTheme.colorScheme.error,
-                                    )
-                                }
-                            }
 
-                            Spacer(Modifier.size(8.dp))
+                                Spacer(Modifier.size(8.dp))
 
                             val finishedTime = Instant
                                 .ofEpochMilli(session.finishedAtEpochMs)
@@ -177,13 +170,27 @@ fun DayHistoryScreen(
 
                             Spacer(Modifier.size(4.dp))
 
-                            Text(
-                                stringResource(
-                                    R.string.history_correct_answers,
-                                    session.correctCount,
-                                    session.taskCount,
+                                Text(
+                                    stringResource(
+                                        R.string.history_correct_answers,
+                                        session.correctCount,
+                                        session.taskCount,
+                                    )
                                 )
-                            )
+                            }
+
+                            IconButton(
+                                onClick = { sessionToDelete = session },
+                                modifier = Modifier
+                                    .align(Alignment.TopEnd)
+                                    .offset(x = 8.dp, y = (-8).dp),
+                            ) {
+                                Text(
+                                    text = "×",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
                         }
                     }
                 }
