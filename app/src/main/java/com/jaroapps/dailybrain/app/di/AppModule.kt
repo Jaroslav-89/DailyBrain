@@ -33,6 +33,9 @@ import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersU
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.GetRandomMemoryWordsUseCase
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingUseCase
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
+import com.jaroapps.dailybrain.feature.statistics.data.repository.StatisticsRepositoryImpl
+import com.jaroapps.dailybrain.feature.statistics.domain.repository.StatisticsRepository
+import com.jaroapps.dailybrain.feature.statistics.domain.usecase.ObserveStatisticsUseCase
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.profile.data.repository.UserProfileRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.data.repository.ProfileStatisticsRepositoryImpl
@@ -90,6 +93,9 @@ val appModule = module {
     factory { ResetAvatarUseCase(repository = get()) }
     viewModel { AvatarViewModel(observeAvatar = get(), saveAvatar = get(), resetAvatar = get()) }
 
+    single<StatisticsRepository> { StatisticsRepositoryImpl(database = get()) }
+    factory { ObserveStatisticsUseCase(repository = get()) }
+
     // Arithmetic feature
     factory { GenerateArithmeticProblemUseCase() }
     factory { CheckArithmeticAnswerUseCase() }
@@ -129,5 +135,5 @@ val appModule = module {
     }
 
     viewModel { HomeViewModel(observeTrainingDaysInRange = get(), observeTotalTrainingCount = get()) }
-    viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), database = get()) }
+    viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), observeStatistics = get()) }
 }
