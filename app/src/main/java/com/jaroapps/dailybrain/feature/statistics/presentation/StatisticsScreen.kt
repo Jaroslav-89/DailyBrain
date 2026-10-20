@@ -3,6 +3,8 @@ package com.jaroapps.dailybrain.feature.statistics.presentation
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -281,6 +283,7 @@ private fun DailyResultChart(
     selectedTab: Int,
     modifier: Modifier = Modifier,
 ) {
+    val isMemory = selectedTab == 2
     val datedValues = rows.mapNotNull { row ->
         val value = when (selectedTab) {
             1 -> row.arithmeticBestTimeMs?.toFloat()
@@ -309,61 +312,116 @@ private fun DailyResultChart(
         } else {
             val lineColor = MaterialTheme.colorScheme.primary
             val gridColor = MaterialTheme.colorScheme.outlineVariant
+            val minValue = datedValues.minOf { it.second }
+            val maxValue = datedValues.maxOf { it.second }
+            val averageValue = datedValues.map { it.second.toDouble() }.average().toFloat()
+            val valueRange = (maxValue - minValue).coerceAtLeast(1f)
+            val averageFraction = ((averageValue - minValue) / valueRange).coerceIn(0f, 1f)
+
             Column(Modifier.fillMaxSize().padding(12.dp)) {
-            Canvas(Modifier.weight(1f).fillMaxWidth()) {
-                val left = 8.dp.toPx()
-                val right = size.width - 8.dp.toPx()
-                val top = 8.dp.toPx()
-                val bottom = size.height - 8.dp.toPx()
-                val minValue = datedValues.minOf { it.second }
-                val maxValue = datedValues.maxOf { it.second }
-                val valueRange = (maxValue - minValue).coerceAtLeast(1f)
-                val firstDate = datedValues.first().first
-                val lastDate = datedValues.last().first
-                val dayRange = java.time.temporal.ChronoUnit.DAYS.between(firstDate, lastDate).coerceAtLeast(1L)
+                Row(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Canvas(Modifier.weight(1f).fillMaxSize()) {
+                        val left = 8.dp.toPx()
+                        val right = size.width - 4.dp.toPx()
+                        val top = 8.dp.toPx()
+                        val bottom = size.height - 8.dp.toPx()
+                        val firstDate = datedValues.first().first
+                        val lastDate = datedValues.last().first
+                        val dayRange = java.time.temporal.ChronoUnit.DAYS
+                            .between(firstDate, lastDate).coerceAtLeast(1L)
 
-                repeat(4) { index ->
-                    val y = top + (bottom - top) * index / 3f
-                    drawLine(gridColor, Offset(left, y), Offset(right, y), strokeWidth = 1.dp.toPx())
-                }
-
-                val points = datedValues.map { (date, value) ->
-                    val x = left + (right - left) *
-                        (java.time.temporal.ChronoUnit.DAYS.between(firstDate, date).toFloat() / dayRange.toFloat())
-                    val y = bottom - (value - minValue) / valueRange * (bottom - top)
-                    Triple(date, value, Offset(x, y))
-                }
-
-                // Only connect results from consecutive calendar days; missing days remain visible as gaps.
-                points.zipWithNext().forEach { (a, b) ->
-                    if (java.time.temporal.ChronoUnit.DAYS.between(a.first, b.first) == 1L) {
-                        val midX = (a.third.x + b.third.x) / 2f
-                        val path = Path().apply {
-                            moveTo(a.third.x, a.third.y)
-                            quadraticTo(midX, a.third.y, midX, (a.third.y + b.third.y) / 2f)
-                            quadraticTo(midX, b.third.y, b.third.x, b.third.y)
+                        repeat(4) { index ->
+                            val y = top + (bottom - top) * index / 3f
+                            drawLine(gridColor, Offset(left, y), Offset(right, y), strokeWidth = 1.dp.toPx())
                         }
-                        drawPath(path, lineColor, style = Stroke(width = 3.dp.toPx()))
+
+                        val averageY = bottom - averageFraction * (bottom - top)
+                        drawLine(
+                            color = MaterialTheme.colorScheme.tertiary,
+                            start = Offset(left, averageY),
+                            end = Offset(right, averageY),
+                            strokeWidth = 2.dp.toPx(),
+                        )
+
+                        val points = datedValues.map { (date, value) ->
+                            val x = left + (right - left) *
+                                (java.time.temporal.ChronoUnit.DAYS.between(firstDate, date).toFloat() / dayRange.toFloat())
+                            val y = bottom - (value - minValue) / valueRange * (bottom - top)
+                            Triple(date, value, Offset(x, y))
+                        }
+
+                        // Connect only consecutive calendar days, leaving missing days as gaps.
+                        points.zipWithNext().forEach { (a, b) ->
+                            if (java.time.temporal.ChronoUnit.DAYS.between(a.first, b.first) == 1L) {
+                                val midX = (a.third.x + b.third.x) / 2f
+                                val path = Path().apply {
+                                    moveTo(a.third.x, a.third.y)
+                                    quadraticTo(midX, a.third.y, midX, (a.third.y + b.third.y) / 2f)
+                                    quadraticTo(midX, b.third.y, b.third.x, b.third.y)
+                                }
+                                drawPath(path, lineColor, style = Stroke(width = 3.dp.toPx()))
+                            }
+                        }
+                        points.forEach { (_, _, point) ->
+                            drawCircle(lineColor, radius = 4.dp.toPx(), center = point)
+                        }
+                    }
+
+                    BoxWithConstraints(
+                        modifier = Modifier.fillMaxSize().padding(vertical = 8.dp),
+                    ) {
+                        val axisLabelStyle = MaterialTheme.typography.labelSmall
+                        Text(
+                            text = formatChartValue(maxValue, isMemory),
+                            style = axisLabelStyle,
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter),
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = formatChartValue(minValue, isMemory),
+                            style = axisLabelStyle,
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.statistics_chart_average,
+                                formatChartValue(averageValue, isMemory),
+                            ),
+                            style = axisLabelStyle,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.offset(y = maxHeight * (1f - averageFraction) - 8.dp),
+                            maxLines = 1,
+                        )
                     }
                 }
-                points.forEach { (_, _, point) ->
-                    drawCircle(lineColor, radius = 4.dp.toPx(), center = point)
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = datedValues.first().first.format(DateTimeFormatter.ofPattern("d MMM")),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        text = datedValues.last().first.format(DateTimeFormatter.ofPattern("d MMM")),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Text(
-                    text = datedValues.first().first.format(DateTimeFormatter.ofPattern("d MMM")),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-                Text(
-                    text = datedValues.last().first.format(DateTimeFormatter.ofPattern("d MMM")),
-                    style = MaterialTheme.typography.labelSmall,
-                )
-            }
-            }
         }
+    }
+}
+
+@Composable
+private fun formatChartValue(value: Float, isMemory: Boolean): String {
+    return if (isMemory) {
+        value.toInt().toString()
+    } else {
+        formatDuration(value.toLong())
     }
 }
