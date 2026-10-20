@@ -6,6 +6,7 @@ import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.StatisticsRules
+import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.OverallStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
@@ -47,7 +48,44 @@ class CompletedTrainingRepositoryImpl(
 
             updateOverallStatistics(session, date)
             updateExerciseStatistics(session)
+            updateDailyBestResult(session, date)
         }
+    }
+
+
+    private suspend fun updateDailyBestResult(session: TrainingSession, date: Int) {
+        val dao = database.dailyExerciseResultDao()
+        val previous = dao.getByDate(date)
+        val type = ExerciseType.fromStorage(session.exerciseType)
+        val duration = session.durationMs.coerceAtLeast(0L)
+        val next = when (type) {
+            ExerciseType.ARITHMETIC -> {
+                if (session.accuracyPercent < StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT) {
+                    return
+                }
+                val best = previous?.arithmeticBestTimeMs
+                if (best != null && best <= duration) return
+                (previous ?: DailyExerciseResultEntity(date = date)).copy(arithmeticBestTimeMs = duration)
+            }
+            ExerciseType.MEMORY_WORDS -> {
+                val count = session.correctCount.coerceAtLeast(0)
+                val best = previous?.memoryBestCorrectCount
+                if (best != null && best >= count) return
+                (previous ?: DailyExerciseResultEntity(date = date)).copy(memoryBestCorrectCount = count)
+            }
+            ExerciseType.STROOP_TEST -> {
+                val best = previous?.stroopBestTimeMs
+                if (best != null && best <= duration) return
+                (previous ?: DailyExerciseResultEntity(date = date)).copy(stroopBestTimeMs = duration)
+            }
+            ExerciseType.COUNTING_TRAINING -> {
+                val best = previous?.countingBestTimeMs
+                if (best != null && best <= duration) return
+                (previous ?: DailyExerciseResultEntity(date = date)).copy(countingBestTimeMs = duration)
+            }
+            null -> return
+        }
+        dao.upsert(next)
     }
 
     private suspend fun updateOverallStatistics(session: TrainingSession, date: Int) {
