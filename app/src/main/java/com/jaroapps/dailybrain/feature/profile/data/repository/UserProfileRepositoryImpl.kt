@@ -26,7 +26,7 @@ class UserProfileRepositoryImpl(
             } else {
                 // Existing installs may have created a profile before this backfill existed.
                 // Keep the earliest exercise as the account's effective registration date.
-                if (firstTrainingAt != null && firstTrainingAt < entity.createdAtEpochMs) {
+                if (firstTrainingAt != null && firstTrainingAt != entity.createdAtEpochMs) {
                     val updated = entity.copy(createdAtEpochMs = firstTrainingAt)
                     dao.save(updated)
                     updated.toDomain()
