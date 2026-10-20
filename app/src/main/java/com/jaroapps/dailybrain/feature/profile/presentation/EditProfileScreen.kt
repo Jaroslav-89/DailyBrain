@@ -1,6 +1,9 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -10,6 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -24,6 +30,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -31,6 +38,8 @@ import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -48,6 +57,11 @@ fun EditProfileScreen(
     var city by remember(profile?.city) { mutableStateOf(profile?.city.orEmpty()) }
     var genderMenuExpanded by remember { mutableStateOf(false) }
     var birthDateError by remember { mutableStateOf(false) }
+    var datePickerVisible by remember { mutableStateOf(false) }
+    val initialDateMillis = remember(birthDate) {
+        runCatching { LocalDate.parse(birthDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
+    }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
 
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
         TopAppBar(
@@ -75,7 +89,7 @@ fun EditProfileScreen(
             )
             DropdownMenu(expanded = genderMenuExpanded, onDismissRequest = { genderMenuExpanded = false }) {
                 DropdownMenuItem(text = { Text(stringResource(R.string.profile_gender_not_set)) }, onClick = { gender = null; genderMenuExpanded = false })
-                UserGender.entries.forEach { option ->
+                listOf(UserGender.MALE, UserGender.FEMALE).forEach { option ->
                     DropdownMenuItem(text = { Text(genderLabel(option.name)) }, onClick = { gender = option.name; genderMenuExpanded = false })
                 }
             }
@@ -83,14 +97,41 @@ fun EditProfileScreen(
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = birthDate,
-            onValueChange = { birthDate = it; birthDateError = false },
+            onValueChange = {},
+            readOnly = true,
             modifier = Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.profile_birth_date)) },
-            placeholder = { Text("YYYY-MM-DD") },
+            placeholder = { Text(stringResource(R.string.profile_birth_date_hint)) },
             supportingText = { Text(stringResource(R.string.profile_birth_date_hint)) },
             isError = birthDateError,
             singleLine = true,
+            trailingIcon = {
+                TextButton(onClick = { datePickerVisible = true }) {
+                    Text(stringResource(R.string.profile_choose_date))
+                }
+            },
         )
+        if (datePickerVisible) {
+            DatePickerDialog(
+                onDismissRequest = { datePickerVisible = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            birthDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+                            birthDateError = false
+                        } ?: run { birthDate = "" }
+                        datePickerVisible = false
+                    }) { Text(stringResource(R.string.action_done)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { datePickerVisible = false }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
         Spacer(Modifier.height(8.dp))
         OutlinedTextField(value = country, onValueChange = { country = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.profile_country)) }, singleLine = true)
         Spacer(Modifier.height(8.dp))
@@ -132,7 +173,5 @@ fun EditProfileScreen(
 private fun genderLabel(value: String): String = when (value) {
     UserGender.FEMALE.name -> stringResource(R.string.profile_gender_female)
     UserGender.MALE.name -> stringResource(R.string.profile_gender_male)
-    UserGender.OTHER.name -> stringResource(R.string.profile_gender_other)
-    UserGender.PREFER_NOT_TO_SAY.name -> stringResource(R.string.profile_gender_prefer_not_to_say)
     else -> stringResource(R.string.profile_gender_not_set)
 }
