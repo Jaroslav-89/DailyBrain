@@ -20,6 +20,7 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -45,6 +46,7 @@ import java.time.ZoneOffset
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
+    onEditAvatar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -69,6 +71,10 @@ fun EditProfileScreen(
             navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.action_cancel)) } },
         )
         Spacer(Modifier.height(12.dp))
+        OutlinedButton(onClick = onEditAvatar, modifier = Modifier.fillMaxWidth()) {
+            Text("Настроить аватар")
+        }
+        Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = displayName,
             onValueChange = { displayName = it },
