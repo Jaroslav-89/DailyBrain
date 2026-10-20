@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.statistics.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,11 +25,18 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.DrawScope
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
 import java.util.Locale
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun StatisticsScreen(
@@ -38,6 +46,7 @@ fun StatisticsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+    var selectedPeriod by remember { mutableIntStateOf(0) }
 
     val tabs = listOf(
         stringResource(R.string.statistics_tab_overall),
@@ -175,6 +184,48 @@ fun StatisticsScreen(
 
         Spacer(Modifier.height(24.dp))
 
+
+        if (selectedTab != 0) {
+            Spacer(Modifier.height(24.dp))
+            Text(
+                text = stringResource(R.string.statistics_graph_title),
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                listOf("7 дн.", "30 дн.", "6 мес.", "12 мес.", "Всё").forEachIndexed { index, label ->
+                    OutlinedButton(
+                        onClick = { selectedPeriod = index },
+                        modifier = Modifier.weight(1f),
+                    ) { Text(label, fontSize = 11.sp) }
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            val today = LocalDate.now()
+            val start = when (selectedPeriod) {
+                0 -> today.minusDays(6)
+                1 -> today.minusDays(29)
+                2 -> today.minusMonths(6).plusDays(1)
+                3 -> today.minusMonths(12).plusDays(1)
+                else -> null
+            }
+            val series = state.dailyResults.mapNotNull { day ->
+                val value = when (selectedTab) {
+                    1 -> day.arithmeticBestTimeMs?.toFloat()
+                    2 -> day.memoryBestCorrectCount?.toFloat()
+                    3 -> day.countingBestTimeMs?.toFloat()
+                    else -> day.stroopBestTimeMs?.toFloat()
+                }
+                val date = runCatching {
+                    LocalDate.parse(day.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
+                }.getOrNull()
+                if (date == null || value == null || (start != null && date.isBefore(start)) || date.isAfter(today)) null
+                else DailyGraphPoint(date, value)
+            }.sortedBy { it.date }
+            DailyResultGraph(points = series, lowerIsBetter = selectedTab != 2)
+        }
+
         OutlinedButton(
             onClick = onBack,
             modifier = Modifier.fillMaxWidth(),
@@ -227,5 +278,71 @@ private fun formatDuration(durationMs: Long): String {
         hours > 0 -> stringResource(R.string.statistics_duration_hours, hours, minutes)
         minutes > 0 -> stringResource(R.string.statistics_duration_minutes, minutes, seconds)
         else -> stringResource(R.string.statistics_duration_seconds, seconds)
+    }
+}
+
+
+private data class DailyGraphPoint(val date: LocalDate, val value: Float)
+
+@Composable
+private fun DailyResultGraph(points: List<DailyGraphPoint>, lowerIsBetter: Boolean) {
+    val lineColor = MaterialTheme.colorScheme.primary
+    val textColor = MaterialTheme.colorScheme.onSurfaceVariant
+    val surfaceColor = MaterialTheme.colorScheme.surfaceVariant
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.large,
+        color = surfaceColor,
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            if (points.isEmpty()) {
+                Text(
+                    text = stringResource(R.string.statistics_graph_empty),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = textColor,
+                )
+            } else {
+                val best = if (lowerIsBetter) points.minOf { it.value } else points.maxOf { it.value }
+                Text(
+                    text = stringResource(
+                        R.string.statistics_graph_best,
+                        if (lowerIsBetter) formatDuration(best.toLong()) else best.toInt().toString(),
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Spacer(Modifier.height(8.dp))
+                Canvas(Modifier.fillMaxWidth().height(180.dp)) {
+                    val left = 12.dp.toPx()
+                    val right = size.width - 12.dp.toPx()
+                    val top = 12.dp.toPx()
+                    val bottom = size.height - 12.dp.toPx()
+                    val minValue = points.minOf { it.value }
+                    val maxValue = points.maxOf { it.value }
+                    val range = (maxValue - minValue).takeIf { it > 0f } ?: 1f
+                    val minDate = points.first().date
+                    val maxDate = points.last().date
+                    val dateRange = java.time.temporal.ChronoUnit.DAYS.between(minDate, maxDate).toFloat().coerceAtLeast(1f)
+                    val coords = points.map { point ->
+                        Offset(
+                            x = left + java.time.temporal.ChronoUnit.DAYS.between(minDate, point.date) / dateRange * (right - left),
+                            y = bottom - (point.value - minValue) / range * (bottom - top),
+                        )
+                    }
+                    drawLine(textColor.copy(alpha = 0.35f), Offset(left, bottom), Offset(right, bottom), strokeWidth = 1.dp.toPx())
+                    coords.forEachIndexed { index, point ->
+                        if (index > 0 && points[index].date == points[index - 1].date.plusDays(1)) {
+                            drawLine(lineColor, coords[index - 1], point, strokeWidth = 2.5.dp.toPx())
+                        }
+                        drawCircle(lineColor, radius = 4.dp.toPx(), center = point)
+                    }
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(points.first().date.format(DateTimeFormatter.ofPattern("dd.MM")), color = textColor, fontSize = 11.sp)
+                    if (points.size > 1) Text(points.last().date.format(DateTimeFormatter.ofPattern("dd.MM")), color = textColor, fontSize = 11.sp)
+                }
+            }
+        }
     }
 }
