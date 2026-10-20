@@ -98,4 +98,7 @@
     <string name="statistics_memory_record">Больше всего правильно запомненных слов</string>
     <string name="statistics_no_record">Пока нет рекорда</string>
     <string name="statistics_best_time">Самое короткое время</string>
+    <string name="statistics_graph_title">Результаты по дням</string>
+    <string name="statistics_graph_empty">За выбранный период нет результатов.</string>
+    <string name="statistics_graph_best">Лучший результат: %1$s</string>
 </resources>
