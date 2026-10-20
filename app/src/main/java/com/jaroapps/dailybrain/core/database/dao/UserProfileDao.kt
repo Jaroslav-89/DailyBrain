@@ -19,7 +19,7 @@ interface UserProfileDao {
     fun observeAvatarJson(): Flow<String?>
 
     @Query("UPDATE user_profile SET avatarJson = :avatarJson, updatedAtEpochMs = :updatedAtEpochMs WHERE id = 1")
-    suspend fun updateAvatarJson(avatarJson: String?, updatedAtEpochMs: Long = System.currentTimeMillis())
+    suspend fun updateAvatarJson(avatarJson: String?, updatedAtEpochMs: Long)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(profile: UserProfileEntity): Long
