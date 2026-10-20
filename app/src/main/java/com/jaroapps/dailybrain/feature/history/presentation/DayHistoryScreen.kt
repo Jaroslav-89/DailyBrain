@@ -3,7 +3,6 @@ package com.jaroapps.dailybrain.feature.history.presentation
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -148,27 +147,36 @@ fun DayHistoryScreen(
 
                                 Spacer(Modifier.size(8.dp))
 
-                            val finishedTime = Instant
-                                .ofEpochMilli(session.finishedAtEpochMs)
-                                .atZone(zone)
-                                .format(timeFormatter)
+                                val finishedTime = Instant
+                                    .ofEpochMilli(session.finishedAtEpochMs)
+                                    .atZone(zone)
+                                    .format(timeFormatter)
 
-                            Text(stringResource(R.string.label_finished_at, finishedTime))
+                                Text(stringResource(R.string.label_finished_at, finishedTime))
 
-                            Spacer(Modifier.size(4.dp))
+                                Spacer(Modifier.size(4.dp))
 
-                            Text(stringResource(R.string.label_duration, formatDuration(session.durationMs)))
-
-                            Spacer(Modifier.size(4.dp))
-
-                            Text(
-                                stringResource(
-                                    R.string.history_accuracy,
-                                    String.format(Locale.getDefault(), "%.0f", session.accuracyPercent),
+                                Text(
+                                    stringResource(
+                                        R.string.label_duration,
+                                        formatDuration(session.durationMs),
+                                    )
                                 )
-                            )
 
-                            Spacer(Modifier.size(4.dp))
+                                Spacer(Modifier.size(4.dp))
+
+                                Text(
+                                    stringResource(
+                                        R.string.history_accuracy,
+                                        String.format(
+                                            Locale.getDefault(),
+                                            "%.0f",
+                                            session.accuracyPercent,
+                                        ),
+                                    )
+                                )
+
+                                Spacer(Modifier.size(4.dp))
 
                                 Text(
                                     stringResource(
