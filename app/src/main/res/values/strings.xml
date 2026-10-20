@@ -133,10 +133,9 @@
     <string name="profile_gender_not_set">Не указан</string>
     <string name="profile_gender_female">Женский</string>
     <string name="profile_gender_male">Мужской</string>
-    <string name="profile_gender_other">Другой</string>
-    <string name="profile_gender_prefer_not_to_say">Не хочу указывать</string>
     <string name="profile_birth_date">Дата рождения</string>
-    <string name="profile_birth_date_hint">Необязательно, формат ГГГГ-ММ-ДД</string>
+    <string name="profile_birth_date_hint">Необязательно</string>
+    <string name="profile_choose_date">Выбрать</string>
     <string name="profile_country">Страна (необязательно)</string>
     <string name="profile_city">Город (необязательно)</string>
     <string name="profile_save_error">Не удалось сохранить профиль. Проверь формат даты (ГГГГ-ММ-ДД).</string>
