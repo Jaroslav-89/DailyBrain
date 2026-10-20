@@ -1,6 +1,6 @@
 package com.jaroapps.dailybrain.feature.statistics.presentation
 
-import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
+import com.jaroapps.dailybrain.feature.statistics.domain.model.DailyExerciseResult
 
 enum class ChartPeriod {
     WEEK,
@@ -35,5 +35,5 @@ data class StatisticsUiState(
     val countingBestDurationMs: Long? = null,
     val stroopBestDurationMs: Long? = null,
     val chartPeriod: ChartPeriod = ChartPeriod.MONTH,
-    val dailyResults: List<DailyExerciseResultEntity> = emptyList(),
+    val dailyResults: List<DailyExerciseResult> = emptyList(),
 )
