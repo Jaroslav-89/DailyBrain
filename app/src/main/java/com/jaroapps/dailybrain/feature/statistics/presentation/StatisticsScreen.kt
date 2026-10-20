@@ -1,13 +1,19 @@
 package com.jaroapps.dailybrain.feature.statistics.presentation
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
@@ -24,6 +30,12 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
+import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -99,6 +111,42 @@ fun StatisticsScreen(
             title = stringResource(R.string.statistics_last_seven_days),
             value = stats.weeklyTrainingCount.toString(),
         )
+
+        if (selectedTab != 0) {
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.statistics_progress_chart),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                ChartPeriod.values().forEach { period ->
+                    OutlinedButton(
+                        onClick = { viewModel.selectChartPeriod(period) },
+                        modifier = Modifier.weight(1f),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+                    ) {
+                        Text(
+                            text = when (period) {
+                                ChartPeriod.WEEK -> stringResource(R.string.statistics_period_week)
+                                ChartPeriod.MONTH -> stringResource(R.string.statistics_period_month)
+                                ChartPeriod.HALF_YEAR -> stringResource(R.string.statistics_period_half_year)
+                                ChartPeriod.YEAR -> stringResource(R.string.statistics_period_year)
+                                ChartPeriod.ALL_TIME -> stringResource(R.string.statistics_period_all)
+                            },
+                            style = MaterialTheme.typography.labelSmall,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+            DailyResultChart(
+                rows = state.dailyResults,
+                selectedTab = selectedTab,
+                modifier = Modifier.fillMaxWidth().height(220.dp),
+            )
+        }
 
         if (selectedTab == 0) {
             Spacer(Modifier.height(12.dp))
@@ -227,5 +275,163 @@ private fun formatDuration(durationMs: Long): String {
         hours > 0 -> stringResource(R.string.statistics_duration_hours, hours, minutes)
         minutes > 0 -> stringResource(R.string.statistics_duration_minutes, minutes, seconds)
         else -> stringResource(R.string.statistics_duration_seconds, seconds)
+    }
+}
+
+
+@Composable
+private fun DailyResultChart(
+    rows: List<DailyExerciseResultEntity>,
+    selectedTab: Int,
+    modifier: Modifier = Modifier,
+) {
+    val isMemory = selectedTab == 2
+    val datedValues = rows.mapNotNull { row ->
+        val value = when (selectedTab) {
+            1 -> row.arithmeticBestTimeMs?.toFloat()
+            2 -> row.memoryBestCorrectCount?.toFloat()
+            3 -> row.countingBestTimeMs?.toFloat()
+            4 -> row.stroopBestTimeMs?.toFloat()
+            else -> null
+        }
+        value?.let {
+            LocalDate.parse(row.date.toString(), DateTimeFormatter.BASIC_ISO_DATE) to it
+        }
+    }.sortedBy { it.first }
+
+    Surface(
+        modifier = modifier,
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceVariant,
+    ) {
+        if (datedValues.isEmpty()) {
+            Box(
+                modifier = Modifier.fillMaxSize().padding(16.dp),
+                contentAlignment = androidx.compose.ui.Alignment.Center,
+            ) {
+                Text(stringResource(R.string.statistics_chart_no_data))
+            }
+        } else {
+            val lineColor = MaterialTheme.colorScheme.primary
+            val averageColor = MaterialTheme.colorScheme.tertiary
+            val gridColor = MaterialTheme.colorScheme.outlineVariant
+            val minValue = datedValues.minOf { it.second }
+            val maxValue = datedValues.maxOf { it.second }
+            val averageValue = datedValues.map { it.second.toDouble() }.average().toFloat()
+            val rawValueRange = maxValue - minValue
+            val valueRange = rawValueRange.coerceAtLeast(1f)
+            val averageFraction = if (rawValueRange == 0f) {
+                0.5f
+            } else {
+                ((averageValue - minValue) / valueRange).coerceIn(0f, 1f)
+            }
+
+            Column(Modifier.fillMaxSize().padding(12.dp)) {
+                Row(
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Canvas(Modifier.weight(1f).fillMaxHeight()) {
+                        val left = 8.dp.toPx()
+                        val right = size.width - 4.dp.toPx()
+                        val top = 8.dp.toPx()
+                        val bottom = size.height - 8.dp.toPx()
+                        val firstDate = datedValues.first().first
+                        val lastDate = datedValues.last().first
+                        val dayRange = java.time.temporal.ChronoUnit.DAYS
+                            .between(firstDate, lastDate).coerceAtLeast(1L)
+
+                        repeat(4) { index ->
+                            val y = top + (bottom - top) * index / 3f
+                            drawLine(gridColor, Offset(left, y), Offset(right, y), strokeWidth = 1.dp.toPx())
+                        }
+
+                        val averageY = bottom - averageFraction * (bottom - top)
+                        drawLine(
+                            color = averageColor,
+                            start = Offset(left, averageY),
+                            end = Offset(right, averageY),
+                            strokeWidth = 2.dp.toPx(),
+                        )
+
+                        val points = datedValues.map { (date, value) ->
+                            val x = left + (right - left) *
+                                (java.time.temporal.ChronoUnit.DAYS.between(firstDate, date).toFloat() / dayRange.toFloat())
+                            val valueFraction = if (rawValueRange == 0f) 0.5f else (value - minValue) / valueRange
+                            val y = bottom - valueFraction * (bottom - top)
+                            Triple(date, value, Offset(x, y))
+                        }
+
+                        // Connect only consecutive calendar days, leaving missing days as gaps.
+                        points.zipWithNext().forEach { (a, b) ->
+                            if (java.time.temporal.ChronoUnit.DAYS.between(a.first, b.first) == 1L) {
+                                val midX = (a.third.x + b.third.x) / 2f
+                                val path = Path().apply {
+                                    moveTo(a.third.x, a.third.y)
+                                    quadraticTo(midX, a.third.y, midX, (a.third.y + b.third.y) / 2f)
+                                    quadraticTo(midX, b.third.y, b.third.x, b.third.y)
+                                }
+                                drawPath(path, lineColor, style = Stroke(width = 3.dp.toPx()))
+                            }
+                        }
+                        points.forEach { (_, _, point) ->
+                            drawCircle(lineColor, radius = 4.dp.toPx(), center = point)
+                        }
+                    }
+
+                    BoxWithConstraints(
+                        modifier = Modifier.width(92.dp).fillMaxHeight().padding(vertical = 8.dp),
+                    ) {
+                        val axisLabelStyle = MaterialTheme.typography.labelSmall
+                        Text(
+                            text = formatChartValue(maxValue, isMemory),
+                            style = axisLabelStyle,
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd),
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = formatChartValue(minValue, isMemory),
+                            style = axisLabelStyle,
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd),
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = formatChartValue(averageValue, isMemory, showDecimal = false),
+                            style = axisLabelStyle,
+                            color = MaterialTheme.colorScheme.tertiary,
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd).offset(y = maxHeight * (1f - averageFraction) - 8.dp),
+                            maxLines = 1,
+                        )
+                    }
+                }
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                ) {
+                    Text(
+                        text = datedValues.first().first.format(DateTimeFormatter.ofPattern("d MMM")),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                    Text(
+                        text = datedValues.last().first.format(DateTimeFormatter.ofPattern("d MMM")),
+                        style = MaterialTheme.typography.labelSmall,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun formatChartValue(
+    value: Float,
+    isMemory: Boolean,
+    showDecimal: Boolean = false,
+): String {
+    return if (isMemory) {
+        if (showDecimal) String.format(Locale.getDefault(), "%.1f", value) else value.toInt().toString()
+    } else {
+        formatDuration(value.toLong())
     }
 }

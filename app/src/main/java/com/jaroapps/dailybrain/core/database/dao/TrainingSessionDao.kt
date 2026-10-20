@@ -36,4 +36,6 @@ interface TrainingSessionDao {
         """
     )
     fun observeByDate(date: Int): Flow<List<TrainingSessionEntity>>
+    @Query("SELECT * FROM training_sessions WHERE date = :date ORDER BY finishedAtEpochMs ASC")
+    suspend fun getAllByDate(date: Int): List<TrainingSessionEntity>
 }

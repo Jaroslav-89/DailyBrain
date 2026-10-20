@@ -98,4 +98,12 @@
     <string name="statistics_memory_record">Больше всего правильно запомненных слов</string>
     <string name="statistics_no_record">Пока нет рекорда</string>
     <string name="statistics_best_time">Самое короткое время</string>
+    <string name="statistics_progress_chart">Динамика результатов</string>
+    <string name="statistics_period_week">7 дней</string>
+    <string name="statistics_period_month">30 дней</string>
+    <string name="statistics_period_half_year">6 мес.</string>
+    <string name="statistics_period_year">1 год</string>
+    <string name="statistics_period_all">Всё время</string>
+    <string name="statistics_chart_average">Среднее: %1$s</string>
+    <string name="statistics_chart_no_data">За этот период результатов нет</string>
 </resources>

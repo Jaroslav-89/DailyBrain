@@ -126,4 +126,39 @@ object DatabaseMigrations {
             )
         }
     }
+
+    /** Create daily graph records and backfill them from the full training history. */
+    val MIGRATION_3_4 = object : Migration(3, 4) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE daily_exercise_results (
+                    date INTEGER NOT NULL PRIMARY KEY,
+                    arithmeticBestTimeMs INTEGER,
+                    memoryBestCorrectCount INTEGER,
+                    stroopBestTimeMs INTEGER,
+                    countingBestTimeMs INTEGER
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO daily_exercise_results (
+                    date, arithmeticBestTimeMs, memoryBestCorrectCount,
+                    stroopBestTimeMs, countingBestTimeMs
+                )
+                SELECT
+                    date,
+                    MIN(CASE WHEN exerciseType = 'ARITHMETIC'
+                        AND accuracyPercent >= ${StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT}
+                        THEN durationMs END),
+                    MAX(CASE WHEN exerciseType = 'MEMORY_WORDS' THEN correctCount END),
+                    MIN(CASE WHEN exerciseType = 'STROOP_TEST' THEN durationMs END),
+                    MIN(CASE WHEN exerciseType = 'COUNTING_TRAINING' THEN durationMs END)
+                FROM training_sessions
+                GROUP BY date
+                """.trimIndent(),
+            )
+        }
+    }
 }
