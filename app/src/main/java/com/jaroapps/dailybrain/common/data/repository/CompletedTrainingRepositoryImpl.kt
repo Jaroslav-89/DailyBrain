@@ -47,6 +47,23 @@ class CompletedTrainingRepositoryImpl(
 
             updateOverallStatistics(session, date)
             updateExerciseStatistics(session)
+            updateDailyExerciseResult(session, date)
+        }
+    }
+
+
+    private suspend fun updateDailyExerciseResult(session: TrainingSession, date: Int) {
+        val dao = database.dailyExerciseResultDao()
+        val duration = session.durationMs.coerceAtLeast(0L)
+        when (ExerciseType.fromStorage(session.exerciseType)) {
+            ExerciseType.ARITHMETIC -> {
+                if (session.accuracyPercent >= StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT) {
+                    dao.recordArithmeticBest(date, duration)
+                }
+            }
+            ExerciseType.MEMORY_WORDS -> dao.recordMemoryBest(date, session.correctCount.coerceAtLeast(0))
+            ExerciseType.STROOP_TEST -> dao.recordStroopBest(date, duration)
+            ExerciseType.COUNTING_TRAINING -> dao.recordCountingBest(date, duration)
         }
     }
 
