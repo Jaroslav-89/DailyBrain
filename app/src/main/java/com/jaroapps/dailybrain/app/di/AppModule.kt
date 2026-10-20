@@ -29,6 +29,8 @@ import com.jaroapps.dailybrain.feature.memory.domain.usecase.SaveMemoryTrainingU
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingViewModel
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.profile.data.repository.UserProfileRepositoryImpl
+import com.jaroapps.dailybrain.feature.profile.data.repository.ProfileStatisticsRepositoryImpl
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
@@ -71,7 +73,8 @@ val appModule = module {
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get()) }
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
-    factory { ObserveProfileStatisticsUseCase(observeAllCompletedTrainings = get(), database = get()) }
+    single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get()) }
+    factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get()) }
 
     // Arithmetic feature
