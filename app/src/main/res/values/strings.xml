@@ -126,6 +126,31 @@
     <string name="profile_years">%1$d г.</string>
     <string name="profile_months">%1$d мес.</string>
     <string name="profile_days">%1$d дн.</string>
+    <plurals name="profile_age_years">
+        <item quantity="one">%d год</item>
+        <item quantity="few">%d года</item>
+        <item quantity="many">%d лет</item>
+        <item quantity="other">%d года</item>
+    </plurals>
+    <plurals name="profile_tenure_years">
+        <item quantity="one">%d год</item>
+        <item quantity="few">%d года</item>
+        <item quantity="many">%d лет</item>
+        <item quantity="other">%d года</item>
+    </plurals>
+    <plurals name="profile_tenure_months">
+        <item quantity="one">%d месяц</item>
+        <item quantity="few">%d месяца</item>
+        <item quantity="many">%d месяцев</item>
+        <item quantity="other">%d месяца</item>
+    </plurals>
+    <plurals name="profile_tenure_days">
+        <item quantity="one">%d день</item>
+        <item quantity="few">%d дня</item>
+        <item quantity="many">%d дней</item>
+        <item quantity="other">%d дня</item>
+    </plurals>
+    <string name="profile_member_since">С DailyBrain %1$s</string>
     <string name="profile_edit_title">Редактирование профиля</string>
     <string name="profile_name">Отображаемое имя</string>
     <string name="profile_name_optional">Необязательно. Если оставить пустым, будет показан автоматически созданный псевдоним.</string>
@@ -141,5 +166,4 @@
     <string name="profile_save_error">Не удалось сохранить профиль. Проверь формат даты (ГГГГ-ММ-ДД).</string>
     <string name="action_save">Сохранить</string>
     <string name="profile_gender_display">Пол: %1$s</string>
-    <string name="profile_birth_date_display">Дата рождения: %1$s</string>
 </resources>
