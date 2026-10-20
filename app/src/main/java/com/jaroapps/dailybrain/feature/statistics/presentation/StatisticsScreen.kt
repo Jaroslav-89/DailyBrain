@@ -386,23 +386,20 @@ private fun DailyResultChart(
                         Text(
                             text = formatChartValue(maxValue, isMemory),
                             style = axisLabelStyle,
-                            modifier = Modifier.align(androidx.compose.ui.Alignment.TopCenter),
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd),
                             maxLines = 1,
                         )
                         Text(
                             text = formatChartValue(minValue, isMemory),
                             style = axisLabelStyle,
-                            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.BottomEnd),
                             maxLines = 1,
                         )
                         Text(
-                            text = stringResource(
-                                R.string.statistics_chart_average,
-                                formatChartValue(averageValue, isMemory, showDecimal = isMemory),
-                            ),
+                            text = formatChartValue(averageValue, isMemory, showDecimal = isMemory),
                             style = axisLabelStyle,
                             color = MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.offset(y = maxHeight * (1f - averageFraction) - 8.dp),
+                            modifier = Modifier.align(androidx.compose.ui.Alignment.CenterEnd).offset(y = maxHeight * (1f - averageFraction) - 8.dp),
                             maxLines = 1,
                         )
                     }
