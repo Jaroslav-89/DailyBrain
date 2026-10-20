@@ -315,8 +315,13 @@ private fun DailyResultChart(
             val minValue = datedValues.minOf { it.second }
             val maxValue = datedValues.maxOf { it.second }
             val averageValue = datedValues.map { it.second.toDouble() }.average().toFloat()
-            val valueRange = (maxValue - minValue).coerceAtLeast(1f)
-            val averageFraction = ((averageValue - minValue) / valueRange).coerceIn(0f, 1f)
+            val rawValueRange = maxValue - minValue
+            val valueRange = rawValueRange.coerceAtLeast(1f)
+            val averageFraction = if (rawValueRange == 0f) {
+                0.5f
+            } else {
+                ((averageValue - minValue) / valueRange).coerceIn(0f, 1f)
+            }
 
             Column(Modifier.fillMaxSize().padding(12.dp)) {
                 Row(
@@ -349,7 +354,8 @@ private fun DailyResultChart(
                         val points = datedValues.map { (date, value) ->
                             val x = left + (right - left) *
                                 (java.time.temporal.ChronoUnit.DAYS.between(firstDate, date).toFloat() / dayRange.toFloat())
-                            val y = bottom - (value - minValue) / valueRange * (bottom - top)
+                            val valueFraction = if (rawValueRange == 0f) 0.5f else (value - minValue) / valueRange
+                            val y = bottom - valueFraction * (bottom - top)
                             Triple(date, value, Offset(x, y))
                         }
 
