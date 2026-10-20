@@ -26,16 +26,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
+import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
+import java.time.ZoneId
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -49,7 +54,13 @@ fun ProfileScreen(
     val profile = state.profile
     val stats = state.statistics
     val today = LocalDate.now()
-    val period = stats.firstTrainingDate?.let { Period.between(it, today) }
+    val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
+    val accountPeriod = profile?.let {
+        val createdDate = Instant.ofEpochMilli(it.createdAtEpochMs)
+            .atZone(ZoneId.systemDefault())
+            .toLocalDate()
+        Period.between(createdDate, today).takeIf { elapsed -> !elapsed.isNegative }
+    }
 
     Column(
         modifier = modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp),
@@ -68,54 +79,61 @@ fun ProfileScreen(
             shape = MaterialTheme.shapes.large,
             color = MaterialTheme.colorScheme.surfaceVariant,
         ) {
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalAlignment = Alignment.Top,
-            ) {
-                Surface(
-                    modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
-                    shape = MaterialTheme.shapes.medium,
-                    color = MaterialTheme.colorScheme.surface,
+            Column(modifier = Modifier.padding(16.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    verticalAlignment = Alignment.Top,
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("👤", style = MaterialTheme.typography.headlineLarge)
+                    Surface(
+                        modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
+                        shape = MaterialTheme.shapes.medium,
+                        color = MaterialTheme.colorScheme.surface,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("👤", style = MaterialTheme.typography.headlineLarge)
+                        }
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                    ) {
+                        Text(
+                            text = profile?.let { user -> profileNameWithAge(user, today) }
+                                ?: stringResource(R.string.profile_loading),
+                            style = MaterialTheme.typography.headlineSmall,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        profile?.let { user ->
+                            user.country?.takeIf(String::isNotBlank)?.let { country ->
+                                Text(country, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            user.city?.takeIf(String::isNotBlank)?.let { city ->
+                                Text(city, style = MaterialTheme.typography.bodyMedium)
+                            }
+                            user.gender?.let { gender ->
+                                val genderText = when (gender) {
+                                    UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
+                                    UserGender.MALE -> stringResource(R.string.profile_gender_male)
+                                }
+                                Text(stringResource(R.string.profile_gender_display, genderText), style = MaterialTheme.typography.bodyMedium)
+                            }
+                            if (user.displayName.isNullOrBlank()) {
+                                Text(
+                                    text = stringResource(R.string.profile_alias, user.generatedAlias),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
-                Column(
-                    modifier = Modifier.weight(1f),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
+                accountPeriod?.let { elapsed ->
+                    Spacer(Modifier.height(12.dp))
                     Text(
-                        text = profile?.effectiveDisplayName ?: stringResource(R.string.profile_loading),
-                        style = MaterialTheme.typography.headlineSmall,
-                        fontWeight = FontWeight.Bold,
+                        text = stringResource(R.string.profile_member_since, formatAccountPeriod(elapsed)),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    profile?.let { user ->
-                        user.country?.takeIf(String::isNotBlank)?.let { country ->
-                            Text(country, style = MaterialTheme.typography.bodyMedium)
-                        }
-                        user.city?.takeIf(String::isNotBlank)?.let { city ->
-                            Text(city, style = MaterialTheme.typography.bodyMedium)
-                        }
-                    user.gender?.let { gender ->
-                        val genderText = when (gender) {
-                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
-                            com.jaroapps.dailybrain.feature.profile.domain.model.UserGender.MALE -> stringResource(R.string.profile_gender_male)
-                        }
-                        Text(stringResource(R.string.profile_gender_display, genderText), style = MaterialTheme.typography.bodyMedium)
-                    }
-                    user.birthDate?.let { birthDate ->
-                        Text(stringResource(R.string.profile_birth_date_display, birthDate.toString()), style = MaterialTheme.typography.bodyMedium)
-                    }
-                    if (user.displayName.isNullOrBlank()) {
-                        Text(
-                            text = stringResource(R.string.profile_alias, user.generatedAlias),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    }
                 }
             }
         }
@@ -134,7 +152,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(10.dp))
         ProfileStatCard(stringResource(R.string.profile_total_duration), formatDuration(stats.totalDurationMs), Modifier.fillMaxWidth())
         Spacer(Modifier.height(10.dp))
-        period?.let { elapsed ->
+        trainingPeriod?.let { elapsed ->
             val yearsText = stringResource(R.string.profile_years, elapsed.years)
             val monthsText = stringResource(R.string.profile_months, elapsed.months)
             val daysText = stringResource(R.string.profile_days, elapsed.days)
@@ -160,6 +178,25 @@ fun ProfileScreen(
             Text(stringResource(R.string.action_home))
         }
     }
+}
+
+@Composable
+private fun profileNameWithAge(profile: UserProfile, today: LocalDate): String {
+    val age = profile.birthDate?.let { birthDate ->
+        Period.between(birthDate, today).years.takeIf { !Period.between(birthDate, today).isNegative }
+    }
+    if (age == null) return profile.effectiveDisplayName
+    return profile.effectiveDisplayName + ", " + pluralStringResource(R.plurals.profile_age_years, age, age)
+}
+
+@Composable
+private fun formatAccountPeriod(period: Period): String {
+    val parts = buildList {
+        if (period.years > 0) add(pluralStringResource(R.plurals.profile_tenure_years, period.years, period.years))
+        if (period.months > 0) add(pluralStringResource(R.plurals.profile_tenure_months, period.months, period.months))
+        add(pluralStringResource(R.plurals.profile_tenure_days, period.days, period.days))
+    }
+    return parts.joinToString(" ")
 }
 
 @Composable
