@@ -10,28 +10,20 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface StatisticsDao {
-
-    @Query("SELECT * FROM overall_statistics WHERE id = 1")
-    suspend fun getOverall(): OverallStatisticsEntity?
-
+    @Query("SELECT * FROM overall_statistics WHERE userId = :userId")
+    suspend fun getOverall(userId: String): OverallStatisticsEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveOverall(statistics: OverallStatisticsEntity)
-
-    @Query("DELETE FROM overall_statistics WHERE id = 1")
-    suspend fun deleteOverall()
-
-    @Query("SELECT * FROM overall_statistics WHERE id = 1")
-    fun observeOverall(): Flow<OverallStatisticsEntity?>
-
-    @Query("SELECT * FROM exercise_statistics ORDER BY exerciseType ASC")
-    fun observeExerciseStatistics(): Flow<List<ExerciseStatisticsEntity>>
-
-    @Query("SELECT * FROM exercise_statistics WHERE exerciseType = :exerciseType")
-    suspend fun getExerciseStatistics(exerciseType: String): ExerciseStatisticsEntity?
-
+    @Query("DELETE FROM overall_statistics WHERE userId = :userId")
+    suspend fun deleteOverall(userId: String)
+    @Query("SELECT * FROM overall_statistics WHERE userId = :userId")
+    fun observeOverall(userId: String): Flow<OverallStatisticsEntity?>
+    @Query("SELECT * FROM exercise_statistics WHERE userId = :userId ORDER BY exerciseType ASC")
+    fun observeExerciseStatistics(userId: String): Flow<List<ExerciseStatisticsEntity>>
+    @Query("SELECT * FROM exercise_statistics WHERE userId = :userId AND exerciseType = :exerciseType")
+    suspend fun getExerciseStatistics(userId: String, exerciseType: String): ExerciseStatisticsEntity?
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun saveExerciseStatistics(statistics: ExerciseStatisticsEntity)
-
-    @Query("DELETE FROM exercise_statistics")
-    suspend fun deleteAllExerciseStatistics()
+    @Query("DELETE FROM exercise_statistics WHERE userId = :userId")
+    suspend fun deleteAllExerciseStatistics(userId: String)
 }
