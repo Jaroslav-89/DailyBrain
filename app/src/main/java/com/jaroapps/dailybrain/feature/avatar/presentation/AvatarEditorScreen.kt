@@ -42,7 +42,6 @@ import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
 import org.koin.androidx.compose.koinViewModel
 
 private val editorTabs = AvatarEditorTab.values().toList()
