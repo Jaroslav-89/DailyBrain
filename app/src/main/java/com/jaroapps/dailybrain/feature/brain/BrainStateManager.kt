@@ -31,7 +31,6 @@ class BrainStateManager(
     suspend fun refresh() {
         val userId = activeUserProvider.currentUserId()
         val today = LocalDate.now()
-        val todayKey = today.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
         val days = database.trainingDayDao().getAll(userId)
         val trainedDates = days.mapNotNull { day ->
             runCatching {
