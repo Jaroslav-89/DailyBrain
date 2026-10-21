@@ -50,6 +50,7 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val articleDescription = stringResource(R.string.home_open_article)
 
     Column(
         modifier = modifier
@@ -72,7 +73,7 @@ fun HomeScreen(
             IconButton(
                 onClick = onOpenArticle,
                 modifier = Modifier.semantics {
-                    contentDescription = "About brain training"
+                    contentDescription = articleDescription
                 },
             ) {
                 Text(
