@@ -7,24 +7,16 @@ import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
 
-/**
- * Builds a fresh LayerDrawable for each configuration. Drawable instances are mutable,
- * so they are intentionally not shared between ImageViews or cached globally.
- */
+/** Assembles fresh, aligned vector layers in a fixed z-order. */
 internal object AvatarDrawableFactory {
-    private val skinTones = intArrayOf(
-        0xFFFFE0BD.toInt(),
-        0xFFF1C27D.toInt(),
-        0xFFE0AC69.toInt(),
-        0xFFC68642.toInt(),
-        0xFF8D5524.toInt(),
-    )
-    private val hairColors = intArrayOf(
-        0xFF241713.toInt(),
-        0xFF49342E.toInt(),
-        0xFF9A623B.toInt(),
-        0xFFD6A85F.toInt(),
-        0xFFB83F35.toInt(),
+    private val skinTones = intArrayOf(0xFFFFE0BD.toInt(), 0xFFF1C27D.toInt(), 0xFFE0AC69.toInt(), 0xFFC68642.toInt(), 0xFF8D5524.toInt())
+    private val hairColors = intArrayOf(0xFF241713.toInt(), 0xFF49342E.toInt(), 0xFF9A623B.toInt(), 0xFFD6A85F.toInt(), 0xFFB83F35.toInt())
+    private val eyeColors = intArrayOf(0xFF5B3822.toInt(), 0xFF3984C6.toInt(), 0xFF39835A.toInt())
+    private val clothingColors = intArrayOf(
+        0xFF171717.toInt(), 0xFFFFFFFF.toInt(), 0xFFE53935.toInt(),
+        0xFF2E7D32.toInt(), 0xFFF9C80E.toInt(), 0xFF1565C0.toInt(),
+        0xFF81D4FA.toInt(), 0xFFF4A6C1.toInt(), 0xFFD7B98E.toInt(),
+        0xFFAED581.toInt(), 0xFFB39DDB.toInt(),
     )
 
     fun create(context: Context, configuration: AvatarConfiguration): LayerDrawable {
@@ -32,15 +24,45 @@ internal object AvatarDrawableFactory {
             2 -> R.drawable.avatar_background_2
             3 -> R.drawable.avatar_background_3
             4 -> R.drawable.avatar_background_4
+            5 -> R.drawable.avatar_background_5
+            6 -> R.drawable.avatar_background_6
+            7 -> R.drawable.avatar_background_7
+            8 -> R.drawable.avatar_background_8
+            9 -> R.drawable.avatar_background_9
+            10 -> R.drawable.avatar_background_10
+            11 -> R.drawable.avatar_background_11
+            12 -> R.drawable.avatar_background_12
             else -> R.drawable.avatar_background_1
         }
+        val face = if (configuration.faceTypeId == 2) R.drawable.avatar_face_male else R.drawable.avatar_face_female
         val hair = when (configuration.hairStyleId) {
             2 -> R.drawable.avatar_hair_2
             3 -> R.drawable.avatar_hair_3
+            4 -> R.drawable.avatar_hair_4
             else -> R.drawable.avatar_hair_1
         }
-        val eyes = if (configuration.eyeStyleId == 2) R.drawable.avatar_eyes_2 else R.drawable.avatar_eyes_1
-        val mouth = if (configuration.mouthStyleId == 2) R.drawable.avatar_mouth_2 else R.drawable.avatar_mouth_1
+        val eyes = when (configuration.eyeStyleId) {
+            2 -> R.drawable.avatar_eyes_1
+            3 -> R.drawable.avatar_eyes_3
+            else -> R.drawable.avatar_eyes_2
+        }
+        val clothing = when (configuration.clothingStyleId) {
+            2 -> R.drawable.avatar_clothing_2
+            3 -> R.drawable.avatar_clothing_3
+            4 -> R.drawable.avatar_clothing_4
+            else -> R.drawable.avatar_clothing_1
+        }
+        val glasses = when (configuration.glassesId) {
+            1 -> R.drawable.avatar_glasses_1
+            2 -> R.drawable.avatar_glasses_2
+            3 -> R.drawable.avatar_glasses_3
+            else -> R.drawable.avatar_empty
+        }
+        val freckles = when (configuration.frecklesId) {
+            1 -> R.drawable.avatar_freckles_1
+            2 -> R.drawable.avatar_freckles_2
+            else -> R.drawable.avatar_empty
+        }
         val accessory = when (configuration.accessoryId) {
             1 -> R.drawable.avatar_accessory_1
             2 -> R.drawable.avatar_accessory_2
@@ -49,14 +71,21 @@ internal object AvatarDrawableFactory {
 
         val layers = arrayOf(
             drawable(context, background),
-            drawable(context, R.drawable.avatar_face).apply {
+            drawable(context, face).apply {
                 setTint(skinTones[(configuration.skinToneId - 1).coerceIn(skinTones.indices)])
+            },
+            drawable(context, clothing).apply {
+                setTint(clothingColors[(configuration.clothingColorId - 1).coerceIn(clothingColors.indices)])
             },
             drawable(context, hair).apply {
                 setTint(hairColors[(configuration.hairColorId - 1).coerceIn(hairColors.indices)])
             },
-            drawable(context, eyes),
-            drawable(context, mouth),
+            drawable(context, eyes).apply {
+                setTint(eyeColors[(configuration.eyeColorId - 1).coerceIn(eyeColors.indices)])
+            },
+            drawable(context, R.drawable.avatar_mouth_1),
+            drawable(context, freckles),
+            drawable(context, glasses),
             drawable(context, accessory),
         )
         return LayerDrawable(layers).apply {
