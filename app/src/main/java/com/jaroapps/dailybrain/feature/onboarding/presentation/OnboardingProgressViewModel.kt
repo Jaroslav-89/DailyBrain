@@ -2,22 +2,24 @@ package com.jaroapps.dailybrain.feature.onboarding.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.MarkAppIntroCompleteUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.MarkExerciseIntroCompleteUseCase
 import kotlinx.coroutines.launch
 
 class OnboardingProgressViewModel(
-    private val repository: OnboardingProgressRepository,
+    private val markAppIntroComplete: MarkAppIntroCompleteUseCase,
+    private val markExerciseIntroComplete: MarkExerciseIntroCompleteUseCase,
 ) : ViewModel() {
     fun markAppIntroComplete(onComplete: () -> Unit) {
         viewModelScope.launch {
-            repository.markAppIntroComplete()
+            markAppIntroComplete()
             onComplete()
         }
     }
 
     fun markExerciseIntroComplete(exerciseKey: String, onComplete: () -> Unit) {
         viewModelScope.launch {
-            repository.markExerciseIntroComplete(exerciseKey)
+            markExerciseIntroComplete(exerciseKey)
             onComplete()
         }
     }
