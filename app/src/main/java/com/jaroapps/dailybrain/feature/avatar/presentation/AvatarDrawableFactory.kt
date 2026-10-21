@@ -42,7 +42,8 @@ internal object AvatarDrawableFactory {
             else -> R.drawable.avatar_face_female
         }
         val hairLength = when (configuration.hairLengthId) {
-            1, 2 -> R.drawable.avatar_hair_1
+            1 -> R.drawable.avatar_hair_1
+            2 -> R.drawable.avatar_hair_2
             3 -> R.drawable.avatar_hair_6
             4 -> R.drawable.avatar_hair_7
             else -> R.drawable.avatar_hair_8
@@ -97,11 +98,11 @@ internal object AvatarDrawableFactory {
         val layers = arrayOf(
             drawable(context, background),
             drawable(context, body).apply { setTint(skinTint) },
-            drawable(context, R.drawable.avatar_neck).apply { setTint(skinTint) },
-            drawable(context, face).apply { setTint(skinTint) },
             drawable(context, clothing).apply {
                 setTint(clothingColors[(configuration.clothingColorId - 1).coerceIn(clothingColors.indices)])
             },
+            drawable(context, R.drawable.avatar_neck).apply { setTint(skinTint) },
+            drawable(context, face).apply { setTint(skinTint) },
             drawable(context, hairLength).apply { setTint(hairTint) },
             drawable(context, hairStyle).apply { setTint(hairTint) },
             drawable(context, eyes).apply {
