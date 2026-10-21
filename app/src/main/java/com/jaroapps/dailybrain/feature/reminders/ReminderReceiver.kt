@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.MainActivity
+import com.jaroapps.dailybrain.feature.brain.BrainStateManager
 import com.jaroapps.dailybrain.feature.brain.BrainStateScheduler
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
@@ -40,7 +41,7 @@ class ReminderReceiver : BroadcastReceiver() {
                 val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
                 scope.launch {
                     try {
-                        GlobalContext.get().get<com.jaroapps.dailybrain.feature.brain.BrainStateManager>().refresh()
+                        GlobalContext.get().get<BrainStateManager>().refresh()
                     } catch (_: Exception) {
                         // A clock change must not crash the broadcast receiver.
                     } finally {
