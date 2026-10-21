@@ -4,6 +4,7 @@ import android.content.Context
 import android.graphics.drawable.Drawable
 import android.graphics.drawable.LayerDrawable
 import android.graphics.drawable.GradientDrawable
+import android.graphics.drawable.InsetDrawable
 import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
@@ -24,9 +25,16 @@ internal object AvatarDrawableFactory {
         val backgroundColors = AvatarBackgroundPalette.gradients[
             (configuration.backgroundId - 1).coerceIn(AvatarBackgroundPalette.gradients.indices)
         ]
-        val background = GradientDrawable(GradientDrawable.Orientation.TL_BR, backgroundColors).apply {
-            shape = GradientDrawable.OVAL
-        }
+        val density = context.resources.displayMetrics.density
+        val background = InsetDrawable(
+            GradientDrawable(GradientDrawable.Orientation.TL_BR, backgroundColors).apply {
+                shape = GradientDrawable.OVAL
+            },
+            (8 * density).toInt(),
+            (8 * density).toInt(),
+            (8 * density).toInt(),
+            (72 * density).toInt(),
+        )
         val face = when (configuration.faceTypeId) {
             2 -> R.drawable.avatar_face_male
             3 -> R.drawable.avatar_face_round
