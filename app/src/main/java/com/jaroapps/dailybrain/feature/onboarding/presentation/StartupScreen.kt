@@ -11,48 +11,35 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
-import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.flow.first
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun StartupScreen(
-    onboardingProgressRepository: OnboardingProgressRepository,
-    userProfileRepository: UserProfileRepository,
     onDestinationReady: (String) -> Unit,
     onStartupResolved: () -> Unit,
+    viewModel: StartupViewModel = koinViewModel(),
 ) {
-    var retryToken by remember { mutableIntStateOf(0) }
-    var isLoading by remember { mutableStateOf(true) }
-    var hasError by remember { mutableStateOf(false) }
+    val state by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(retryToken) {
-        isLoading = true
-        hasError = false
-        try {
-            // Wait until profile initialization has produced a real active profile.
-            userProfileRepository.observeProfile().first()
-            val progress = onboardingProgressRepository.getActiveProgress()
-            onStartupResolved()
-            onDestinationReady(if (progress.hasSeenAppIntro) "home" else "app_onboarding")
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            hasError = true
-        } finally {
-            isLoading = false
-            onStartupResolved()
+    LaunchedEffect(state) {
+        when (state) {
+            StartupUiState.AppIntroRequired -> {
+                onStartupResolved()
+                onDestinationReady("app_onboarding")
+            }
+            StartupUiState.HomeReady -> {
+                onStartupResolved()
+                onDestinationReady("home")
+            }
+            StartupUiState.Loading -> Unit
+            StartupUiState.Error -> onStartupResolved()
         }
     }
 
@@ -61,19 +48,23 @@ fun StartupScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (isLoading) {
-            CircularProgressIndicator()
-            Spacer(Modifier.height(16.dp))
-            Text(stringResource(R.string.startup_loading))
-        } else if (hasError) {
-            Text(
-                text = stringResource(R.string.startup_error),
-                style = MaterialTheme.typography.bodyLarge,
-            )
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { retryToken++ }) {
-                Text(stringResource(R.string.action_retry))
+        when (state) {
+            StartupUiState.Loading -> {
+                CircularProgressIndicator()
+                Spacer(Modifier.height(16.dp))
+                Text(stringResource(R.string.startup_loading))
             }
+            StartupUiState.Error -> {
+                Text(
+                    text = stringResource(R.string.startup_error),
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = viewModel::resolveStartup) {
+                    Text(stringResource(R.string.action_retry))
+                }
+            }
+            else -> Unit
         }
     }
 }
