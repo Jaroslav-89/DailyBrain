@@ -49,6 +49,7 @@ import java.time.ZoneId
 fun ProfileScreen(
     onBack: () -> Unit,
     onEditProfile: () -> Unit,
+    onActiveProfileChanged: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -151,7 +152,7 @@ fun ProfileScreen(
         Spacer(Modifier.height(8.dp))
         state.profiles.forEach { localProfile ->
             OutlinedButton(
-                onClick = { viewModel.switchProfile(localProfile.localAccountId) },
+                onClick = { viewModel.switchProfile(localProfile.localAccountId, onActiveProfileChanged) },
                 enabled = localProfile.localAccountId != profile?.localAccountId,
                 modifier = Modifier.fillMaxWidth(),
             ) {
@@ -161,7 +162,7 @@ fun ProfileScreen(
             Spacer(Modifier.height(6.dp))
         }
         OutlinedButton(
-            onClick = viewModel::createProfile,
+            onClick = { viewModel.createProfile(onActiveProfileChanged) },
             enabled = true,
             modifier = Modifier.fillMaxWidth(),
         ) {

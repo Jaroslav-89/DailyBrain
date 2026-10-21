@@ -28,6 +28,15 @@ import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingVie
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
+import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository as OnboardingProgressRepositoryImpl
+import com.jaroapps.dailybrain.feature.onboarding.domain.repository.OnboardingProgressRepository
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetExerciseEntryDestinationUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.MarkAppIntroCompleteUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.MarkExerciseIntroCompleteUseCase
+import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupViewModel
+import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseEntryViewModel
+import com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel
 import com.jaroapps.dailybrain.feature.memory.data.MemoryWordsRepositoryImpl
 import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepository
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
@@ -67,11 +76,29 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9)
             .build()
     }
 
     single { ActiveUserProvider(database = get()) }
+    single<OnboardingProgressRepository> {
+        OnboardingProgressRepositoryImpl(
+            dao = get<AppDatabase>().onboardingProgressDao(),
+            activeUserProvider = get(),
+        )
+    }
+    factory { GetStartupDestinationUseCase(repository = get()) }
+    factory { GetExerciseEntryDestinationUseCase(repository = get()) }
+    factory { MarkAppIntroCompleteUseCase(repository = get()) }
+    factory { MarkExerciseIntroCompleteUseCase(repository = get()) }
+    viewModel { StartupViewModel(getStartupDestination = get()) }
+    viewModel { ExerciseEntryViewModel(getExerciseEntryDestination = get()) }
+    viewModel {
+        OnboardingProgressViewModel(
+            markAppIntroComplete = get(),
+            markExerciseIntroComplete = get(),
+        )
+    }
 
     single<CompletedTrainingRepository> {
         CompletedTrainingRepositoryImpl(database = get(), activeUserProvider = get())

@@ -396,4 +396,22 @@ object DatabaseMigrations {
             database.execSQL("CREATE INDEX index_daily_exercise_results_userId_date ON daily_exercise_results(userId, date)")
         }
     }
+
+    /** Store onboarding completion independently for each local profile. */
+    val MIGRATION_8_9 = object : Migration(8, 9) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE onboarding_progress (
+                    localAccountId TEXT NOT NULL PRIMARY KEY,
+                    hasSeenAppIntro INTEGER NOT NULL,
+                    hasSeenArithmeticIntro INTEGER NOT NULL,
+                    hasSeenMemoryIntro INTEGER NOT NULL,
+                    hasSeenCountingIntro INTEGER NOT NULL,
+                    hasSeenStroopIntro INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+        }
+    }
 }

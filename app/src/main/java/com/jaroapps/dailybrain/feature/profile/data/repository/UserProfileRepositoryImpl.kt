@@ -81,6 +81,7 @@ class UserProfileRepositoryImpl(
             database.dailyExerciseResultDao().deleteAll(activeId)
             database.statisticsDao().deleteOverall(activeId)
             database.statisticsDao().deleteAllExerciseStatistics(activeId)
+            database.onboardingProgressDao().deleteProgress(activeId)
             val deleted = profileDao.deleteByLocalAccountId(activeProfile.localAccountId)
             check(deleted == 1) { "Failed to delete local profile" }
         }
