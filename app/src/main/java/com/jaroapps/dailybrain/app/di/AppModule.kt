@@ -29,6 +29,9 @@ import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
 import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
+import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupViewModel
+import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseEntryViewModel
+import com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel
 import com.jaroapps.dailybrain.feature.memory.data.MemoryWordsRepositoryImpl
 import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepository
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
@@ -74,6 +77,9 @@ val appModule = module {
 
     single { ActiveUserProvider(database = get()) }
     single { OnboardingProgressRepository(dao = get<AppDatabase>().onboardingProgressDao(), activeUserProvider = get()) }
+    viewModel { StartupViewModel(onboardingProgressRepository = get(), userProfileRepository = get()) }
+    viewModel { ExerciseEntryViewModel(onboardingProgressRepository = get()) }
+    viewModel { OnboardingProgressViewModel(repository = get()) }
 
     single<CompletedTrainingRepository> {
         CompletedTrainingRepositoryImpl(database = get(), activeUserProvider = get())
