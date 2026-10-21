@@ -172,4 +172,30 @@
     <string name="reminder_title">Time to train your brain!</string>
     <string name="reminder_six_hours_message">6 hours left in the day. Complete at least one exercise today.</string>
     <string name="reminder_three_hours_message">3 hours left in the day. There is still time for a quick workout!</string>
+
+    <string name="action_get_started">Get started</string>
+    <string name="action_start_exercise">Start exercise</string>
+    <string name="action_retry">Try again</string>
+    <string name="home_open_article">About brain training</string>
+    <string name="startup_loading">Getting DailyBrain ready…</string>
+    <string name="startup_error">Could not load the profile. Please try again.</string>
+    <string name="onboarding_app_title">Welcome to DailyBrain</string>
+    <string name="onboarding_app_body">DailyBrain helps you practise attention, memory, and thinking with short exercises. Choose an exercise, read its instructions, and practise at your own pace. Results help you track your practice, but they are not a medical assessment of intelligence or memory.</string>
+    <string name="article_title">Brain Training: What You Should Know</string>
+    <string name="article_intro">Brain training means regularly practising tasks that require attention, memory, processing speed, or reasoning. Short exercises can be a useful way to stay mentally engaged and build a learning habit.</string>
+    <string name="article_paragraph_1">It is important to distinguish improvement on a specific task from changes in everyday life. Practice usually helps people get better at the kinds of tasks they train. Transfer to entirely different skills is not guaranteed, and evidence that brain-training apps broadly improve intelligence remains mixed.</string>
+    <string name="article_paragraph_2">Consistency and manageable difficulty matter more than chasing a record every time. Start at a level where you can stay accurate, then gradually increase speed or difficulty. Take a break when tired: mistakes caused by fatigue do not necessarily mean your abilities have declined.</string>
+    <string name="article_paragraph_3">Arithmetic tasks practise working with numbers and keeping attention on a problem. Word memorization lets you practise encoding and retrieving information. Counting aloud combines sequencing, speech, and pace control. The Stroop test asks you to focus on the text colour while resisting the automatic tendency to read the word.</string>
+    <string name="article_paragraph_4">Look at trends rather than a single day. Sleep, stress, mood, distractions, and familiarity with a task can all affect speed and accuracy. Small fluctuations are normal. Compare results under similar conditions and choose goals that help you stay engaged.</string>
+    <string name="article_paragraph_5">An app does not replace broader habits that support wellbeing: enough sleep, physical activity, social connection, learning new things, and taking breaks during the day. It is useful to combine different kinds of mental activity rather than rely on one exercise.</string>
+    <string name="article_paragraph_6">Use DailyBrain as a practice and personal-progress tool, not as a diagnostic test. If you notice persistent or sudden changes in memory or thinking, discuss them with a healthcare professional.</string>
+    <string name="intro_arithmetic">Solve arithmetic problems while balancing speed and accuracy. Answer one at a time, and do not worry about an occasional mistake: regular practice is what matters.</string>
+    <string name="rules_arithmetic">Solve the problem shown and enter your answer. Aim to be accurate at a comfortable pace. Follow the on-screen prompts when you finish.</string>
+    <string name="intro_memory">You will memorize a set of words and then recall as many as you can. Pay attention to each word and use associations that work for you.</string>
+    <string name="rules_memory">Memorize the words during the allotted time. Then enter the words you remember in the fields. Order does not matter, and you can leave fields empty.</string>
+    <string name="intro_counting">This exercise asks you to count aloud from 1 to 120. Focus on the sequence and try to complete it without skipping numbers.</string>
+    <string name="rules_counting">Start the next screen and count aloud from 1 to 120. Finish the exercise when you reach the end. Try not to skip numbers and use a natural pace.</string>
+    <string name="intro_stroop">In the Stroop test, focus on the colour of the text rather than the word itself. This exercise requires attention and control over the automatic response to reading.</string>
+    <string name="rules_stroop">Name the colour of the text and ignore the meaning of the word. Focus on the colour of the letters. Work carefully at a comfortable pace.</string>
+
 </resources>
