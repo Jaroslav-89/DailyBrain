@@ -8,6 +8,7 @@ interface UserProfileRepository {
     fun observeProfiles(): Flow<List<UserProfile>>
     suspend fun createLocalProfile(): UserProfile
     suspend fun switchActiveProfile(localAccountId: String)
+    suspend fun deleteActiveProfile()
     suspend fun saveProfile(
         displayName: String?,
         gender: String?,
