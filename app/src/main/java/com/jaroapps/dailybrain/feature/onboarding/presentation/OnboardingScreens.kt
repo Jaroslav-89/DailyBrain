@@ -20,49 +20,32 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import org.koin.androidx.compose.koinViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
-import kotlinx.coroutines.CancellationException
 
 
 @Composable
 fun ExerciseEntryScreen(
     exerciseKey: String,
-    onboardingProgressRepository: OnboardingProgressRepository,
     onDestinationReady: (String) -> Unit,
+    viewModel: ExerciseEntryViewModel = koinViewModel(),
 ) {
-    var retryToken by remember { mutableIntStateOf(0) }
-    var hasError by remember { mutableStateOf(false) }
+    val state by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(exerciseKey, retryToken) {
-        hasError = false
-        try {
-            val progress = onboardingProgressRepository.getActiveProgress()
-            val hasSeenIntro = when (exerciseKey) {
-                "arithmetic" -> progress.hasSeenArithmeticIntro
-                "memory" -> progress.hasSeenMemoryIntro
-                "counting" -> progress.hasSeenCountingIntro
-                "stroop" -> progress.hasSeenStroopIntro
-                else -> false
-            }
-            onDestinationReady(
-                if (hasSeenIntro) "exercise_rules/$exerciseKey"
-                else "exercise_intro/$exerciseKey",
-            )
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            hasError = true
+    LaunchedEffect(exerciseKey) {
+        viewModel.resolve(exerciseKey)
+    }
+
+    LaunchedEffect(state) {
+        if (state is ExerciseEntryUiState.DestinationReady) {
+            onDestinationReady((state as ExerciseEntryUiState.DestinationReady).route)
         }
     }
 
@@ -71,14 +54,16 @@ fun ExerciseEntryScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        if (hasError) {
-            Text(stringResource(R.string.startup_error), style = MaterialTheme.typography.bodyLarge)
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { retryToken++ }) {
-                Text(stringResource(R.string.action_retry))
+        when (state) {
+            ExerciseEntryUiState.Loading -> CircularProgressIndicator()
+            ExerciseEntryUiState.Error -> {
+                Text(stringResource(R.string.startup_error), style = MaterialTheme.typography.bodyLarge)
+                Spacer(Modifier.height(16.dp))
+                Button(onClick = { viewModel.resolve(exerciseKey) }) {
+                    Text(stringResource(R.string.action_retry))
+                }
             }
-        } else {
-            CircularProgressIndicator()
+            is ExerciseEntryUiState.DestinationReady -> Unit
         }
     }
 }
