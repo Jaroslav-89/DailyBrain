@@ -1,9 +1,6 @@
 package com.jaroapps.dailybrain.navigation
 
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
@@ -30,8 +27,8 @@ import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinInject
-import java.time.format.DateTimeFormatter
 import androidx.compose.runtime.rememberCoroutineScope
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppNavHost(onStartupResolved: () -> Unit = {}) {
