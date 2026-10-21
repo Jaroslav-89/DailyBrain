@@ -1,4 +1,6 @@
 <resources>
+
+    <!-- Common actions and shared labels -->
     <string name="app_name">DailyBrain</string>
     <string name="action_back">Back</string>
     <string name="action_close">Close</string>
@@ -30,6 +32,14 @@
     <string name="error_load_words">Could not load the word list</string>
     <string name="error_enter_word">Enter at least one word</string>
     <string name="error_start_training">Could not start the training</string>
+    <string name="format_percent">%1$s%%</string>
+    <string name="format_count_pair">%1$d of %2$d</string>
+    <string name="action_save">Save</string>
+    <string name="action_get_started">Get started</string>
+    <string name="action_start_exercise">Start exercise</string>
+    <string name="action_retry">Try again</string>
+
+    <!-- Home screen -->
     <string name="home_tagline">Your daily brain workout</string>
     <string name="home_training_done_today">Training completed today</string>
     <string name="home_not_trained_today">You haven\'t trained today yet</string>
@@ -38,34 +48,10 @@
     <string name="exercise_memory">Word memorization</string>
     <string name="exercise_counting">Counting aloud to 120</string>
     <string name="exercise_stroop">Stroop test</string>
-    <string name="calendar_title">Calendar</string>
-    <string name="history_delete_title">Delete training?</string>
-    <string name="history_delete_warning">This training result will be permanently deleted and cannot be restored. Statistics and records will be recalculated.</string>
-    <string name="history_no_trainings">No trainings</string>
-    <string name="history_empty_day">There are no completed trainings on this day yet.</string>
-    <string name="history_accuracy">Accuracy: %1$s%%</string>
-    <string name="history_correct_answers">Correct answers: %1$d of %2$d</string>
-    <plurals name="history_training_count">
-        <item quantity="one">%d training</item>
-        <item quantity="other">%d trainings</item>
-    </plurals>
-    <string name="counting_instruction">Count aloud from 1 to 120 as quickly as you can.</string>
-    <string name="memory_loading">Preparing words…</string>
-    <string name="memory_title">Memorization</string>
-    <string name="memory_start_recall">Start answering</string>
-    <string name="memory_instruction">Memorize the words. You have 120 seconds.</string>
-    <string name="memory_progress_hint">The bar fills up when the time is over.</string>
-    <string name="memory_recall_title">Recall the words</string>
-    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn\'t matter; you can leave fields empty.</string>
-    <string name="memory_word_number">Word %1$d</string>
-    <string name="memory_result_title">Training completed!</string>
-    <string name="memory_score">%1$d of %2$d</string>
-    <string name="memory_accuracy">Accuracy: %1$d%%</string>
-    <string name="memory_recalled">Recalled (%1$d)</string>
-    <string name="memory_missed">Missed (%1$d)</string>
-    <string name="memory_no_recalled">No correctly recalled words yet.</string>
-    <string name="memory_all_recalled">Great! You recalled every word.</string>
-    <string name="stroop_instruction">Name the color of the text, not the word itself</string>
+    <string name="home_profile">My profile</string>
+    <string name="home_open_article">About brain training</string>
+
+    <!-- Statistics screen -->
     <string name="statistics_title">Statistics</string>
     <string name="statistics_tagline">Your progress in Daily Brain</string>
     <string name="statistics_tab_overall">Overall</string>
@@ -80,22 +66,6 @@
     <string name="statistics_duration_hours">%1$d hr %2$d min</string>
     <string name="statistics_duration_minutes">%1$d min %2$d sec</string>
     <string name="statistics_duration_seconds">%1$d sec</string>
-    <string name="calendar_weekday_monday">Mo</string>
-    <string name="calendar_weekday_tuesday">Tu</string>
-    <string name="calendar_weekday_wednesday">We</string>
-    <string name="calendar_weekday_thursday">Th</string>
-    <string name="calendar_weekday_friday">Fr</string>
-    <string name="calendar_weekday_saturday">Sa</string>
-    <string name="calendar_weekday_sunday">Su</string>
-    <string name="format_percent">%1$s%%</string>
-    <string name="memory_recalled_word">✓  %1$s</string>
-    <string name="memory_repeated">Repeated (%1$d)</string>
-    <string name="memory_repeated_word">↻  %1$s</string>
-    <string name="memory_missed_word">•  %1$s</string>
-    <string name="memory_incorrect">Written incorrectly (%1$d)</string>
-    <string name="memory_no_incorrect">No incorrectly written words.</string>
-    <string name="memory_incorrect_word">✕  %1$s</string>
-    <string name="format_count_pair">%1$d of %2$d</string>
     <string name="statistics_current_streak">Current streak</string>
     <string name="statistics_best_streak">Best streak</string>
     <string name="statistics_days_count">%1$d days</string>
@@ -111,7 +81,58 @@
     <string name="statistics_period_all">All time</string>
     <string name="statistics_chart_average">Avg. %1$s</string>
     <string name="statistics_chart_no_data">No results in this period</string>
-    <string name="home_profile">My profile</string>
+
+    <!-- Calendar and training history screens -->
+    <string name="calendar_title">Calendar</string>
+    <string name="history_delete_title">Delete training?</string>
+    <string name="history_delete_warning">This training result will be permanently deleted and cannot be restored. Statistics and records will be recalculated.</string>
+    <string name="history_no_trainings">No trainings</string>
+    <string name="history_empty_day">There are no completed trainings on this day yet.</string>
+    <string name="history_accuracy">Accuracy: %1$s%%</string>
+    <string name="history_correct_answers">Correct answers: %1$d of %2$d</string>
+    <plurals name="history_training_count">
+        <item quantity="one">%d training</item>
+        <item quantity="other">%d trainings</item>
+    </plurals>
+    <string name="calendar_weekday_monday">Mo</string>
+    <string name="calendar_weekday_tuesday">Tu</string>
+    <string name="calendar_weekday_wednesday">We</string>
+    <string name="calendar_weekday_thursday">Th</string>
+    <string name="calendar_weekday_friday">Fr</string>
+    <string name="calendar_weekday_saturday">Sa</string>
+    <string name="calendar_weekday_sunday">Su</string>
+
+    <!-- Memory exercise screen -->
+    <string name="memory_loading">Preparing words…</string>
+    <string name="memory_title">Memorization</string>
+    <string name="memory_start_recall">Start answering</string>
+    <string name="memory_instruction">Memorize the words. You have 120 seconds.</string>
+    <string name="memory_progress_hint">The bar fills up when the time is over.</string>
+    <string name="memory_recall_title">Recall the words</string>
+    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn\'t matter; you can leave fields empty.</string>
+    <string name="memory_word_number">Word %1$d</string>
+    <string name="memory_result_title">Training completed!</string>
+    <string name="memory_score">%1$d of %2$d</string>
+    <string name="memory_accuracy">Accuracy: %1$d%%</string>
+    <string name="memory_recalled">Recalled (%1$d)</string>
+    <string name="memory_missed">Missed (%1$d)</string>
+    <string name="memory_no_recalled">No correctly recalled words yet.</string>
+    <string name="memory_all_recalled">Great! You recalled every word.</string>
+    <string name="memory_recalled_word">✓  %1$s</string>
+    <string name="memory_repeated">Repeated (%1$d)</string>
+    <string name="memory_repeated_word">↻  %1$s</string>
+    <string name="memory_missed_word">•  %1$s</string>
+    <string name="memory_incorrect">Written incorrectly (%1$d)</string>
+    <string name="memory_no_incorrect">No incorrectly written words.</string>
+    <string name="memory_incorrect_word">✕  %1$s</string>
+
+    <!-- Counting exercise screen -->
+    <string name="counting_instruction">Count aloud from 1 to 120 as quickly as you can.</string>
+
+    <!-- Stroop exercise screen -->
+    <string name="stroop_instruction">Name the color of the text, not the word itself</string>
+
+    <!-- Profile screens -->
     <string name="profile_title">My profile</string>
     <string name="profile_accounts">Local profiles</string>
     <string name="profile_add_account">Add profile</string>
@@ -166,17 +187,15 @@
     <string name="profile_delete_confirm">Delete</string>
     <string name="profile_delete_error">Could not delete the profile. Please try again.</string>
     <string name="profile_delete_last_profile_hint">You cannot delete the only profile. Create another profile or switch to a different one first.</string>
-    <string name="action_save">Save</string>
     <string name="profile_gender_display">Gender: %1$s</string>
+
+    <!-- Training reminders -->
     <string name="reminder_channel_name">Training reminders</string>
     <string name="reminder_title">Time to train your brain!</string>
     <string name="reminder_six_hours_message">6 hours left in the day. Complete at least one exercise today.</string>
     <string name="reminder_three_hours_message">3 hours left in the day. There is still time for a quick workout!</string>
 
-    <string name="action_get_started">Get started</string>
-    <string name="action_start_exercise">Start exercise</string>
-    <string name="action_retry">Try again</string>
-    <string name="home_open_article">About brain training</string>
+    <!-- Onboarding and exercise introduction screens -->
     <string name="startup_loading">Getting DailyBrain ready…</string>
     <string name="startup_error">Could not load the profile. Please try again.</string>
     <string name="onboarding_app_title">Welcome to DailyBrain</string>
