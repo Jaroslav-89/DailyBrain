@@ -79,6 +79,41 @@ class ArithmeticDomainTest {
     }
 
     @Test
+    fun `generator avoids double zero and reduces zero and equal operands`() {
+        val generator = GenerateArithmeticProblemUseCase(random = Random(123))
+
+        ArithmeticOperation.values().forEach { operation ->
+            var zeroOperandProblems = 0
+            var equalOperandProblems = 0
+
+            repeat(2_000) {
+                val problem = generator.execute(operation)
+
+                assertFalse(
+                    "Generated a double-zero problem for $operation",
+                    problem.firstOperand == 0 && problem.secondOperand == 0,
+                )
+
+                if (problem.firstOperand == 0 || problem.secondOperand == 0) {
+                    zeroOperandProblems++
+                }
+                if (problem.firstOperand == problem.secondOperand) {
+                    equalOperandProblems++
+                }
+            }
+
+            assertTrue(
+                "Unexpectedly many zero-operand problems for $operation: $zeroOperandProblems",
+                zeroOperandProblems < 250,
+            )
+            assertTrue(
+                "Unexpectedly many equal-operand problems for $operation: $equalOperandProblems",
+                equalOperandProblems < 250,
+            )
+        }
+    }
+
+    @Test
     fun `addition calculates correct answer`() {
         val problem = ArithmeticProblem(
             firstOperand = 17,
