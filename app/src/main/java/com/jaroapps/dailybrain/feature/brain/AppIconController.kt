@@ -5,10 +5,8 @@ import android.content.Context
 import android.content.pm.PackageManager
 
 /**
- * First-stage dynamic icon test.
- *
- * Only BASE and SOUR are enabled as selectable launcher icons for now.
- * INSPIRED intentionally uses the BASE icon until the two-state test is stable.
+ * Switches the app's launcher icon to match the current brain mood.
+ * Only one launcher alias is enabled at a time.
  */
 object AppIconController {
 
@@ -18,15 +16,13 @@ object AppIconController {
 
     fun apply(context: Context, mood: BrainMood) {
         val packageManager = context.packageManager
-
         val activeAlias = when (mood) {
             BrainMood.BASE -> LAUNCHER_BASE
             BrainMood.SOUR -> LAUNCHER_SOUR
-            BrainMood.INSPIRED -> LAUNCHER_BASE
+            BrainMood.INSPIRED -> LAUNCHER_INSPIRED
         }
 
-        val aliases = listOf(LAUNCHER_BASE, LAUNCHER_SOUR, LAUNCHER_INSPIRED)
-        aliases.forEach { alias ->
+        listOf(LAUNCHER_BASE, LAUNCHER_SOUR, LAUNCHER_INSPIRED).forEach { alias ->
             packageManager.setComponentEnabledSetting(
                 ComponentName(context, alias),
                 if (alias == activeAlias) {
