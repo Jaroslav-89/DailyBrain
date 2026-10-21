@@ -2,7 +2,8 @@ package com.jaroapps.dailybrain.feature.onboarding.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.ExerciseEntryDestination
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetExerciseEntryDestinationUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -15,7 +16,7 @@ sealed interface ExerciseEntryUiState {
 }
 
 class ExerciseEntryViewModel(
-    private val onboardingProgressRepository: OnboardingProgressRepository,
+    private val getExerciseEntryDestination: GetExerciseEntryDestinationUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<ExerciseEntryUiState>(ExerciseEntryUiState.Loading)
     val uiState: StateFlow<ExerciseEntryUiState> = _uiState
@@ -24,18 +25,12 @@ class ExerciseEntryViewModel(
         viewModelScope.launch {
             _uiState.value = ExerciseEntryUiState.Loading
             try {
-                val progress = onboardingProgressRepository.getActiveProgress()
-                val hasSeenIntro = when (exerciseKey) {
-                    "arithmetic" -> progress.hasSeenArithmeticIntro
-                    "memory" -> progress.hasSeenMemoryIntro
-                    "counting" -> progress.hasSeenCountingIntro
-                    "stroop" -> progress.hasSeenStroopIntro
-                    else -> throw IllegalArgumentException("Unknown exercise key: $exerciseKey")
+                val destination = getExerciseEntryDestination(exerciseKey)
+                val route = when (destination) {
+                    ExerciseEntryDestination.INTRO -> "exercise_intro/$exerciseKey"
+                    ExerciseEntryDestination.RULES -> "exercise_rules/$exerciseKey"
                 }
-                _uiState.value = ExerciseEntryUiState.DestinationReady(
-                    if (hasSeenIntro) "exercise_rules/$exerciseKey"
-                    else "exercise_intro/$exerciseKey",
-                )
+                _uiState.value = ExerciseEntryUiState.DestinationReady(route)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
