@@ -10,23 +10,20 @@ import com.jaroapps.dailybrain.MainActivity
 import com.jaroapps.dailybrain.R
 
 object BrainWidgetUpdater {
-    fun update(context: Context, mood: BrainMood) {
+    fun update(context: Context, mood: BrainMood, streak: Int, hasTrainingToday: Boolean) {
         val manager = AppWidgetManager.getInstance(context)
         val provider = ComponentName(context, BrainWidgetProvider::class.java)
         val ids = manager.getAppWidgetIds(provider)
         if (ids.isEmpty()) return
 
-        val (image, title, subtitle) = when (mood) {
-            BrainMood.BASE -> Triple(
-                R.drawable.brain_base,
-                R.string.brain_widget_base_title,
-                R.string.brain_widget_base_subtitle,
-            )
-            BrainMood.SOUR -> Triple(
-                R.drawable.brain_sour,
-                R.string.brain_widget_sour_title,
-                R.string.brain_widget_sour_subtitle,
-            )
+        val image = when (mood) {
+            BrainMood.BASE -> R.drawable.brain_base
+            BrainMood.SOUR -> R.drawable.brain_sour
+        }
+        val status = if (hasTrainingToday) {
+            R.string.home_training_done_today
+        } else {
+            R.string.home_not_trained_today
         }
 
         val openApp = PendingIntent.getActivity(
@@ -37,8 +34,9 @@ object BrainWidgetUpdater {
         )
         val views = RemoteViews(context.packageName, R.layout.widget_brain).apply {
             setImageViewResource(R.id.brainImage, image)
-            setTextViewText(R.id.widgetTitle, context.getString(title))
-            setTextViewText(R.id.widgetSubtitle, context.getString(subtitle))
+            setTextViewText(R.id.widgetTitle, context.getString(R.string.app_name))
+            setTextViewText(R.id.widgetSubtitle, context.getString(status))
+            setTextViewText(R.id.widgetStreak, streak.toString())
             setOnClickPendingIntent(R.id.widgetRoot, openApp)
         }
         manager.updateAppWidget(ids, views)
