@@ -97,7 +97,7 @@ fun AvatarEditorScreen(
             OptionRow("Веснушки", avatar.frecklesId, listOf(0 to "Нет", 1 to "Мало", 2 to "Много")) {
                 viewModel.updateConfiguration(avatar.copy(frecklesId = it))
             }
-            OptionRow("Дополнительный аксессуар", avatar.accessoryId, listOf(0 to "Нет", 1 to "Очки", 2 to "Повязка")) {
+            OptionRow("Дополнительный аксессуар", avatar.accessoryId, listOf(0 to "Нет", 2 to "Повязка")) {
                 viewModel.updateConfiguration(avatar.copy(accessoryId = it))
             }
             OptionRow("Цвет фона", avatar.backgroundId, listOf(
