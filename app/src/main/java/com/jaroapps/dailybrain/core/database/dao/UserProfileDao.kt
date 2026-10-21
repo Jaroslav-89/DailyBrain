@@ -32,4 +32,10 @@ interface UserProfileDao {
 
     @Query("SELECT * FROM user_profile ORDER BY id ASC")
     fun observeProfiles(): Flow<List<UserProfileEntity>>
+
+    @Query("SELECT * FROM user_profile ORDER BY id ASC")
+    suspend fun getProfiles(): List<UserProfileEntity>
+
+    @Query("DELETE FROM user_profile WHERE localAccountId = :localAccountId")
+    suspend fun deleteByLocalAccountId(localAccountId: String): Int
 }
