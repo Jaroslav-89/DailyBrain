@@ -30,7 +30,7 @@ class OnboardingProgressRepository(
 
     override suspend fun markAppIntroComplete() {
         val current = getActiveProgress()
-        dao.save(current.copy(hasSeenAppIntro = true))
+        dao.save(current.copy(hasSeenAppIntro = true).toEntity())
     }
 
     override suspend fun markExerciseIntroComplete(exerciseKey: String) {
@@ -42,7 +42,7 @@ class OnboardingProgressRepository(
             "stroop" -> current.copy(hasSeenStroopIntro = true)
             else -> error("Unknown exercise key: $exerciseKey")
         }
-        dao.save(updated)
+        dao.save(updated.toEntity())
     }
 
     override suspend fun deleteProgress(localAccountId: String) {
@@ -57,6 +57,15 @@ class OnboardingProgressRepository(
 }
 
 private fun OnboardingProgressEntity.toDomain() = OnboardingProgress(
+    localAccountId = localAccountId,
+    hasSeenAppIntro = hasSeenAppIntro,
+    hasSeenArithmeticIntro = hasSeenArithmeticIntro,
+    hasSeenMemoryIntro = hasSeenMemoryIntro,
+    hasSeenCountingIntro = hasSeenCountingIntro,
+    hasSeenStroopIntro = hasSeenStroopIntro,
+)
+
+private fun OnboardingProgress.toEntity() = OnboardingProgressEntity(
     localAccountId = localAccountId,
     hasSeenAppIntro = hasSeenAppIntro,
     hasSeenArithmeticIntro = hasSeenArithmeticIntro,
