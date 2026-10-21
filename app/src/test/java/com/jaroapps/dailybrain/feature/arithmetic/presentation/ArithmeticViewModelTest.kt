@@ -84,5 +84,13 @@ class ArithmeticViewModelTest {
         override fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>> = emptyFlow()
 
         override fun observeActiveTrainingDates(): Flow<Set<Int>> = emptyFlow()
+
+        override suspend fun deleteCompletedTraining(id: Long): Boolean = false
+
+        override suspend fun recalculateDailyExerciseResult(date: Int) = Unit
+
+        override fun observeTrainingDaysBetween(startDate: Int, endDate: Int): Flow<Set<Int>> = emptyFlow()
+
+        override fun observeTotalTrainingCount(): Flow<Int> = emptyFlow()
     }
 }
