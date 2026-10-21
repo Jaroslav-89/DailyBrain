@@ -82,7 +82,7 @@ val appModule = module {
     factory { DeleteCompletedTrainingUseCase(repository = get()) }
 
     // Local profile/account feature
-    single<UserProfileRepository> { UserProfileRepositoryImpl(database = get()) }
+    single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
