@@ -166,7 +166,7 @@ fun AvatarEditorScreen(
                     )) { viewModel.updateConfiguration(avatar.copy(facialHairId = it)) }
 
                     AvatarEditorTab.BACKGROUND -> BackgroundOptions(
-                        selected = avatar.backgroundId.coerceIn(1, 10),
+                        selected = avatar.backgroundId,
                         onSelected = { viewModel.updateConfiguration(avatar.copy(backgroundId = it)) },
                     )
 
