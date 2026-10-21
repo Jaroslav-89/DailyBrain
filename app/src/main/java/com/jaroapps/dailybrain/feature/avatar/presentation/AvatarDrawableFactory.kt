@@ -41,18 +41,18 @@ internal object AvatarDrawableFactory {
             5 -> R.drawable.avatar_face_wide
             else -> R.drawable.avatar_face_female
         }
-        val hair = when (configuration.hairLengthId) {
-            1 -> R.drawable.avatar_hair_1
-            2 -> when (configuration.hairStyleId) {
-                2 -> R.drawable.avatar_hair_2
-                3 -> R.drawable.avatar_hair_3
-                4 -> R.drawable.avatar_hair_4
-                5 -> R.drawable.avatar_hair_5
-                else -> R.drawable.avatar_hair_1
-            }
+        val hairLength = when (configuration.hairLengthId) {
+            1, 2 -> R.drawable.avatar_hair_1
             3 -> R.drawable.avatar_hair_6
             4 -> R.drawable.avatar_hair_7
             else -> R.drawable.avatar_hair_8
+        }
+        val hairStyle = when (configuration.hairStyleId) {
+            2 -> R.drawable.avatar_hair_2
+            3 -> R.drawable.avatar_hair_3
+            4 -> R.drawable.avatar_hair_4
+            5 -> R.drawable.avatar_hair_5
+            else -> R.drawable.avatar_hair_1
         }
         val eyes = when (configuration.eyeStyleId) {
             2 -> R.drawable.avatar_eyes_1
@@ -93,6 +93,7 @@ internal object AvatarDrawableFactory {
         }
 
         val skinTint = skinTones[(configuration.skinToneId - 1).coerceIn(skinTones.indices)]
+        val hairTint = hairColors[(configuration.hairColorId - 1).coerceIn(hairColors.indices)]
         val layers = arrayOf(
             drawable(context, background),
             drawable(context, body).apply { setTint(skinTint) },
@@ -101,9 +102,8 @@ internal object AvatarDrawableFactory {
             drawable(context, clothing).apply {
                 setTint(clothingColors[(configuration.clothingColorId - 1).coerceIn(clothingColors.indices)])
             },
-            drawable(context, hair).apply {
-                setTint(hairColors[(configuration.hairColorId - 1).coerceIn(hairColors.indices)])
-            },
+            drawable(context, hairLength).apply { setTint(hairTint) },
+            drawable(context, hairStyle).apply { setTint(hairTint) },
             drawable(context, eyes).apply {
                 setTint(eyeColors[(configuration.eyeColorId - 1).coerceIn(eyeColors.indices)])
             },
