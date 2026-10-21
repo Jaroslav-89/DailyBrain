@@ -30,6 +30,8 @@ internal object AvatarJsonCodec {
             if (version !in 1..AvatarConfiguration.CURRENT_SCHEMA_VERSION) {
                 return AvatarConfiguration.Default
             }
+            val legacyAccessoryId = data.optInt("accessoryId", AvatarConfiguration.NO_ACCESSORY_ID)
+                .takeIf { it in 0..2 } ?: AvatarConfiguration.NO_ACCESSORY_ID
             AvatarConfiguration(
                 schemaVersion = AvatarConfiguration.CURRENT_SCHEMA_VERSION,
                 skinToneId = data.optInt("skinToneId", AvatarConfiguration.DEFAULT_SKIN_TONE_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_SKIN_TONE_ID,
@@ -37,13 +39,16 @@ internal object AvatarJsonCodec {
                 hairColorId = data.optInt("hairColorId", AvatarConfiguration.DEFAULT_HAIR_COLOR_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_HAIR_COLOR_ID,
                 eyeStyleId = data.optInt("eyeStyleId", AvatarConfiguration.DEFAULT_EYE_STYLE_ID).takeIf { it in 1..3 } ?: AvatarConfiguration.DEFAULT_EYE_STYLE_ID,
                 mouthStyleId = data.optInt("mouthStyleId", AvatarConfiguration.DEFAULT_MOUTH_STYLE_ID).takeIf { it in 1..2 } ?: AvatarConfiguration.DEFAULT_MOUTH_STYLE_ID,
-                accessoryId = data.optInt("accessoryId", AvatarConfiguration.NO_ACCESSORY_ID).takeIf { it in 0..2 } ?: AvatarConfiguration.NO_ACCESSORY_ID,
+                accessoryId = if (version == 1 && legacyAccessoryId == 1) AvatarConfiguration.NO_ACCESSORY_ID else legacyAccessoryId,
                 backgroundId = data.optInt("backgroundId", AvatarConfiguration.DEFAULT_BACKGROUND_ID).takeIf { it in 1..12 } ?: AvatarConfiguration.DEFAULT_BACKGROUND_ID,
                 faceTypeId = data.optInt("faceTypeId", AvatarConfiguration.DEFAULT_FACE_TYPE_ID).takeIf { it in 1..2 } ?: AvatarConfiguration.DEFAULT_FACE_TYPE_ID,
                 eyeColorId = data.optInt("eyeColorId", AvatarConfiguration.DEFAULT_EYE_COLOR_ID).takeIf { it in 1..3 } ?: AvatarConfiguration.DEFAULT_EYE_COLOR_ID,
                 clothingStyleId = data.optInt("clothingStyleId", AvatarConfiguration.DEFAULT_CLOTHING_STYLE_ID).takeIf { it in 1..4 } ?: AvatarConfiguration.DEFAULT_CLOTHING_STYLE_ID,
                 clothingColorId = data.optInt("clothingColorId", AvatarConfiguration.DEFAULT_CLOTHING_COLOR_ID).takeIf { it in 1..11 } ?: AvatarConfiguration.DEFAULT_CLOTHING_COLOR_ID,
-                glassesId = data.optInt("glassesId", AvatarConfiguration.NO_GLASSES_ID).takeIf { it in 0..3 } ?: AvatarConfiguration.NO_GLASSES_ID,
+                glassesId = data.optInt(
+                    "glassesId",
+                    if (version == 1 && legacyAccessoryId == 1) 1 else AvatarConfiguration.NO_GLASSES_ID,
+                ).takeIf { it in 0..3 } ?: AvatarConfiguration.NO_GLASSES_ID,
                 frecklesId = data.optInt("frecklesId", AvatarConfiguration.NO_FRECKLES_ID).takeIf { it in 0..2 } ?: AvatarConfiguration.NO_FRECKLES_ID,
             )
         }.getOrDefault(AvatarConfiguration.Default)
