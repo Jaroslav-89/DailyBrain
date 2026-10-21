@@ -52,6 +52,7 @@
     <string name="counting_instruction">Count aloud from 1 to 120 as quickly as you can.</string>
     <string name="memory_loading">Preparing words…</string>
     <string name="memory_title">Memorization</string>
+    <string name="memory_start_recall">Start answering</string>
     <string name="memory_instruction">Memorize the words. You have 120 seconds.</string>
     <string name="memory_progress_hint">The bar fills up when the time is over.</string>
     <string name="memory_recall_title">Recall the words</string>
@@ -88,6 +89,8 @@
     <string name="calendar_weekday_sunday">Su</string>
     <string name="format_percent">%1$s%%</string>
     <string name="memory_recalled_word">✓  %1$s</string>
+    <string name="memory_repeated">Repeated (%1$d)</string>
+    <string name="memory_repeated_word">↻  %1$s</string>
     <string name="memory_missed_word">•  %1$s</string>
     <string name="memory_incorrect">Written incorrectly (%1$d)</string>
     <string name="memory_no_incorrect">No incorrectly written words.</string>

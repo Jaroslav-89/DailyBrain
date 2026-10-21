@@ -27,6 +27,16 @@ class CheckMemoryAnswersUseCase {
                 answer.isNotEmpty() && normalize(answer) !in normalizedShownWords
             }
 
+        val shownWordsByNormalizedText = shownWords.associateBy { normalize(it.text) }
+        val seenCorrectAnswers = mutableSetOf<String>()
+        val repeatedWords = enteredAnswers
+            .asSequence()
+            .map(::normalize)
+            .filter { it in normalizedShownWords }
+            .filter { normalized -> !seenCorrectAnswers.add(normalized) }
+            .mapNotNull { normalized -> shownWordsByNormalizedText[normalized]?.text }
+            .toList()
+
         val results = shownWords.map { word ->
             MemoryAnswerResult(
                 word = word,
@@ -47,7 +57,8 @@ class CheckMemoryAnswersUseCase {
             answers = results,
             correctCount = correctCount,
             accuracyPercent = accuracyPercent,
-            incorrectWords = incorrectWords
+            incorrectWords = incorrectWords,
+            repeatedWords = repeatedWords
         )
     }
 

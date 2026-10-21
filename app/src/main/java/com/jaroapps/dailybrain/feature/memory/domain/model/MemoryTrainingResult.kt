@@ -5,7 +5,8 @@ data class MemoryTrainingResult(
     val answers: List<MemoryAnswerResult>,
     val correctCount: Int,
     val accuracyPercent: Int,
-    val incorrectWords: List<String> = emptyList()
+    val incorrectWords: List<String> = emptyList(),
+    val repeatedWords: List<String> = emptyList()
 ) {
     val missedWords: List<MemoryWord>
         get() = answers

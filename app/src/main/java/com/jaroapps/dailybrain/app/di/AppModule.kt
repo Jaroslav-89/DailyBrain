@@ -127,6 +127,14 @@ val appModule = module {
     factory { GetRandomMemoryWordsUseCase(repository = get()) }
     factory { CheckMemoryAnswersUseCase() }
     factory { SaveMemoryTrainingUseCase(completedTrainingRepository = get()) }
+    viewModel {
+        MemoryTrainingViewModel(
+            getRandomMemoryWords = get(),
+            checkMemoryAnswers = get(),
+            saveMemoryTraining = get(),
+            strings = get(),
+        )
+    }
 
     // Counting feature
     viewModel { CountingTrainingViewModel(saveCompletedTraining = get(), strings = get()) }

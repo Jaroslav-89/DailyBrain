@@ -65,6 +65,18 @@ class CheckMemoryAnswersUseCaseTest {
     }
 
     @Test
+    fun `repeated correct answers are listed separately without increasing score`() {
+        val result = checkAnswers(
+            shownWords = words,
+            enteredAnswers = listOf("Яблоко", "ЯБЛОКО", "Дом", " яблоко ")
+        )
+
+        assertEquals(2, result.correctCount)
+        assertEquals(listOf("Яблоко", "Яблоко"), result.repeatedWords)
+        assertEquals(50, result.accuracyPercent)
+    }
+
+    @Test
     fun `empty answers are treated as missed words`() {
         val result = checkAnswers(
             shownWords = words,

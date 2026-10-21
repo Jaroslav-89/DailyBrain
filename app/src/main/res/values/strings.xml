@@ -54,6 +54,7 @@
     <string name="counting_instruction">Считай вслух от 1 до 120 как можно быстрее.</string>
     <string name="memory_loading">Подготавливаем слова…</string>
     <string name="memory_title">Запоминание</string>
+    <string name="memory_start_recall">Приступить к ответам</string>
     <string name="memory_instruction">Запомни слова. У тебя 120 секунд.</string>
     <string name="memory_progress_hint">Полоса заполнится, когда время закончится.</string>
     <string name="memory_recall_title">Вспомни слова</string>
@@ -90,6 +91,8 @@
     <string name="calendar_weekday_sunday">Вс</string>
     <string name="format_percent">%1$s%%</string>
     <string name="memory_recalled_word">✓  %1$s</string>
+    <string name="memory_repeated">Повторы (%1$d)</string>
+    <string name="memory_repeated_word">↻  %1$s</string>
     <string name="memory_missed_word">•  %1$s</string>
     <string name="memory_incorrect">Неправильно написал (%1$d)</string>
     <string name="memory_no_incorrect">Нет неправильно написанных слов.</string>

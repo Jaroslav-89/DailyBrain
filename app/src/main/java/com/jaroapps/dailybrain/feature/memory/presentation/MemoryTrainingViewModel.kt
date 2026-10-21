@@ -149,6 +149,20 @@ class MemoryTrainingViewModel(
         }
     }
 
+    fun startRecallEarly() {
+        val state = _uiState.value as? MemoryTrainingUiState.Memorizing ?: return
+
+        memorizationFinished = true
+        memorizationTimer.pause()
+        timerJob?.cancel()
+        timerJob = null
+
+        _uiState.value = MemoryTrainingUiState.Recall(
+            words = state.words,
+            answers = List(state.words.size) { "" }
+        )
+    }
+
     private fun pauseTimer() {
         timerJob?.cancel()
         timerJob = null
