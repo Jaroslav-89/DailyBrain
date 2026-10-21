@@ -3,13 +3,16 @@ package com.jaroapps.dailybrain.feature.profile.data.repository
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
+import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
+import java.util.UUID
 import kotlin.random.Random
 
 class UserProfileRepositoryImpl(
@@ -36,6 +39,28 @@ class UserProfileRepositoryImpl(
                 }
             }
         }
+
+    override fun observeProfiles(): Flow<List<UserProfile>> =
+        database.userProfileDao().observeProfiles().map { profiles -> profiles.map { it.toDomain() } }
+
+    override suspend fun createLocalProfile(): UserProfile {
+        val localAccountId = UUID.randomUUID().toString()
+        val profile = createInitialProfile(
+            userId = localAccountId,
+            firstTrainingAt = null,
+        )
+        database.userProfileDao().insertIfAbsent(profile)
+        return requireNotNull(database.userProfileDao().getProfile(localAccountId)).toDomain()
+    }
+
+    override suspend fun switchActiveProfile(localAccountId: String) {
+        requireNotNull(database.userProfileDao().getProfile(localAccountId)) {
+            "Local profile does not exist: $localAccountId"
+        }
+        database.appSettingsDao().setActiveAccount(
+            AppSettingsEntity(activeLocalAccountId = localAccountId),
+        )
+    }
 
     override suspend fun saveProfile(
         displayName: String?,
