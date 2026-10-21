@@ -345,6 +345,28 @@ private fun ResultContent(
             }
         }
 
+        if (result.repeatedWords.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(
+                        R.string.memory_repeated,
+                        result.repeatedWords.size
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            itemsIndexed(result.repeatedWords) { _, word ->
+                Text(
+                    text = stringResource(R.string.memory_repeated_word, word),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+        }
+
         item {
             Spacer(Modifier.height(8.dp))
             Text(
