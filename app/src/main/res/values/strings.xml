@@ -54,6 +54,7 @@
     <string name="counting_instruction">Считай вслух от 1 до 120 как можно быстрее.</string>
     <string name="memory_loading">Подготавливаем слова…</string>
     <string name="memory_title">Запоминание</string>
+    <string name="memory_start_recall">Приступить к ответам</string>
     <string name="memory_instruction">Запомни слова. У тебя 120 секунд.</string>
     <string name="memory_progress_hint">Полоса заполнится, когда время закончится.</string>
     <string name="memory_recall_title">Вспомни слова</string>
