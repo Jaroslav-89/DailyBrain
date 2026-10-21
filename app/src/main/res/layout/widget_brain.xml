@@ -29,9 +29,9 @@
             android:id="@+id/widgetTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Тренировка"
+            android:text="@string/app_name"
             android:textColor="#FF202124"
-            android:textSize="10sp"
+            android:textSize="12sp"
             android:maxLines="1"
             android:ellipsize="end"
             android:textStyle="bold" />
@@ -40,11 +40,11 @@
             android:id="@+id/widgetSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="1dp"
-            android:text="пройдена"
+            android:layout_marginTop="2dp"
+            android:text="Тренировка\nпройдена"
             android:textColor="#FF5F6368"
             android:textSize="10sp"
-            android:maxLines="1"
+            android:maxLines="2"
             android:ellipsize="end" />
     </LinearLayout>
 
