@@ -36,6 +36,18 @@ class ReminderReceiver : BroadcastReceiver() {
             Intent.ACTION_TIMEZONE_CHANGED -> {
                 scheduler.scheduleAll()
                 BrainStateScheduler(context.applicationContext).scheduleNext()
+                val pendingResult = goAsync()
+                val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+                scope.launch {
+                    try {
+                        GlobalContext.get().get<com.jaroapps.dailybrain.feature.brain.BrainStateManager>().refresh()
+                    } catch (_: Exception) {
+                        // A clock change must not crash the broadcast receiver.
+                    } finally {
+                        pendingResult.finish()
+                        scope.cancel()
+                    }
+                }
                 return
             }
         }
