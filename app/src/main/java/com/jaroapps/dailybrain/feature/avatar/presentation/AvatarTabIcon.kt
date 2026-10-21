@@ -77,9 +77,9 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
             AvatarEditorTab.HAIRSTYLE -> {
                 drawOval(outline, p(5f, 7f), Size(14f * unit, 15f * unit), style = Stroke(1.5f * unit))
                 val path = Path().apply {
-                    moveTo(p(4f, 12f)); cubicTo(p(2f, 4f), p(7f, 1f), p(12f, 2f))
-                    cubicTo(p(18f, 0f), p(23f, 5f), p(20f, 12f))
-                    lineTo(p(17f, 8f)); lineTo(p(12f, 9f)); lineTo(p(7f, 7f)); close()
+                    moveTo(4f * unit, 12f * unit); cubicTo(2f * unit, 4f * unit, 7f * unit, 1f * unit, 12f * unit, 2f * unit)
+                    cubicTo(18f * unit, 0f, 23f * unit, 5f * unit, 20f * unit, 12f * unit)
+                    lineTo(17f * unit, 8f * unit); lineTo(12f * unit, 9f * unit); lineTo(7f * unit, 7f * unit); close()
                 }
                 drawPath(path, outline)
             }
@@ -98,10 +98,10 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
             }
             AvatarEditorTab.CLOTHING -> {
                 val path = Path().apply {
-                    moveTo(p(8f, 4f)); lineTo(p(3f, 7f)); lineTo(p(1f, 13f)); lineTo(p(6f, 15f))
-                    lineTo(p(8f, 11f)); lineTo(p(8f, 22f)); lineTo(p(16f, 22f)); lineTo(p(16f, 11f))
-                    lineTo(p(18f, 15f)); lineTo(p(23f, 13f)); lineTo(p(21f, 7f)); lineTo(p(16f, 4f))
-                    cubicTo(p(14f, 8f), p(10f, 8f), p(8f, 4f)); close()
+                    moveTo(8f * unit, 4f * unit); lineTo(3f * unit, 7f * unit); lineTo(1f * unit, 13f * unit); lineTo(6f * unit, 15f * unit)
+                    lineTo(8f * unit, 11f * unit); lineTo(8f * unit, 22f * unit); lineTo(16f * unit, 22f * unit); lineTo(16f * unit, 11f * unit)
+                    lineTo(18f * unit, 15f * unit); lineTo(23f * unit, 13f * unit); lineTo(21f * unit, 7f * unit); lineTo(16f * unit, 4f * unit)
+                    cubicTo(14f * unit, 8f * unit, 10f * unit, 8f * unit, 8f * unit, 4f * unit); close()
                 }
                 drawPath(path, outline, style = Stroke(2f * unit))
             }
@@ -132,10 +132,10 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
             }
             AvatarEditorTab.FACIAL_HAIR -> {
                 val moustache = Path().apply {
-                    moveTo(p(3f, 10f)); quadraticTo(p(7f, 8f), p(11f, 11f))
-                    quadraticTo(p(12f, 12f), p(13f, 11f)); quadraticTo(p(18f, 8f), p(21f, 10f))
-                    quadraticTo(p(19f, 16f), p(14f, 14f)); lineTo(p(12f, 13f)); lineTo(p(10f, 14f))
-                    quadraticTo(p(5f, 16f), p(3f, 10f)); close()
+                    moveTo(3f * unit, 10f * unit); quadraticTo(7f * unit, 8f * unit, 11f * unit, 11f * unit)
+                    quadraticTo(12f * unit, 12f * unit, 13f * unit, 11f * unit); quadraticTo(18f * unit, 8f * unit, 21f * unit, 10f * unit)
+                    quadraticTo(19f * unit, 16f * unit, 14f * unit, 14f * unit); lineTo(12f * unit, 13f * unit); lineTo(10f * unit, 14f * unit)
+                    quadraticTo(5f * unit, 16f * unit, 3f * unit, 10f * unit); close()
                 }
                 drawPath(moustache, outline)
                 line(6f, 17f, 8f, 21f, 1.5f)
