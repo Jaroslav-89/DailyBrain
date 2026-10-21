@@ -4,6 +4,7 @@ import android.app.Application
 import com.jaroapps.dailybrain.app.di.appModule
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.reminders.ReminderScheduler
+import com.jaroapps.dailybrain.feature.brain.BrainStateScheduler
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -25,6 +26,7 @@ class DailyBrainApp : Application() {
         }
 
         ReminderScheduler(this).scheduleAll()
+        BrainStateScheduler(this).scheduleNext()
 
         applicationScope.launch {
             koinApplication.koin.get<UserProfileRepository>().observeProfile().first()
