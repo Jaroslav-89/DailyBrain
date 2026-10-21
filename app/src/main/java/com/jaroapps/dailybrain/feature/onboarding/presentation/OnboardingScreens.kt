@@ -84,20 +84,23 @@ fun ExerciseEntryScreen(
 fun AppOnboardingScreen(onContinue: () -> Unit) {
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = stringResource(R.string.onboarding_app_title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(20.dp))
-        Text(
-            text = stringResource(R.string.onboarding_app_body),
-            style = MaterialTheme.typography.bodyLarge,
-        )
-        Spacer(Modifier.height(32.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = stringResource(R.string.onboarding_app_title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = stringResource(R.string.onboarding_app_body),
+                style = MaterialTheme.typography.bodyLarge,
+            )
+        }
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_get_started))
         }
@@ -162,17 +165,20 @@ fun ExerciseIntroScreen(
     val copy = exerciseCopy(exerciseKey)
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = stringResource(copy.title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(20.dp))
-        Text(text = stringResource(copy.intro), style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.height(32.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = stringResource(copy.title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(text = stringResource(copy.intro), style = MaterialTheme.typography.bodyLarge)
+        }
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_get_started))
         }
@@ -189,17 +195,20 @@ fun ExerciseRulesScreen(
     val copy = exerciseCopy(exerciseKey)
     Column(
         modifier = Modifier.fillMaxSize().padding(24.dp),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = stringResource(copy.title),
-            style = MaterialTheme.typography.headlineMedium,
-            fontWeight = FontWeight.Bold,
-        )
-        Spacer(Modifier.height(20.dp))
-        Text(text = stringResource(copy.rules), style = MaterialTheme.typography.bodyLarge)
-        Spacer(Modifier.height(32.dp))
+        Column(
+            modifier = Modifier.weight(1f),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Text(
+                text = stringResource(copy.title),
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+            )
+            Spacer(Modifier.height(20.dp))
+            Text(text = stringResource(copy.rules), style = MaterialTheme.typography.bodyLarge)
+        }
         Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_start_exercise))
         }
