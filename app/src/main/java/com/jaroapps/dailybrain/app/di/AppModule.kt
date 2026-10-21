@@ -108,6 +108,14 @@ val appModule = module {
     // Arithmetic feature
     factory { GenerateArithmeticProblemUseCase() }
     factory { CheckArithmeticAnswerUseCase() }
+    viewModel {
+        ArithmeticViewModel(
+            generateProblem = get(),
+            checkAnswer = get(),
+            saveCompletedTraining = get(),
+            strings = get(),
+        )
+    }
 
     // Memory feature
     single<MemoryWordsRepository> {
