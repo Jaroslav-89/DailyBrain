@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class OnboardingProgressRepository(
     private val dao: OnboardingProgressDao,
     private val activeUserProvider: ActiveUserProvider,
