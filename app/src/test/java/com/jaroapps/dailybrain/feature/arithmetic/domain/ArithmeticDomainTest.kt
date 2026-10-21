@@ -147,4 +147,38 @@ class ArithmeticDomainTest {
             assertTrue(problem.correctAnswer >= 0)
         }
     }
+
+    @Test
+    fun `generated answer matches the selected operation`() {
+        val generator = GenerateArithmeticProblemUseCase(random = Random(7))
+
+        ArithmeticOperation.values().forEach { operation ->
+            repeat(250) {
+                val problem = generator.execute(operation)
+                val expected = when (operation) {
+                    ArithmeticOperation.ADDITION -> problem.firstOperand + problem.secondOperand
+                    ArithmeticOperation.SUBTRACTION -> problem.firstOperand - problem.secondOperand
+                    ArithmeticOperation.MULTIPLICATION -> problem.firstOperand * problem.secondOperand
+                }
+
+                assertEquals("Incorrect result for $operation", expected, problem.correctAnswer)
+            }
+        }
+    }
+
+    @Test
+    fun `checker rejects a neighboring incorrect answer for each operation`() {
+        ArithmeticOperation.values().forEach { operation ->
+            val problem = ArithmeticProblem(
+                firstOperand = 8,
+                secondOperand = 3,
+                operation = operation,
+            )
+
+            assertFalse(
+                "Checker accepted an incorrect answer for $operation",
+                checker.execute(problem, problem.correctAnswer + 1),
+            )
+        }
+    }
 }
