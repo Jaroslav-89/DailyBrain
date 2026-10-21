@@ -50,7 +50,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                         launchSingleTop = true
                     }
                 },
-                onStartupResolved = onStartupResolved,
+                onStartupResolved = {},
             )
         }
 
