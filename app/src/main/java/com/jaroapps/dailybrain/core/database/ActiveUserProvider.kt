@@ -2,6 +2,8 @@ package com.jaroapps.dailybrain.core.database
 
 import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
@@ -17,9 +19,13 @@ import kotlin.random.Random
 class ActiveUserProvider(
     private val database: AppDatabase,
 ) {
+    private val initializationMutex = Mutex()
+
     suspend fun currentUserId(): String {
-        val settingsDao = database.appSettingsDao()
-        settingsDao.getActiveLocalAccountId()?.let { return it }
+        database.appSettingsDao().getActiveLocalAccountId()?.let { return it }
+        return initializationMutex.withLock {
+            val settingsDao = database.appSettingsDao()
+            settingsDao.getActiveLocalAccountId()?.let { return@withLock it }
 
         val profileDao = database.userProfileDao()
         val profile = profileDao.getLegacyDefaultProfile() ?: UserProfileEntity(
@@ -31,7 +37,8 @@ class ActiveUserProvider(
 
         val resolved = profileDao.getProfile(profile.localAccountId) ?: profile
         settingsDao.setActiveAccount(AppSettingsEntity(activeLocalAccountId = resolved.localAccountId))
-        return resolved.localAccountId
+        resolved.localAccountId
+        }
     }
 
     fun observeUserId(): Flow<String> = flow {
