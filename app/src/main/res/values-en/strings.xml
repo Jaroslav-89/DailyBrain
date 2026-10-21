@@ -88,6 +88,8 @@
     <string name="calendar_weekday_sunday">Su</string>
     <string name="format_percent">%1$s%%</string>
     <string name="memory_recalled_word">✓  %1$s</string>
+    <string name="memory_repeated">Repeated (%1$d)</string>
+    <string name="memory_repeated_word">↻  %1$s</string>
     <string name="memory_missed_word">•  %1$s</string>
     <string name="memory_incorrect">Written incorrectly (%1$d)</string>
     <string name="memory_no_incorrect">No incorrectly written words.</string>
