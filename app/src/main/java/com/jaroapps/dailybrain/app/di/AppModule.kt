@@ -46,6 +46,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
@@ -90,10 +91,11 @@ val appModule = module {
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }
     factory { SwitchActiveProfileUseCase(repository = get()) }
+    factory { DeleteActiveProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
-    viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get()) }
+    viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteActiveProfile = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
     single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }
