@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widgetRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:paddingStart="5dp"
+    android:paddingEnd="5dp"
+    android:paddingTop="3dp"
+    android:paddingBottom="3dp"
+    android:background="@drawable/brain_widget_background">
+
+    <ImageView
+        android:id="@+id/brainImage"
+        android:layout_width="26dp"
+        android:layout_height="26dp"
+        android:contentDescription="@string/brain_widget_image_description"
+        android:src="@drawable/brain_base" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:layout_marginStart="4dp"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widgetTitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/app_name"
+            android:textColor="#FF000000"
+            android:textSize="16sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widgetSubtitle"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="2dp"
+            android:text="Тренировка\nпройдена"
+            android:textColor="#FF000000"
+            android:textSize="12sp"
+            android:maxLines="2"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/widgetStreak"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_marginStart="3dp"
+        android:background="@drawable/widget_streak_circle_orange"
+        android:gravity="center"
+        android:text="0"
+        android:textColor="#FFFF9800"
+        android:textSize="12sp"
+        android:maxLines="1"
+        android:textStyle="bold" />
+</LinearLayout>

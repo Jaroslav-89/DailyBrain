@@ -15,10 +15,12 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.DailyBrain">
+
         <activity
-            android:name=".MainActivity"
+            android:name="com.jaroapps.dailybrain.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
+            android:icon="@mipmap/ic_launcher"
             android:theme="@style/Theme.DailyBrain.Starting"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
@@ -26,6 +28,32 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity-alias
+            android:name="com.jaroapps.dailybrain.LauncherBase"
+            android:targetActivity="com.jaroapps.dailybrain.MainActivity"
+            android:enabled="true"
+            android:exported="true"
+            android:icon="@drawable/brain_base"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
+
+        <activity-alias
+            android:name="com.jaroapps.dailybrain.LauncherSour"
+            android:targetActivity="com.jaroapps.dailybrain.MainActivity"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@drawable/brain_sour"
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name="com.jaroapps.dailybrain.feature.reminders.ReminderReceiver"
@@ -36,6 +64,27 @@
                 <action android:name="android.intent.action.TIME_SET" />
                 <action android:name="android.intent.action.TIMEZONE_CHANGED" />
             </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.jaroapps.dailybrain.feature.brain.BrainStateReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.jaroapps.dailybrain.action.REFRESH_BRAIN_STATE" />
+            </intent-filter>
+        </receiver>
+
+        <receiver
+            android:name="com.jaroapps.dailybrain.feature.brain.BrainWidgetProvider"
+            android:label="@string/app_name"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/brain_widget_info" />
         </receiver>
     </application>
 

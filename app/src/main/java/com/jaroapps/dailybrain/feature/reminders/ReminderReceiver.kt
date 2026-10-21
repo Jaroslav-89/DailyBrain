@@ -13,6 +13,8 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.MainActivity
+import com.jaroapps.dailybrain.feature.brain.BrainStateManager
+import com.jaroapps.dailybrain.feature.brain.BrainStateScheduler
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
@@ -34,6 +36,19 @@ class ReminderReceiver : BroadcastReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED -> {
                 scheduler.scheduleAll()
+                BrainStateScheduler(context.applicationContext).scheduleNext()
+                val pendingResult = goAsync()
+                val scope = CoroutineScope(SupervisorJob() + Dispatchers.IO)
+                scope.launch {
+                    try {
+                        GlobalContext.get().get<BrainStateManager>().refresh()
+                    } catch (_: Exception) {
+                        // A clock change must not crash the broadcast receiver.
+                    } finally {
+                        pendingResult.finish()
+                        scope.cancel()
+                    }
+                }
                 return
             }
         }
@@ -96,7 +111,7 @@ class ReminderReceiver : BroadcastReceiver() {
             R.string.reminder_three_hours_message
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setSmallIcon(R.drawable.ic_notification_brain)
             .setContentTitle(context.getString(R.string.reminder_title))
             .setContentText(context.getString(message))
             .setContentIntent(openAppIntent)

@@ -3,10 +3,12 @@ package com.jaroapps.dailybrain.feature.memory.domain.usecase
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.common.domain.service.TrainingStateChangedNotifier
 import com.jaroapps.dailybrain.feature.memory.domain.model.MemoryTrainingResult
 
 class SaveMemoryTrainingUseCase(
     private val completedTrainingRepository: CompletedTrainingRepository,
+    private val stateChangedNotifier: TrainingStateChangedNotifier = TrainingStateChangedNotifier {},
 ) {
 
     suspend operator fun invoke(
@@ -28,5 +30,6 @@ class SaveMemoryTrainingUseCase(
         )
 
         completedTrainingRepository.saveCompletedTraining(session)
+        stateChangedNotifier.onTrainingStateChanged()
     }
 }

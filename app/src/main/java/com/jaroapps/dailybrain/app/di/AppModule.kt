@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.app.di
 import androidx.room.Room
 import com.jaroapps.dailybrain.common.data.repository.CompletedTrainingRepositoryImpl
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.common.domain.service.TrainingStateChangedNotifier
 import com.jaroapps.dailybrain.common.domain.usecase.DeleteCompletedTrainingUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
@@ -15,6 +16,8 @@ import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.DatabaseMigrations
 import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
 import com.jaroapps.dailybrain.core.resources.StringProvider
+import com.jaroapps.dailybrain.feature.brain.AndroidTrainingStateChangedNotifier
+import com.jaroapps.dailybrain.feature.brain.BrainStateManager
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarRepositoryImpl
 import com.jaroapps.dailybrain.feature.avatar.domain.repository.AvatarRepository
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
@@ -81,6 +84,8 @@ val appModule = module {
     }
 
     single { ActiveUserProvider(database = get()) }
+    single { BrainStateManager(context = androidContext(), database = get(), activeUserProvider = get()) }
+    single<TrainingStateChangedNotifier> { AndroidTrainingStateChangedNotifier(brainStateManager = get()) }
     single<OnboardingProgressRepository> {
         OnboardingProgressRepositoryImpl(
             dao = get<AppDatabase>().onboardingProgressDao(),
@@ -109,15 +114,15 @@ val appModule = module {
     factory { ObserveActiveTrainingDatesUseCase(repository = get()) }
     factory { ObserveTrainingDaysInRangeUseCase(repository = get()) }
     factory { ObserveTotalTrainingCountUseCase(repository = get()) }
-    factory { SaveCompletedTrainingUseCase(repository = get()) }
-    factory { DeleteCompletedTrainingUseCase(repository = get()) }
+    factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get()) }
+    factory { DeleteCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get()) }
 
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }
-    factory { SwitchActiveProfileUseCase(repository = get()) }
+    factory { SwitchActiveProfileUseCase(repository = get(), stateChangedNotifier = get()) }
     factory { DeleteActiveProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
@@ -153,7 +158,7 @@ val appModule = module {
 
     factory { GetRandomMemoryWordsUseCase(repository = get()) }
     factory { CheckMemoryAnswersUseCase() }
-    factory { SaveMemoryTrainingUseCase(completedTrainingRepository = get()) }
+    factory { SaveMemoryTrainingUseCase(completedTrainingRepository = get(), stateChangedNotifier = get()) }
     viewModel {
         MemoryTrainingViewModel(
             getRandomMemoryWords = get(),
