@@ -56,7 +56,7 @@ class ReminderReceiver : BroadcastReceiver() {
                     showReminder(context.applicationContext, hour)
                 }
             } catch (_: Exception) {
-                // A failed check should not crash the process or permanently stop reminders.
+                // Keep the receiver resilient if the database or dependency graph is temporarily unavailable.
             } finally {
                 scheduler.scheduleNext(hour)
                 pendingResult.finish()
@@ -96,7 +96,7 @@ class ReminderReceiver : BroadcastReceiver() {
             R.string.reminder_three_hours_message
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(R.mipmap.ic_launcher)
+            .setSmallIcon(android.R.drawable.ic_popup_reminder)
             .setContentTitle(context.getString(R.string.reminder_title))
             .setContentText(context.getString(message))
             .setContentIntent(openAppIntent)
