@@ -217,4 +217,6 @@
     <string name="intro_stroop">In the Stroop test, focus on the colour of the text rather than the word itself. This exercise requires attention and control over the automatic response to reading.</string>
     <string name="rules_stroop">Name the colour of the text and ignore the meaning of the word. Focus on the colour of the letters. Work carefully at a comfortable pace.</string>
 
+    <string name="splash_tagline">Your everyday brain trainer</string>
+
 </resources>
