@@ -13,6 +13,7 @@ import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.MainActivity
+import com.jaroapps.dailybrain.feature.brain.BrainStateScheduler
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
@@ -34,6 +35,7 @@ class ReminderReceiver : BroadcastReceiver() {
             Intent.ACTION_TIME_CHANGED,
             Intent.ACTION_TIMEZONE_CHANGED -> {
                 scheduler.scheduleAll()
+                BrainStateScheduler(context.applicationContext).scheduleNext()
                 return
             }
         }
