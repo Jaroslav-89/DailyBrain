@@ -175,4 +175,8 @@
     <string name="profile_delete_last_profile_hint">Нельзя удалить единственный профиль. Сначала создайте или переключитесь на другой профиль.</string>
     <string name="action_save">Сохранить</string>
     <string name="profile_gender_display">Пол: %1$s</string>
+    <string name="reminder_channel_name">Напоминания о тренировке</string>
+    <string name="reminder_title">Время потренировать мозг!</string>
+    <string name="reminder_six_hours_message">До конца дня 6 часов. Выполни хотя бы одно упражнение сегодня.</string>
+    <string name="reminder_three_hours_message">До конца дня 3 часа. Ещё есть время на короткую тренировку!</string>
 </resources>
