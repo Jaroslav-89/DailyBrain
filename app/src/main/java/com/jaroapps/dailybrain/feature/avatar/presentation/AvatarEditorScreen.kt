@@ -164,7 +164,7 @@ fun AvatarEditorScreen(
                     )) { viewModel.updateConfiguration(avatar.copy(facialHairId = it)) }
 
                     AvatarEditorTab.BACKGROUND -> BackgroundOptions(
-                        selected = avatar.backgroundId,
+                        selectedId = avatar.backgroundId,
                         onSelected = { viewModel.updateConfiguration(avatar.copy(backgroundId = it)) },
                     )
 
@@ -198,7 +198,7 @@ fun AvatarEditorScreen(
 
 @Composable
 private fun BackgroundOptions(
-    selected: Int,
+    selectedId: Int,
     onSelected: (Int) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -211,7 +211,7 @@ private fun BackgroundOptions(
         ) {
             AvatarBackgroundPalette.gradients.take(10).forEachIndexed { index, colors ->
                 val id = index + 1
-                val isSelected = selected == id
+                val isSelected = selectedId == id
                 val shape = RoundedCornerShape(12.dp)
                 Box(
                     modifier = Modifier
