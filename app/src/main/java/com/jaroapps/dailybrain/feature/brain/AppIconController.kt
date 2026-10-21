@@ -4,10 +4,7 @@ import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
 
-/**
- * Two-state launcher alias test.
- * MainActivity remains a fallback launcher entry while BASE and SOUR are tested.
- */
+/** Switches between the base and sour launcher aliases. */
 object AppIconController {
 
     private const val LAUNCHER_BASE = "com.jaroapps.dailybrain.LauncherBase"
@@ -16,22 +13,26 @@ object AppIconController {
     fun apply(context: Context, mood: BrainMood) {
         val packageManager = context.packageManager
         val activeAlias = if (mood == BrainMood.SOUR) LAUNCHER_SOUR else LAUNCHER_BASE
+        val inactiveAlias = if (activeAlias == LAUNCHER_BASE) LAUNCHER_SOUR else LAUNCHER_BASE
 
-        listOf(LAUNCHER_BASE, LAUNCHER_SOUR).forEach { alias ->
-            val component = ComponentName(context, alias)
-            val desiredState = if (alias == activeAlias) {
-                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-            } else {
-                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-            }
+        // Enable the destination first so an alias switch never temporarily leaves both disabled.
+        setAliasState(packageManager, context, activeAlias, PackageManager.COMPONENT_ENABLED_STATE_ENABLED)
+        setAliasState(packageManager, context, inactiveAlias, PackageManager.COMPONENT_ENABLED_STATE_DISABLED)
+    }
 
-            if (packageManager.getComponentEnabledSetting(component) != desiredState) {
-                packageManager.setComponentEnabledSetting(
-                    component,
-                    desiredState,
-                    PackageManager.DONT_KILL_APP
-                )
-            }
+    private fun setAliasState(
+        packageManager: PackageManager,
+        context: Context,
+        alias: String,
+        desiredState: Int,
+    ) {
+        val component = ComponentName(context, alias)
+        if (packageManager.getComponentEnabledSetting(component) != desiredState) {
+            packageManager.setComponentEnabledSetting(
+                component,
+                desiredState,
+                PackageManager.DONT_KILL_APP,
+            )
         }
     }
 }
