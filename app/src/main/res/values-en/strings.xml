@@ -165,4 +165,8 @@
     <string name="profile_delete_last_profile_hint">You cannot delete the only profile. Create another profile or switch to a different one first.</string>
     <string name="action_save">Save</string>
     <string name="profile_gender_display">Gender: %1$s</string>
+    <string name="reminder_channel_name">Training reminders</string>
+    <string name="reminder_title">Time to train your brain!</string>
+    <string name="reminder_six_hours_message">6 hours left in the day. Complete at least one exercise today.</string>
+    <string name="reminder_three_hours_message">3 hours left in the day. There is still time for a quick workout!</string>
 </resources>
