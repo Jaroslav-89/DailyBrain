@@ -25,15 +25,14 @@
             android:windowSoftInputMode="adjustResize">
         </activity>
 
-        <!-- Kept for the future dynamic-icon implementation, but temporarily
-             removed from launcher discovery while debugging the launch issue. -->
+        <!-- Only the currently selected alias should be enabled. -->
         <activity-alias
             android:name="com.jaroapps.dailybrain.LauncherBase"
             android:targetActivity="com.jaroapps.dailybrain.MainActivity"
             android:enabled="true"
             android:exported="true"
             android:icon="@drawable/brain_base"
-android:label="@string/app_name">
+            android:label="@string/app_name">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -46,7 +45,12 @@ android:label="@string/app_name">
             android:enabled="false"
             android:exported="true"
             android:icon="@drawable/brain_sour"
-            android:label="@string/app_name" />
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <activity-alias
             android:name="com.jaroapps.dailybrain.LauncherInspired"
@@ -54,7 +58,12 @@ android:label="@string/app_name">
             android:enabled="false"
             android:exported="true"
             android:icon="@drawable/brain_inspired"
-            android:label="@string/app_name" />
+            android:label="@string/app_name">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity-alias>
 
         <receiver
             android:name="com.jaroapps.dailybrain.feature.reminders.ReminderReceiver"
