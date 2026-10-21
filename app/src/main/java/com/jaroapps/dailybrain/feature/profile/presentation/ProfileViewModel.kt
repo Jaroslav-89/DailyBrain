@@ -45,10 +45,11 @@ class ProfileViewModel(
         observeLocalProfiles(),
         observeProfileStatistics(),
         saving,
-        saveError,
-        deleteError,
-    ) { profile, profiles, statistics, isSaving, hasSaveError, hasDeleteError ->
-        ProfileUiState(profile, profiles, statistics, isSaving, hasSaveError, hasDeleteError)
+        combine(saveError, deleteError) { hasSaveError, hasDeleteError ->
+            hasSaveError to hasDeleteError
+        },
+    ) { profile, profiles, statistics, isSaving, errors ->
+        ProfileUiState(profile, profiles, statistics, isSaving, errors.first, errors.second)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
     fun createProfile() {
