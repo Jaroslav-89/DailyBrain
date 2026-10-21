@@ -112,6 +112,9 @@
     <string name="statistics_chart_no_data">За этот период результатов нет</string>
     <string name="home_profile">Мой профиль</string>
     <string name="profile_title">Мой профиль</string>
+    <string name="profile_accounts">Локальные профили</string>
+    <string name="profile_add_account">Добавить профиль</string>
+    <string name="profile_account_action_error">Не удалось выполнить действие с профилем.</string>
     <string name="profile_loading">Загрузка профиля…</string>
     <string name="profile_edit">Редактировать профиль</string>
     <string name="profile_alias">Псевдоним аккаунта: %1$s</string>
