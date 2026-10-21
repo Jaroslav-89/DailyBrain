@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="brain_widget_base_title">Your brain is ready</string>
+    <string name="brain_widget_base_subtitle">Time for a little brain workout</string>
+    <string name="brain_widget_sour_title">Your brain is waiting</string>
+    <string name="brain_widget_sour_subtitle">The day is almost over — there’s still time</string>
+    <string name="brain_widget_inspired_title">Great job!</string>
+    <string name="brain_widget_inspired_subtitle">You’ve already trained your brain today</string>
+    <string name="brain_widget_image_description">DailyBrain mood</string>
+</resources>
