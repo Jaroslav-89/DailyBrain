@@ -28,6 +28,7 @@ import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingVie
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
+import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
 import com.jaroapps.dailybrain.feature.memory.data.MemoryWordsRepositoryImpl
 import com.jaroapps.dailybrain.feature.memory.domain.repository.MemoryWordsRepository
 import com.jaroapps.dailybrain.feature.memory.domain.usecase.CheckMemoryAnswersUseCase
@@ -67,11 +68,12 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9)
             .build()
     }
 
     single { ActiveUserProvider(database = get()) }
+    single { OnboardingProgressRepository(dao = get<AppDatabase>().onboardingProgressDao(), activeUserProvider = get()) }
 
     single<CompletedTrainingRepository> {
         CompletedTrainingRepositoryImpl(database = get(), activeUserProvider = get())
