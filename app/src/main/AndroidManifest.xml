@@ -23,6 +23,10 @@
             android:icon="@mipmap/ic_launcher"
             android:theme="@style/Theme.DailyBrain.Starting"
             android:windowSoftInputMode="adjustResize">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
         </activity>
 
         <!-- Launcher aliases are temporarily excluded from launcher discovery for isolation testing. -->
