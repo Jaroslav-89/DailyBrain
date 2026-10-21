@@ -5,30 +5,33 @@ import android.content.Context
 import android.content.pm.PackageManager
 
 /**
- * Isolated launcher-alias test: toggle only the sour shortcut.
- * MainActivity remains the primary launcher entry during this test.
+ * Two-state launcher alias test.
+ * MainActivity remains a fallback launcher entry while BASE and SOUR are tested.
  */
 object AppIconController {
 
+    private const val LAUNCHER_BASE = "com.jaroapps.dailybrain.LauncherBase"
     private const val LAUNCHER_SOUR = "com.jaroapps.dailybrain.LauncherSour"
 
     fun apply(context: Context, mood: BrainMood) {
         val packageManager = context.packageManager
-        val sourShouldBeEnabled = mood == BrainMood.SOUR
-        val sourComponent = ComponentName(context, LAUNCHER_SOUR)
-        val currentState = packageManager.getComponentEnabledSetting(sourComponent)
-        val desiredState = if (sourShouldBeEnabled) {
-            PackageManager.COMPONENT_ENABLED_STATE_ENABLED
-        } else {
-            PackageManager.COMPONENT_ENABLED_STATE_DISABLED
-        }
+        val activeAlias = if (mood == BrainMood.SOUR) LAUNCHER_SOUR else LAUNCHER_BASE
 
-        if (currentState != desiredState) {
-            packageManager.setComponentEnabledSetting(
-                sourComponent,
-                desiredState,
-                PackageManager.DONT_KILL_APP
-            )
+        listOf(LAUNCHER_BASE, LAUNCHER_SOUR).forEach { alias ->
+            val component = ComponentName(context, alias)
+            val desiredState = if (alias == activeAlias) {
+                PackageManager.COMPONENT_ENABLED_STATE_ENABLED
+            } else {
+                PackageManager.COMPONENT_ENABLED_STATE_DISABLED
+            }
+
+            if (packageManager.getComponentEnabledSetting(component) != desiredState) {
+                packageManager.setComponentEnabledSetting(
+                    component,
+                    desiredState,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
         }
     }
 }
