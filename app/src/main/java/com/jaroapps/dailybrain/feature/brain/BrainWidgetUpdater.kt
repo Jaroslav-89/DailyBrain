@@ -20,11 +20,7 @@ object BrainWidgetUpdater {
             BrainMood.BASE -> R.drawable.brain_base
             BrainMood.SOUR -> R.drawable.brain_sour
         }
-        val status = if (hasTrainingToday) {
-            R.string.home_training_done_today
-        } else {
-            R.string.home_not_trained_today
-        }
+        val status = if (hasTrainingToday) "Сегодня: готово" else "Сегодня: нет"
 
         val openApp = PendingIntent.getActivity(
             context,
@@ -35,8 +31,8 @@ object BrainWidgetUpdater {
         val views = RemoteViews(context.packageName, R.layout.widget_brain).apply {
             setImageViewResource(R.id.brainImage, image)
             setTextViewText(R.id.widgetTitle, context.getString(R.string.app_name))
-            setTextViewText(R.id.widgetSubtitle, context.getString(status))
-            setTextViewText(R.id.widgetStreak, streak.toString())
+            setTextViewText(R.id.widgetSubtitle, status)
+            setTextViewText(R.id.widgetStreak, "$streak дн.")
             setOnClickPendingIntent(R.id.widgetRoot, openApp)
         }
         manager.updateAppWidget(ids, views)
