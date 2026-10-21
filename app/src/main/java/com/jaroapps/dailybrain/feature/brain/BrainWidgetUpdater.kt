@@ -17,9 +17,16 @@ object BrainWidgetUpdater {
         if (ids.isEmpty()) return
 
         val (image, title, subtitle) = when (mood) {
-            BrainMood.BASE -> Triple(R.drawable.brain_base, R.string.brain_widget_base_title, R.string.brain_widget_base_subtitle)
-            BrainMood.SOUR -> Triple(R.drawable.brain_sour, R.string.brain_widget_sour_title, R.string.brain_widget_sour_subtitle)
-            BrainMood.INSPIRED -> Triple(R.drawable.brain_inspired, R.string.brain_widget_inspired_title, R.string.brain_widget_inspired_subtitle)
+            BrainMood.BASE -> Triple(
+                R.drawable.brain_base,
+                R.string.brain_widget_base_title,
+                R.string.brain_widget_base_subtitle,
+            )
+            BrainMood.SOUR -> Triple(
+                R.drawable.brain_sour,
+                R.string.brain_widget_sour_title,
+                R.string.brain_widget_sour_subtitle,
+            )
         }
 
         val openApp = PendingIntent.getActivity(
