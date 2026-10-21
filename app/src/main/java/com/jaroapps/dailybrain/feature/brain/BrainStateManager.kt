@@ -29,8 +29,29 @@ class BrainStateManager(
     }
 
     suspend fun refresh() {
-        val mood = resolveMood()
+        val userId = activeUserProvider.currentUserId()
+        val today = LocalDate.now()
+        val todayKey = today.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
+        val days = database.trainingDayDao().getAll(userId)
+        val trainedDates = days.mapNotNull { day ->
+            runCatching {
+                LocalDate.parse(day.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
+            }.getOrNull()
+        }.toSet()
+        val hasTrainingToday = today in trainedDates
+        val mood = when {
+            hasTrainingToday -> BrainMood.BASE
+            LocalTime.now().hour >= 20 -> BrainMood.SOUR
+            else -> BrainMood.BASE
+        }
+        var streak = 0
+        var date = if (hasTrainingToday) today else today.minusDays(1)
+        while (date in trainedDates) {
+            streak++
+            date = date.minusDays(1)
+        }
+
         AppIconController.apply(context, mood)
-        BrainWidgetUpdater.update(context, mood)
+        BrainWidgetUpdater.update(context, mood, streak, hasTrainingToday)
     }
 }
