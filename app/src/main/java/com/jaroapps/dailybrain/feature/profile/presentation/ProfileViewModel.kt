@@ -7,6 +7,9 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStat
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -16,6 +19,7 @@ import kotlinx.coroutines.launch
 
 data class ProfileUiState(
     val profile: UserProfile? = null,
+    val profiles: List<UserProfile> = emptyList(),
     val statistics: ProfileStatistics = ProfileStatistics(),
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
@@ -25,18 +29,43 @@ class ProfileViewModel(
     observeUserProfile: ObserveUserProfileUseCase,
     observeProfileStatistics: ObserveProfileStatisticsUseCase,
     private val saveUserProfile: SaveUserProfileUseCase,
+    observeLocalProfiles: ObserveLocalProfilesUseCase,
+    private val createLocalProfile: CreateLocalProfileUseCase,
+    private val switchActiveProfile: SwitchActiveProfileUseCase,
 ) : ViewModel() {
     private val saving = MutableStateFlow(false)
     private val saveError = MutableStateFlow(false)
 
     val uiState: StateFlow<ProfileUiState> = combine(
         observeUserProfile(),
+        observeLocalProfiles(),
         observeProfileStatistics(),
         saving,
         saveError,
-    ) { profile, statistics, isSaving, hasError ->
-        ProfileUiState(profile, statistics, isSaving, hasError)
+    ) { profile, profiles, statistics, isSaving, hasError ->
+        ProfileUiState(profile, profiles, statistics, isSaving, hasError)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
+
+    fun createProfile() {
+        viewModelScope.launch {
+            try {
+                val profile = createLocalProfile()
+                switchActiveProfile(profile.localAccountId)
+            } catch (_: Exception) {
+                saveError.value = true
+            }
+        }
+    }
+
+    fun switchProfile(localAccountId: String) {
+        viewModelScope.launch {
+            try {
+                switchActiveProfile(localAccountId)
+            } catch (_: Exception) {
+                saveError.value = true
+            }
+        }
+    }
 
     fun saveProfile(
         displayName: String,
