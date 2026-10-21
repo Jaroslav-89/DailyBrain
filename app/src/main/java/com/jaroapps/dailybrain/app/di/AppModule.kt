@@ -11,6 +11,7 @@ import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUs
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveTrainingDaysInRangeUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
+import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.DatabaseMigrations
 import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
 import com.jaroapps.dailybrain.core.resources.StringProvider
@@ -66,8 +67,10 @@ val appModule = module {
             .build()
     }
 
+    single { ActiveUserProvider(database = get()) }
+
     single<CompletedTrainingRepository> {
-        CompletedTrainingRepositoryImpl(database = get())
+        CompletedTrainingRepositoryImpl(database = get(), activeUserProvider = get())
     }
 
     factory { ObserveAllCompletedTrainingsUseCase(repository = get()) }
@@ -93,7 +96,7 @@ val appModule = module {
     factory { ResetAvatarUseCase(repository = get()) }
     viewModel { AvatarViewModel(observeAvatar = get(), saveAvatar = get(), resetAvatar = get()) }
 
-    single<StatisticsRepository> { StatisticsRepositoryImpl(database = get()) }
+    single<StatisticsRepository> { StatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveStatisticsUseCase(repository = get()) }
 
     // Arithmetic feature
