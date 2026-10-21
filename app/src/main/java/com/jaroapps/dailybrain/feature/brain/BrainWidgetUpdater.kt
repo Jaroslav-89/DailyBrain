@@ -20,8 +20,11 @@ object BrainWidgetUpdater {
             BrainMood.BASE -> R.drawable.brain_base
             BrainMood.SOUR -> R.drawable.brain_sour
         }
-        val title = if (hasTrainingToday) "Тренировка" else "Пройти"
-        val subtitle = if (hasTrainingToday) "пройдена" else "тренировку"
+        val trainingStatus = if (hasTrainingToday) {
+            "Тренировка\nпройдена"
+        } else {
+            "Пройти\nтренировку"
+        }
         val streakColor = if (hasTrainingToday) 0xFFFF9800.toInt() else 0xFF9E9E9E.toInt()
         val streakBackground = if (hasTrainingToday) {
             R.drawable.widget_streak_circle_orange
@@ -37,8 +40,8 @@ object BrainWidgetUpdater {
         )
         val views = RemoteViews(context.packageName, R.layout.widget_brain).apply {
             setImageViewResource(R.id.brainImage, image)
-            setTextViewText(R.id.widgetTitle, title)
-            setTextViewText(R.id.widgetSubtitle, subtitle)
+            setTextViewText(R.id.widgetTitle, context.getString(R.string.app_name))
+            setTextViewText(R.id.widgetSubtitle, trainingStatus)
             setTextViewText(R.id.widgetStreak, streak.toString())
             setTextColor(R.id.widgetStreak, streakColor)
             setInt(R.id.widgetStreak, "setBackgroundResource", streakBackground)
