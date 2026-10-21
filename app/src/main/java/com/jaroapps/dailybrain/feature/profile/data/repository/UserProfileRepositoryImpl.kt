@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.profile.data.repository
 
+import androidx.room.withTransaction
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
@@ -60,6 +61,29 @@ class UserProfileRepositoryImpl(
         database.appSettingsDao().setActiveAccount(
             AppSettingsEntity(activeLocalAccountId = localAccountId),
         )
+    }
+
+    override suspend fun deleteActiveProfile() {
+        database.withTransaction {
+            val profileDao = database.userProfileDao()
+            val profiles = profileDao.getProfiles()
+            val activeId = activeUserProvider.currentUserId()
+            val activeProfile = profiles.firstOrNull { it.localAccountId == activeId }
+                ?: throw IllegalStateException("Active profile does not exist")
+            val replacement = profiles.firstOrNull { it.localAccountId != activeId }
+                ?: throw IllegalStateException("Cannot delete the only local profile")
+
+            database.appSettingsDao().setActiveAccount(
+                AppSettingsEntity(activeLocalAccountId = replacement.localAccountId),
+            )
+            database.trainingSessionDao().deleteAll(activeId)
+            database.trainingDayDao().deleteAll(activeId)
+            database.dailyExerciseResultDao().deleteAll(activeId)
+            database.statisticsDao().deleteOverall(activeId)
+            database.statisticsDao().deleteAllExerciseStatistics(activeId)
+            val deleted = profileDao.deleteByLocalAccountId(activeProfile.localAccountId)
+            check(deleted == 1) { "Failed to delete local profile" }
+        }
     }
 
     override suspend fun saveProfile(
