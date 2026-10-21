@@ -34,6 +34,19 @@ class AvatarJsonCodecTest {
     }
 
     @Test
+    fun `legacy background colors migrate to equivalent gradients`() {
+        val yellow = AvatarJsonCodec.decode(
+            """{"schemaVersion":3,"backgroundId":11}""",
+        )
+        val peach = AvatarJsonCodec.decode(
+            """{"schemaVersion":3,"backgroundId":12}""",
+        )
+
+        assertEquals(5, yellow.backgroundId)
+        assertEquals(2, peach.backgroundId)
+    }
+
+    @Test
     fun `invalid new options fall back to supported values`() {
         val restored = AvatarJsonCodec.decode(
             """{"schemaVersion":4,"glassesId":99,"frecklesId":99,"facialHairId":99}""",
