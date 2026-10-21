@@ -5,35 +5,68 @@
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="14dp"
+    android:padding="10dp"
     android:background="@drawable/brain_widget_background">
+
     <ImageView
         android:id="@+id/brainImage"
-        android:layout_width="76dp"
-        android:layout_height="76dp"
+        android:layout_width="38dp"
+        android:layout_height="38dp"
         android:contentDescription="@string/brain_widget_image_description"
         android:src="@drawable/brain_base" />
+
     <LinearLayout
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="12dp"
+        android:layout_marginStart="8dp"
         android:orientation="vertical">
+
         <TextView
             android:id="@+id/widgetTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="@string/brain_widget_base_title"
+            android:text="@string/app_name"
             android:textColor="#FF202124"
-            android:textSize="16sp"
+            android:textSize="14sp"
+            android:maxLines="1"
+            android:ellipsize="end"
             android:textStyle="bold" />
+
         <TextView
             android:id="@+id/widgetSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="3dp"
             android:text="@string/brain_widget_base_subtitle"
             android:textColor="#FF5F6368"
-            android:textSize="13sp" />
+            android:textSize="11sp"
+            android:maxLines="2"
+            android:ellipsize="end" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:gravity="center"
+        android:orientation="vertical">
+
+        <TextView
+            android:id="@+id/widgetStreak"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0"
+            android:textColor="#FFFF9800"
+            android:textSize="22sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="дн. подряд"
+            android:textColor="#FF5F6368"
+            android:textSize="9sp"
+            android:maxLines="1" />
     </LinearLayout>
 </LinearLayout>
