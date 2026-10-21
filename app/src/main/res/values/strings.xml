@@ -112,6 +112,9 @@
     <string name="statistics_chart_no_data">За этот период результатов нет</string>
     <string name="home_profile">Мой профиль</string>
     <string name="profile_title">Мой профиль</string>
+    <string name="profile_accounts">Локальные профили</string>
+    <string name="profile_add_account">Добавить профиль</string>
+    <string name="profile_account_action_error">Не удалось выполнить действие с профилем.</string>
     <string name="profile_loading">Загрузка профиля…</string>
     <string name="profile_edit">Редактировать профиль</string>
     <string name="profile_alias">Псевдоним аккаунта: %1$s</string>
@@ -164,6 +167,12 @@
     <string name="profile_country">Страна (необязательно)</string>
     <string name="profile_city">Город (необязательно)</string>
     <string name="profile_save_error">Не удалось сохранить профиль. Проверь формат даты (ГГГГ-ММ-ДД).</string>
+    <string name="profile_delete">Удалить профиль</string>
+    <string name="profile_delete_title">Удалить профиль?</string>
+    <string name="profile_delete_warning">Вы действительно хотите удалить свой профиль в DailyBrain? Все данные и статистика этого профиля будут удалены. Восстановить их после удаления не получится.</string>
+    <string name="profile_delete_confirm">Удалить</string>
+    <string name="profile_delete_error">Не удалось удалить профиль. Попробуйте ещё раз.</string>
+    <string name="profile_delete_last_profile_hint">Нельзя удалить единственный профиль. Сначала создайте или переключитесь на другой профиль.</string>
     <string name="action_save">Сохранить</string>
     <string name="profile_gender_display">Пол: %1$s</string>
 </resources>

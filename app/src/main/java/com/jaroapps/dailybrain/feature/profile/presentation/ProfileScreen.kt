@@ -143,6 +143,38 @@ fun ProfileScreen(
             }
         }
         Spacer(Modifier.height(20.dp))
+        Text(
+            stringResource(R.string.profile_accounts),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+        state.profiles.forEach { localProfile ->
+            OutlinedButton(
+                onClick = { viewModel.switchProfile(localProfile.localAccountId) },
+                enabled = localProfile.localAccountId != profile?.localAccountId,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                val activeMark = if (localProfile.localAccountId == profile?.localAccountId) "✓ " else ""
+                Text(activeMark + localProfile.effectiveDisplayName)
+            }
+            Spacer(Modifier.height(6.dp))
+        }
+        OutlinedButton(
+            onClick = viewModel::createProfile,
+            enabled = true,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(stringResource(R.string.profile_add_account))
+        }
+        if (state.saveError) {
+            Text(
+                text = stringResource(R.string.profile_account_action_error),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+        Spacer(Modifier.height(20.dp))
         Text(stringResource(R.string.profile_summary), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(10.dp))
         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

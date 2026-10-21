@@ -33,7 +33,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
-import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
+import com.jaroapps.dailybrain.feature.statistics.domain.model.DailyExerciseResult
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import androidx.compose.ui.text.font.FontWeight
@@ -281,7 +281,7 @@ private fun formatDuration(durationMs: Long): String {
 
 @Composable
 private fun DailyResultChart(
-    rows: List<DailyExerciseResultEntity>,
+    rows: List<DailyExerciseResult>,
     selectedTab: Int,
     modifier: Modifier = Modifier,
 ) {

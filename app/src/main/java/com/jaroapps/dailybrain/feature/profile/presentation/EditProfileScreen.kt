@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
@@ -60,6 +61,7 @@ fun EditProfileScreen(
     var genderMenuExpanded by remember { mutableStateOf(false) }
     var birthDateError by remember { mutableStateOf(false) }
     var datePickerVisible by remember { mutableStateOf(false) }
+    var deleteDialogVisible by remember { mutableStateOf(false) }
     val initialDateMillis = remember(birthDate) {
         runCatching { LocalDate.parse(birthDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
     }
@@ -147,6 +149,45 @@ fun EditProfileScreen(
             Text(stringResource(R.string.profile_save_error), color = MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(20.dp))
+        if (deleteDialogVisible) {
+            AlertDialog(
+                onDismissRequest = {
+                    deleteDialogVisible = false
+                    viewModel.clearDeleteError()
+                },
+                title = { Text(stringResource(R.string.profile_delete_title)) },
+                text = {
+                    Column {
+                        Text(stringResource(R.string.profile_delete_warning))
+                        if (state.deleteError) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.profile_delete_error),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.deleteProfile(onDeleted = onBack) },
+                    ) {
+                        Text(stringResource(R.string.profile_delete_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            deleteDialogVisible = false
+                            viewModel.clearDeleteError()
+                        },
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
+        }
+
         Button(
             onClick = {
                 val normalizedBirthDate = birthDate.trim()
@@ -171,6 +212,29 @@ fun EditProfileScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(if (state.isSaving) stringResource(R.string.status_saving) else stringResource(R.string.action_save))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = {
+                viewModel.clearDeleteError()
+                deleteDialogVisible = true
+            },
+            enabled = !state.isSaving && state.profiles.size > 1,
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+        ) {
+            Text(stringResource(R.string.profile_delete))
+        }
+        if (state.profiles.size <= 1) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.profile_delete_last_profile_hint),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }

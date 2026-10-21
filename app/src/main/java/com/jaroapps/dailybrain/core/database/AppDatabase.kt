@@ -13,6 +13,7 @@ import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
 import com.jaroapps.dailybrain.core.database.entity.OverallStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
+import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
 
 @Database(
     entities = [
@@ -22,8 +23,9 @@ import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
         ExerciseStatisticsEntity::class,
         DailyExerciseResultEntity::class,
         UserProfileEntity::class,
+        AppSettingsEntity::class,
     ],
-    version = 7,
+    version = 8,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -32,4 +34,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun statisticsDao(): StatisticsDao
     abstract fun dailyExerciseResultDao(): DailyExerciseResultDao
     abstract fun userProfileDao(): UserProfileDao
+    abstract fun appSettingsDao(): com.jaroapps.dailybrain.core.database.dao.AppSettingsDao
 }
