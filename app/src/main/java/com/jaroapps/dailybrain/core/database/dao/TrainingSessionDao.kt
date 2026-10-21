@@ -21,6 +21,8 @@ interface TrainingSessionDao {
     suspend fun getById(id: Long, userId: String): TrainingSessionEntity?
     @Query("DELETE FROM training_sessions WHERE id = :id AND userId = :userId")
     suspend fun deleteById(id: Long, userId: String): Int
+    @Query("DELETE FROM training_sessions WHERE userId = :userId")
+    suspend fun deleteAll(userId: String)
     @Query("SELECT * FROM training_sessions WHERE userId = :userId ORDER BY finishedAtEpochMs ASC")
     suspend fun getAll(userId: String): List<TrainingSessionEntity>
     @Query("SELECT * FROM training_sessions WHERE userId = :userId AND date = :date ORDER BY finishedAtEpochMs ASC")
