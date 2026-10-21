@@ -38,8 +38,8 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Install Android SDK platform
-        run: sdkmanager "platforms;android-37" "platform-tools"
+      - name: Install Android SDK platform 37 (preview channel)
+        run: sdkmanager --channel=3 "platforms;android-37" "platform-tools"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
@@ -87,8 +87,8 @@ jobs:
         with:
           packages: platform-tools
 
-      - name: Install Android SDK platform
-        run: sdkmanager "platforms;android-37" "platform-tools"
+      - name: Install Android SDK platform 37 (preview channel)
+        run: sdkmanager --channel=3 "platforms;android-37" "platform-tools"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v5
