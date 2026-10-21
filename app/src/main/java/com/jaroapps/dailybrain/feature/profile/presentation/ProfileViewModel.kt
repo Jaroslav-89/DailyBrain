@@ -48,6 +48,7 @@ class ProfileViewModel(
 
     fun createProfile() {
         viewModelScope.launch {
+            saveError.value = false
             try {
                 val profile = createLocalProfile()
                 switchActiveProfile(profile.localAccountId)
@@ -59,6 +60,7 @@ class ProfileViewModel(
 
     fun switchProfile(localAccountId: String) {
         viewModelScope.launch {
+            saveError.value = false
             try {
                 switchActiveProfile(localAccountId)
             } catch (_: Exception) {
