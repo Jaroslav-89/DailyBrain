@@ -62,4 +62,4 @@ class ProfileStatisticsRepositoryImpl(
             bestExerciseStats = exerciseStats.map { BestExerciseResult(it.exerciseType, it.bestDurationMs, it.bestCorrectCount) },
         )
     } }
-}}
+}
