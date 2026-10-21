@@ -43,7 +43,12 @@ internal object AvatarJsonCodec {
                 eyeStyleId = data.optInt("eyeStyleId", AvatarConfiguration.DEFAULT_EYE_STYLE_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_EYE_STYLE_ID,
                 mouthStyleId = data.optInt("mouthStyleId", AvatarConfiguration.DEFAULT_MOUTH_STYLE_ID).takeIf { it in 1..2 } ?: AvatarConfiguration.DEFAULT_MOUTH_STYLE_ID,
                 accessoryId = if (version == 1 && legacyAccessoryId == 1) AvatarConfiguration.NO_ACCESSORY_ID else legacyAccessoryId,
-                backgroundId = data.optInt("backgroundId", AvatarConfiguration.DEFAULT_BACKGROUND_ID).takeIf { it in 1..12 } ?: AvatarConfiguration.DEFAULT_BACKGROUND_ID,
+                backgroundId = when (val savedBackgroundId = data.optInt("backgroundId", AvatarConfiguration.DEFAULT_BACKGROUND_ID)) {
+                    11 -> 5
+                    12 -> 2
+                    in 1..10 -> savedBackgroundId
+                    else -> AvatarConfiguration.DEFAULT_BACKGROUND_ID
+                },
                 faceTypeId = data.optInt("faceTypeId", AvatarConfiguration.DEFAULT_FACE_TYPE_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_FACE_TYPE_ID,
                 eyeColorId = data.optInt("eyeColorId", AvatarConfiguration.DEFAULT_EYE_COLOR_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_EYE_COLOR_ID,
                 clothingStyleId = data.optInt("clothingStyleId", AvatarConfiguration.DEFAULT_CLOTHING_STYLE_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_CLOTHING_STYLE_ID,
