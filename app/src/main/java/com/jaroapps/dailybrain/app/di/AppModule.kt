@@ -28,7 +28,12 @@ import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingVie
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
+import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository as OnboardingProgressRepositoryImpl
+import com.jaroapps.dailybrain.feature.onboarding.domain.repository.OnboardingProgressRepository
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetExerciseEntryDestinationUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.MarkAppIntroCompleteUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.MarkExerciseIntroCompleteUseCase
 import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupViewModel
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseEntryViewModel
 import com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel
@@ -76,10 +81,24 @@ val appModule = module {
     }
 
     single { ActiveUserProvider(database = get()) }
-    single { OnboardingProgressRepository(dao = get<AppDatabase>().onboardingProgressDao(), activeUserProvider = get()) }
-    viewModel { StartupViewModel(onboardingProgressRepository = get(), userProfileRepository = get()) }
-    viewModel { ExerciseEntryViewModel(onboardingProgressRepository = get()) }
-    viewModel { OnboardingProgressViewModel(repository = get()) }
+    single<OnboardingProgressRepository> {
+        OnboardingProgressRepositoryImpl(
+            dao = get<AppDatabase>().onboardingProgressDao(),
+            activeUserProvider = get(),
+        )
+    }
+    factory { GetStartupDestinationUseCase(repository = get()) }
+    factory { GetExerciseEntryDestinationUseCase(repository = get()) }
+    factory { MarkAppIntroCompleteUseCase(repository = get()) }
+    factory { MarkExerciseIntroCompleteUseCase(repository = get()) }
+    viewModel { StartupViewModel(getStartupDestination = get()) }
+    viewModel { ExerciseEntryViewModel(getExerciseEntryDestination = get()) }
+    viewModel {
+        OnboardingProgressViewModel(
+            markAppIntroComplete = get(),
+            markExerciseIntroComplete = get(),
+        )
+    }
 
     single<CompletedTrainingRepository> {
         CompletedTrainingRepositoryImpl(database = get(), activeUserProvider = get())
