@@ -1,12 +1,20 @@
 package com.jaroapps.dailybrain.core.database.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "training_sessions")
+@Entity(
+    tableName = "training_sessions",
+    indices = [
+        Index(value = ["userId", "finishedAtEpochMs"]),
+        Index(value = ["userId", "date"]),
+    ],
+)
 data class TrainingSessionEntity(
     @PrimaryKey(autoGenerate = false)
     val id: Long,
+    val userId: String,
     val exerciseType: String,
     val startedAtEpochMs: Long,
     val finishedAtEpochMs: Long,
