@@ -85,12 +85,12 @@ val appModule = module {
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get()) }
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
-    single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get()) }
+    single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
-    single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao()) }
+    single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }
     factory { ObserveAvatarUseCase(repository = get()) }
     factory { SaveAvatarUseCase(repository = get()) }
     factory { ResetAvatarUseCase(repository = get()) }
