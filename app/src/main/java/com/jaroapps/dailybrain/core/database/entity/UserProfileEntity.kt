@@ -1,11 +1,15 @@
 package com.jaroapps.dailybrain.core.database.entity
 
 import androidx.room.Entity
+import androidx.room.Index
 import androidx.room.PrimaryKey
 
-@Entity(tableName = "user_profile")
+@Entity(
+    tableName = "user_profile",
+    indices = [Index(value = ["localAccountId"], unique = true)],
+)
 data class UserProfileEntity(
-    @PrimaryKey val id: Int = SINGLETON_ID,
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val localAccountId: String,
     val firebaseUid: String? = null,
     val displayName: String? = null,
@@ -19,8 +23,4 @@ data class UserProfileEntity(
     val updatedAtEpochMs: Long,
     /** Versioned, local-only avatar configuration JSON. */
     val avatarJson: String? = null,
-) {
-    companion object {
-        const val SINGLETON_ID = 1
-    }
-}
+)
