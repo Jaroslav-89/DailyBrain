@@ -8,15 +8,20 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import com.jaroapps.dailybrain.navigation.AppNavHost
 import com.jaroapps.dailybrain.ui.theme.DailyBrainTheme
 
 class MainActivity : ComponentActivity() {
 
+    @Volatile private var startupResolved = false
+
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { !startupResolved }
         super.onCreate(savedInstanceState)
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
@@ -28,7 +33,7 @@ class MainActivity : ComponentActivity() {
 
         setContent {
             DailyBrainTheme {
-                AppNavHost()
+                AppNavHost(onStartupResolved = { startupResolved = true })
             }
         }
     }
