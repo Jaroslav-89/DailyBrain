@@ -9,21 +9,27 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface UserProfileDao {
-    @Query("SELECT * FROM user_profile WHERE id = 1")
-    fun observeProfile(): Flow<UserProfileEntity?>
+    @Query("SELECT * FROM user_profile WHERE localAccountId = :localAccountId")
+    fun observeProfile(localAccountId: String): Flow<UserProfileEntity?>
+
+    @Query("SELECT * FROM user_profile WHERE localAccountId = :localAccountId")
+    suspend fun getProfile(localAccountId: String): UserProfileEntity?
 
     @Query("SELECT * FROM user_profile WHERE id = 1")
-    suspend fun getProfile(): UserProfileEntity?
+    suspend fun getLegacyDefaultProfile(): UserProfileEntity?
 
-    @Query("SELECT avatarJson FROM user_profile WHERE id = 1")
-    fun observeAvatarJson(): Flow<String?>
+    @Query("SELECT avatarJson FROM user_profile WHERE localAccountId = :localAccountId")
+    fun observeAvatarJson(localAccountId: String): Flow<String?>
 
-    @Query("UPDATE user_profile SET avatarJson = :avatarJson, updatedAtEpochMs = :updatedAtEpochMs WHERE id = 1")
-    suspend fun updateAvatarJson(avatarJson: String?, updatedAtEpochMs: Long)
+    @Query("UPDATE user_profile SET avatarJson = :avatarJson, updatedAtEpochMs = :updatedAtEpochMs WHERE localAccountId = :localAccountId")
+    suspend fun updateAvatarJson(localAccountId: String, avatarJson: String?, updatedAtEpochMs: Long)
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(profile: UserProfileEntity): Long
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun save(profile: UserProfileEntity)
+
+    @Query("SELECT * FROM user_profile ORDER BY id ASC")
+    fun observeProfiles(): Flow<List<UserProfileEntity>>
 }
