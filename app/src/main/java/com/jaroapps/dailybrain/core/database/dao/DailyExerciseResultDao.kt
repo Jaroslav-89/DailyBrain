@@ -49,4 +49,7 @@ interface DailyExerciseResultDao {
 
     @Query("DELETE FROM daily_exercise_results WHERE userId = :userId AND date = :date")
     suspend fun deleteByDate(userId: String, date: Int)
+
+    @Query("DELETE FROM daily_exercise_results WHERE userId = :userId")
+    suspend fun deleteAll(userId: String)
 }
