@@ -9,6 +9,10 @@ import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import com.jaroapps.dailybrain.feature.brain.BrainStateManager
+import kotlinx.coroutines.launch
+import org.koin.core.context.GlobalContext
 import com.jaroapps.dailybrain.navigation.AppNavHost
 import com.jaroapps.dailybrain.ui.theme.DailyBrainTheme
 
@@ -18,6 +22,17 @@ class MainActivity : ComponentActivity() {
 
     private val notificationPermissionLauncher =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            try {
+                GlobalContext.get().get<BrainStateManager>().refresh()
+            } catch (_: Exception) {
+                // Mood refresh must not prevent the app from opening.
+            }
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
