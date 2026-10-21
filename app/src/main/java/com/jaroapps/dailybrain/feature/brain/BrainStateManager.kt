@@ -8,7 +8,7 @@ import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
 /**
- * Resolves the mood from today's saved training and the local time.
+ * Resolves the two-state mood from today's saved training and the local time.
  * The database is the source of truth, so a new day naturally resets the mood.
  */
 class BrainStateManager(
@@ -22,7 +22,7 @@ class BrainStateManager(
         val hasTrainingToday = database.trainingDayDao().hasTrainingOnDate(userId, today)
 
         return when {
-            hasTrainingToday -> BrainMood.INSPIRED
+            hasTrainingToday -> BrainMood.BASE
             LocalTime.now().hour >= 20 -> BrainMood.SOUR
             else -> BrainMood.BASE
         }
