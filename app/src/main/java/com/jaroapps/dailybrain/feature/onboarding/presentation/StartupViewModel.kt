@@ -2,12 +2,11 @@ package com.jaroapps.dailybrain.feature.onboarding.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
-import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.StartupDestination
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 sealed interface StartupUiState {
@@ -18,26 +17,26 @@ sealed interface StartupUiState {
 }
 
 class StartupViewModel(
-    private val onboardingProgressRepository: OnboardingProgressRepository,
-    private val userProfileRepository: UserProfileRepository,
+    private val getStartupDestination: GetStartupDestinationUseCase,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow<StartupUiState>(StartupUiState.Loading)
     val uiState: StateFlow<StartupUiState> = _uiState
 
     init {
-        resolveStartup()
+        observeStartup()
     }
 
-    fun resolveStartup() {
+    fun resolveStartup() = observeStartup()
+
+    private fun observeStartup() {
         viewModelScope.launch {
             _uiState.value = StartupUiState.Loading
             try {
-                userProfileRepository.observeProfile().first()
-                val progress = onboardingProgressRepository.getActiveProgress()
-                _uiState.value = if (progress.hasSeenAppIntro) {
-                    StartupUiState.HomeReady
-                } else {
-                    StartupUiState.AppIntroRequired
+                getStartupDestination().collect { destination ->
+                    _uiState.value = when (destination) {
+                        StartupDestination.APP_ONBOARDING -> StartupUiState.AppIntroRequired
+                        StartupDestination.HOME -> StartupUiState.HomeReady
+                    }
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
