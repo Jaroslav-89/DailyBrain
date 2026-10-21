@@ -152,7 +152,7 @@ fun ProfileScreen(
         state.profiles.forEach { localProfile ->
             OutlinedButton(
                 onClick = { viewModel.switchProfile(localProfile.localAccountId) },
-                enabled = !state.profileActionInProgress && localProfile.localAccountId != profile?.localAccountId,
+                enabled = localProfile.localAccountId != profile?.localAccountId,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 val activeMark = if (localProfile.localAccountId == profile?.localAccountId) "✓ " else ""
@@ -162,12 +162,12 @@ fun ProfileScreen(
         }
         OutlinedButton(
             onClick = viewModel::createProfile,
-            enabled = !state.profileActionInProgress,
+            enabled = true,
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(stringResource(R.string.profile_add_account))
         }
-        if (state.profileActionError) {
+        if (state.saveError) {
             Text(
                 text = stringResource(R.string.profile_account_action_error),
                 color = MaterialTheme.colorScheme.error,
