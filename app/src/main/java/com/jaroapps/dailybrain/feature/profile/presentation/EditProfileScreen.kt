@@ -149,25 +149,6 @@ fun EditProfileScreen(
             Text(stringResource(R.string.profile_save_error), color = MaterialTheme.colorScheme.error)
         }
         Spacer(Modifier.height(20.dp))
-        OutlinedButton(
-            onClick = {
-                viewModel.clearDeleteError()
-                deleteDialogVisible = true
-            },
-            enabled = !state.isSaving && state.profiles.size > 1,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.profile_delete))
-        }
-        if (state.profiles.size <= 1) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.profile_delete_last_profile_hint),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-
         if (deleteDialogVisible) {
             AlertDialog(
                 onDismissRequest = {
@@ -231,6 +212,29 @@ fun EditProfileScreen(
             modifier = Modifier.fillMaxWidth(),
         ) {
             Text(if (state.isSaving) stringResource(R.string.status_saving) else stringResource(R.string.action_save))
+        }
+
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = {
+                viewModel.clearDeleteError()
+                deleteDialogVisible = true
+            },
+            enabled = !state.isSaving && state.profiles.size > 1,
+            modifier = Modifier.fillMaxWidth(),
+            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
+                contentColor = MaterialTheme.colorScheme.error,
+            ),
+        ) {
+            Text(stringResource(R.string.profile_delete))
+        }
+        if (state.profiles.size <= 1) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.profile_delete_last_profile_hint),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
         }
     }
 }
