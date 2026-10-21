@@ -1,9 +1,5 @@
 package com.jaroapps.dailybrain.navigation
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
@@ -23,6 +19,7 @@ import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
 import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
 import com.jaroapps.dailybrain.feature.onboarding.presentation.AppOnboardingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.BrainTrainingArticleScreen
+import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseEntryScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseIntroScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseRulesScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
@@ -104,30 +101,16 @@ fun AppNavHost(onStartupResolved: () -> Unit = {}) {
             arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
         ) { entry ->
             val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-            LaunchedEffect(exerciseKey) {
-                val progress = onboardingRepository.getActiveProgress()
-                val hasSeenIntro = when (exerciseKey) {
-                    "arithmetic" -> progress.hasSeenArithmeticIntro
-                    "memory" -> progress.hasSeenMemoryIntro
-                    "counting" -> progress.hasSeenCountingIntro
-                    "stroop" -> progress.hasSeenStroopIntro
-                    else -> false
-                }
-                navController.navigate(
-                    if (hasSeenIntro) Route.exerciseRules(exerciseKey)
-                    else Route.exerciseIntro(exerciseKey),
-                ) {
-                    popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
-                    launchSingleTop = true
-                }
-            }
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                CircularProgressIndicator()
-            }
+            ExerciseEntryScreen(
+                exerciseKey = exerciseKey,
+                onboardingProgressRepository = onboardingRepository,
+                onDestinationReady = { destination ->
+                    navController.navigate(destination) {
+                        popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
 
         composable(
