@@ -111,7 +111,7 @@ class ReminderReceiver : BroadcastReceiver() {
             R.string.reminder_three_hours_message
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_popup_reminder)
+            .setSmallIcon(R.drawable.ic_notification_brain)
             .setContentTitle(context.getString(R.string.reminder_title))
             .setContentText(context.getString(message))
             .setContentIntent(openAppIntent)
