@@ -110,6 +110,9 @@
     <string name="statistics_chart_no_data">No results in this period</string>
     <string name="home_profile">My profile</string>
     <string name="profile_title">My profile</string>
+    <string name="profile_accounts">Local profiles</string>
+    <string name="profile_add_account">Add profile</string>
+    <string name="profile_account_action_error">Could not perform the profile action.</string>
     <string name="profile_loading">Loading profile…</string>
     <string name="profile_edit">Edit profile</string>
     <string name="profile_alias">Account alias: %1$s</string>
@@ -154,6 +157,12 @@
     <string name="profile_country">Country (optional)</string>
     <string name="profile_city">City (optional)</string>
     <string name="profile_save_error">Could not save the profile. Check the date format (YYYY-MM-DD).</string>
+    <string name="profile_delete">Delete profile</string>
+    <string name="profile_delete_title">Delete profile?</string>
+    <string name="profile_delete_warning">Are you sure you want to delete your DailyBrain profile? All data and statistics for this profile will be deleted and cannot be restored.</string>
+    <string name="profile_delete_confirm">Delete</string>
+    <string name="profile_delete_error">Could not delete the profile. Please try again.</string>
+    <string name="profile_delete_last_profile_hint">You cannot delete the only profile. Create another profile or switch to a different one first.</string>
     <string name="action_save">Save</string>
     <string name="profile_gender_display">Gender: %1$s</string>
 </resources>

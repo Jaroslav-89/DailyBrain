@@ -207,4 +207,193 @@ object DatabaseMigrations {
             database.execSQL("ALTER TABLE user_profile ADD COLUMN avatarJson TEXT")
         }
     }
+
+    /** Add per-account ownership while preserving all records from the existing local profile. */
+    val MIGRATION_7_8 = object : Migration(7, 8) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            val now = System.currentTimeMillis()
+            database.execSQL(
+                """
+                CREATE TABLE user_profile_new (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                    localAccountId TEXT NOT NULL,
+                    firebaseUid TEXT,
+                    displayName TEXT,
+                    generatedAlias TEXT NOT NULL,
+                    gender TEXT,
+                    birthDate TEXT,
+                    country TEXT,
+                    city TEXT,
+                    createdAtEpochMs INTEGER NOT NULL,
+                    updatedAtEpochMs INTEGER NOT NULL,
+                    avatarJson TEXT
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO user_profile_new (
+                    id, localAccountId, firebaseUid, displayName, generatedAlias, gender,
+                    birthDate, country, city, createdAtEpochMs, updatedAtEpochMs, avatarJson
+                )
+                SELECT id, localAccountId, firebaseUid, displayName, generatedAlias, gender,
+                    birthDate, country, city, createdAtEpochMs, updatedAtEpochMs, avatarJson
+                FROM user_profile
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO user_profile_new (
+                    id, localAccountId, generatedAlias, createdAtEpochMs, updatedAtEpochMs
+                )
+                SELECT 1, lower(hex(randomblob(16))), 'brain#100', $now, $now
+                WHERE NOT EXISTS (SELECT 1 FROM user_profile_new)
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE user_profile")
+            database.execSQL("ALTER TABLE user_profile_new RENAME TO user_profile")
+            database.execSQL("CREATE UNIQUE INDEX index_user_profile_localAccountId ON user_profile(localAccountId)")
+
+            database.execSQL(
+                """
+                CREATE TABLE app_settings (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    activeLocalAccountId TEXT NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "INSERT INTO app_settings (id, activeLocalAccountId) SELECT 1, localAccountId FROM user_profile WHERE id = 1",
+            )
+
+            database.execSQL(
+                """
+                CREATE TABLE training_sessions_new (
+                    id INTEGER NOT NULL PRIMARY KEY,
+                    userId TEXT NOT NULL,
+                    exerciseType TEXT NOT NULL,
+                    startedAtEpochMs INTEGER NOT NULL,
+                    finishedAtEpochMs INTEGER NOT NULL,
+                    date INTEGER NOT NULL,
+                    durationMs INTEGER NOT NULL,
+                    accuracyPercent REAL NOT NULL,
+                    taskCount INTEGER NOT NULL,
+                    correctCount INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO training_sessions_new
+                SELECT id, (SELECT localAccountId FROM user_profile WHERE id = 1),
+                    exerciseType, startedAtEpochMs, finishedAtEpochMs, date, durationMs,
+                    accuracyPercent, taskCount, correctCount
+                FROM training_sessions
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE training_sessions")
+            database.execSQL("ALTER TABLE training_sessions_new RENAME TO training_sessions")
+            database.execSQL("CREATE INDEX index_training_sessions_userId_finishedAtEpochMs ON training_sessions(userId, finishedAtEpochMs)")
+            database.execSQL("CREATE INDEX index_training_sessions_userId_date ON training_sessions(userId, date)")
+
+            database.execSQL(
+                """
+                CREATE TABLE training_days_new (
+                    userId TEXT NOT NULL,
+                    date INTEGER NOT NULL,
+                    exerciseCount INTEGER NOT NULL,
+                    PRIMARY KEY(userId, date)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO training_days_new
+                SELECT (SELECT localAccountId FROM user_profile WHERE id = 1), date, exerciseCount
+                FROM training_days
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE training_days")
+            database.execSQL("ALTER TABLE training_days_new RENAME TO training_days")
+            database.execSQL("CREATE INDEX index_training_days_userId_date ON training_days(userId, date)")
+
+            database.execSQL(
+                """
+                CREATE TABLE overall_statistics_new (
+                    userId TEXT NOT NULL PRIMARY KEY,
+                    totalTrainingCount INTEGER NOT NULL,
+                    totalDurationMs INTEGER NOT NULL,
+                    currentStreakDays INTEGER NOT NULL,
+                    bestStreakDays INTEGER NOT NULL,
+                    lastTrainingDate INTEGER,
+                    updatedAtEpochMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO overall_statistics_new
+                SELECT (SELECT localAccountId FROM user_profile WHERE id = 1),
+                    totalTrainingCount, totalDurationMs, currentStreakDays, bestStreakDays,
+                    lastTrainingDate, updatedAtEpochMs
+                FROM overall_statistics WHERE id = 1
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE overall_statistics")
+            database.execSQL("ALTER TABLE overall_statistics_new RENAME TO overall_statistics")
+
+            database.execSQL(
+                """
+                CREATE TABLE exercise_statistics_new (
+                    userId TEXT NOT NULL,
+                    exerciseType TEXT NOT NULL,
+                    trainingCount INTEGER NOT NULL,
+                    totalDurationMs INTEGER NOT NULL,
+                    bestDurationMs INTEGER,
+                    bestAccuracyPercent REAL,
+                    bestCorrectCount INTEGER,
+                    lastTrainingAtEpochMs INTEGER NOT NULL,
+                    PRIMARY KEY(userId, exerciseType)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO exercise_statistics_new
+                SELECT (SELECT localAccountId FROM user_profile WHERE id = 1),
+                    exerciseType, trainingCount, totalDurationMs, bestDurationMs,
+                    bestAccuracyPercent, bestCorrectCount, lastTrainingAtEpochMs
+                FROM exercise_statistics
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE exercise_statistics")
+            database.execSQL("ALTER TABLE exercise_statistics_new RENAME TO exercise_statistics")
+            database.execSQL("CREATE INDEX index_exercise_statistics_userId_exerciseType ON exercise_statistics(userId, exerciseType)")
+
+            database.execSQL(
+                """
+                CREATE TABLE daily_exercise_results_new (
+                    userId TEXT NOT NULL,
+                    date INTEGER NOT NULL,
+                    arithmeticBestTimeMs INTEGER,
+                    memoryBestCorrectCount INTEGER,
+                    stroopBestTimeMs INTEGER,
+                    countingBestTimeMs INTEGER,
+                    PRIMARY KEY(userId, date)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                """
+                INSERT INTO daily_exercise_results_new
+                SELECT (SELECT localAccountId FROM user_profile WHERE id = 1),
+                    date, arithmeticBestTimeMs, memoryBestCorrectCount, stroopBestTimeMs, countingBestTimeMs
+                FROM daily_exercise_results
+                """.trimIndent(),
+            )
+            database.execSQL("DROP TABLE daily_exercise_results")
+            database.execSQL("ALTER TABLE daily_exercise_results_new RENAME TO daily_exercise_results")
+            database.execSQL("CREATE INDEX index_daily_exercise_results_userId_date ON daily_exercise_results(userId, date)")
+        }
+    }
 }

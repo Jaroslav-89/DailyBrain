@@ -5,6 +5,10 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserProfileRepository {
     fun observeProfile(): Flow<UserProfile>
+    fun observeProfiles(): Flow<List<UserProfile>>
+    suspend fun createLocalProfile(): UserProfile
+    suspend fun switchActiveProfile(localAccountId: String)
+    suspend fun deleteActiveProfile()
     suspend fun saveProfile(
         displayName: String?,
         gender: String?,
