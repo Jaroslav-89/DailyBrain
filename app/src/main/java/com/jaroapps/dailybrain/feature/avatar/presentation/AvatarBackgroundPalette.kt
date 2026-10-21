@@ -13,7 +13,5 @@ internal object AvatarBackgroundPalette {
         intArrayOf(0xFFC5E1A5.toInt(), 0xFF43A047.toInt()),
         intArrayOf(0xFFD1C4E9.toInt(), 0xFF5E35B1.toInt()),
         intArrayOf(0xFFFFCCBC.toInt(), 0xFF7E57C2.toInt()),
-        intArrayOf(0xFFCFD8DC.toInt(), 0xFF546E7A.toInt()),
-        intArrayOf(0xFFDCE775.toInt(), 0xFF00897B.toInt()),
     )
 }
