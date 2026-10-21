@@ -52,23 +52,25 @@ class ProfileViewModel(
         ProfileUiState(profile, profiles, statistics, isSaving, errors.first, errors.second)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
-    fun createProfile() {
+    fun createProfile(onProfileChanged: () -> Unit = {}) {
         viewModelScope.launch {
             saveError.value = false
             try {
                 val profile = createLocalProfile()
                 switchActiveProfile(profile.localAccountId)
+                onProfileChanged()
             } catch (_: Exception) {
                 saveError.value = true
             }
         }
     }
 
-    fun switchProfile(localAccountId: String) {
+    fun switchProfile(localAccountId: String, onProfileChanged: () -> Unit = {}) {
         viewModelScope.launch {
             saveError.value = false
             try {
                 switchActiveProfile(localAccountId)
+                onProfileChanged()
             } catch (_: Exception) {
                 saveError.value = true
             }
