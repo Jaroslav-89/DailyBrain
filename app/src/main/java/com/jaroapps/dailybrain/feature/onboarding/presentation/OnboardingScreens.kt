@@ -32,6 +32,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
+import kotlinx.coroutines.CancellationException
 
 
 @Composable
@@ -58,6 +59,8 @@ fun ExerciseEntryScreen(
                 if (hasSeenIntro) "exercise_rules/$exerciseKey"
                 else "exercise_intro/$exerciseKey",
             )
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             hasError = true
         }
