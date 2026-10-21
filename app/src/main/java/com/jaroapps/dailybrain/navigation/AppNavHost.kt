@@ -27,7 +27,7 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 
 @Composable
-fun AppNavHost(onStartupResolved: () -> Unit = {}) {
+fun AppNavHost(startDestination: String = Route.STARTUP) {
     val navController = rememberNavController()
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
 
@@ -40,7 +40,7 @@ fun AppNavHost(onStartupResolved: () -> Unit = {}) {
 
     NavHost(
         navController = navController,
-        startDestination = Route.STARTUP,
+        startDestination = startDestination,
     ) {
         composable(Route.STARTUP) {
             StartupScreen(
