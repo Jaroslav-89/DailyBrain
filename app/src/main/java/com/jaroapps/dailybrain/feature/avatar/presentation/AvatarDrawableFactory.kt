@@ -83,7 +83,7 @@ internal object AvatarDrawableFactory {
             drawable(context, eyes).apply {
                 setTint(eyeColors[(configuration.eyeColorId - 1).coerceIn(eyeColors.indices)])
             },
-            drawable(context, R.drawable.avatar_mouth_1),
+            drawable(context, if (configuration.mouthStyleId == 2) R.drawable.avatar_mouth_2 else R.drawable.avatar_mouth_1),
             drawable(context, freckles),
             drawable(context, glasses),
             drawable(context, accessory),
