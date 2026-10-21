@@ -5,13 +5,16 @@
     android:layout_height="match_parent"
     android:orientation="horizontal"
     android:gravity="center_vertical"
-    android:padding="10dp"
+    android:paddingStart="6dp"
+    android:paddingEnd="6dp"
+    android:paddingTop="4dp"
+    android:paddingBottom="4dp"
     android:background="@drawable/brain_widget_background">
 
     <ImageView
         android:id="@+id/brainImage"
-        android:layout_width="38dp"
-        android:layout_height="38dp"
+        android:layout_width="28dp"
+        android:layout_height="28dp"
         android:contentDescription="@string/brain_widget_image_description"
         android:src="@drawable/brain_base" />
 
@@ -19,7 +22,7 @@
         android:layout_width="0dp"
         android:layout_height="wrap_content"
         android:layout_weight="1"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="5dp"
         android:orientation="vertical">
 
         <TextView
@@ -28,7 +31,7 @@
             android:layout_height="wrap_content"
             android:text="@string/app_name"
             android:textColor="#FF202124"
-            android:textSize="14sp"
+            android:textSize="12sp"
             android:maxLines="1"
             android:ellipsize="end"
             android:textStyle="bold" />
@@ -37,36 +40,22 @@
             android:id="@+id/widgetSubtitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="3dp"
-            android:text="@string/brain_widget_base_subtitle"
+            android:layout_marginTop="2dp"
+            android:text="Сегодня: —"
             android:textColor="#FF5F6368"
-            android:textSize="11sp"
-            android:maxLines="2"
+            android:textSize="10sp"
+            android:maxLines="1"
             android:ellipsize="end" />
     </LinearLayout>
 
-    <LinearLayout
+    <TextView
+        android:id="@+id/widgetStreak"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
-        android:gravity="center"
-        android:orientation="vertical">
-
-        <TextView
-            android:id="@+id/widgetStreak"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="0"
-            android:textColor="#FFFF9800"
-            android:textSize="22sp"
-            android:textStyle="bold" />
-
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="дн. подряд"
-            android:textColor="#FF5F6368"
-            android:textSize="9sp"
-            android:maxLines="1" />
-    </LinearLayout>
+        android:layout_marginStart="4dp"
+        android:text="0 дн."
+        android:textColor="#FFFF9800"
+        android:textSize="14sp"
+        android:maxLines="1"
+        android:textStyle="bold" />
 </LinearLayout>
