@@ -23,6 +23,7 @@ internal object AvatarJsonCodec {
         .put("bodyTypeId", value.bodyTypeId)
         .put("hairLengthId", value.hairLengthId)
         .put("facialHairId", value.facialHairId)
+        .put("facialHairId", value.facialHairId)
         .toString()
 
     fun decode(json: String?): AvatarConfiguration {
@@ -52,9 +53,10 @@ internal object AvatarJsonCodec {
                     "glassesId",
                     if (version == 1 && legacyAccessoryId == 1) 1 else AvatarConfiguration.NO_GLASSES_ID,
                 ).takeIf { it in 0..3 } ?: AvatarConfiguration.NO_GLASSES_ID,
-                frecklesId = data.optInt("frecklesId", AvatarConfiguration.NO_FRECKLES_ID).takeIf { it in 0..2 } ?: AvatarConfiguration.NO_FRECKLES_ID,
+                frecklesId = data.optInt("frecklesId", AvatarConfiguration.NO_FRECKLES_ID).takeIf { it in 0..4 } ?: AvatarConfiguration.NO_FRECKLES_ID,
                 bodyTypeId = data.optInt("bodyTypeId", AvatarConfiguration.DEFAULT_BODY_TYPE_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_BODY_TYPE_ID,
                 hairLengthId = data.optInt("hairLengthId", AvatarConfiguration.DEFAULT_HAIR_LENGTH_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_HAIR_LENGTH_ID,
+                facialHairId = data.optInt("facialHairId", AvatarConfiguration.NO_FACIAL_HAIR_ID).takeIf { it in 0..4 } ?: AvatarConfiguration.NO_FACIAL_HAIR_ID,
                 facialHairId = data.optInt("facialHairId", AvatarConfiguration.NO_FACIAL_HAIR_ID).takeIf { it in 0..3 } ?: AvatarConfiguration.NO_FACIAL_HAIR_ID,
             )
         }.getOrDefault(AvatarConfiguration.Default)
