@@ -13,29 +13,23 @@ import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
-import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
 import com.jaroapps.dailybrain.feature.onboarding.presentation.AppOnboardingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.BrainTrainingArticleScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseEntryScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseIntroScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseRulesScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
-import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
-import kotlinx.coroutines.launch
-import org.koin.compose.koinInject
-import androidx.compose.runtime.rememberCoroutineScope
+import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppNavHost(onStartupResolved: () -> Unit = {}) {
     val navController = rememberNavController()
-    val onboardingRepository: OnboardingProgressRepository = koinInject()
-    val profileRepository: UserProfileRepository = koinInject()
-    val scope = rememberCoroutineScope()
+    val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
 
     val restartStartup: () -> Unit = {
         navController.navigate(Route.STARTUP) {
@@ -50,8 +44,6 @@ fun AppNavHost(onStartupResolved: () -> Unit = {}) {
     ) {
         composable(Route.STARTUP) {
             StartupScreen(
-                onboardingProgressRepository = onboardingRepository,
-                userProfileRepository = profileRepository,
                 onDestinationReady = { destination ->
                     navController.navigate(destination) {
                         popUpTo(Route.STARTUP) { inclusive = true }
@@ -65,8 +57,7 @@ fun AppNavHost(onStartupResolved: () -> Unit = {}) {
         composable(Route.APP_ONBOARDING) {
             AppOnboardingScreen(
                 onContinue = {
-                    scope.launch {
-                        onboardingRepository.markAppIntroComplete()
+                    onboardingViewModel.markAppIntroComplete {
                         navController.navigate(Route.HOME) {
                             popUpTo(Route.APP_ONBOARDING) { inclusive = true }
                             launchSingleTop = true
@@ -100,7 +91,6 @@ fun AppNavHost(onStartupResolved: () -> Unit = {}) {
             val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
             ExerciseEntryScreen(
                 exerciseKey = exerciseKey,
-                onboardingProgressRepository = onboardingRepository,
                 onDestinationReady = { destination ->
                     navController.navigate(destination) {
                         popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
@@ -119,8 +109,7 @@ fun AppNavHost(onStartupResolved: () -> Unit = {}) {
                 exerciseKey = exerciseKey,
                 onBack = { navController.popBackStack(Route.HOME, false) },
                 onContinue = {
-                    scope.launch {
-                        onboardingRepository.markExerciseIntroComplete(exerciseKey)
+                    onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
                         navController.navigate(Route.exerciseRules(exerciseKey)) {
                             popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
                             launchSingleTop = true
