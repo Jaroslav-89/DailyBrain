@@ -35,6 +35,7 @@ class CalendarViewModel(
         CalendarUiState(
             displayedMonth = month,
             activeDates = activeDates,
+            firstTrainingDate = activeDates.minOrNull(),
         )
     }.stateIn(
         scope = viewModelScope,
