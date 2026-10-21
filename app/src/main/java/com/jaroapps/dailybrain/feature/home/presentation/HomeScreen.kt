@@ -26,6 +26,8 @@ import androidx.compose.ui.res.stringResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -67,7 +69,12 @@ fun HomeScreen(
                 style = MaterialTheme.typography.headlineMedium,
                 fontWeight = FontWeight.Bold,
             )
-            IconButton(onClick = onOpenArticle) {
+            IconButton(
+                onClick = onOpenArticle,
+                modifier = Modifier.semantics {
+                    contentDescription = "About brain training"
+                },
+            ) {
                 Text(
                     text = "ⓘ",
                     style = MaterialTheme.typography.headlineSmall,
