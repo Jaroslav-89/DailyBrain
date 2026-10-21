@@ -1,6 +1,6 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -23,14 +23,18 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+
+private val TrainingDayColor = Color(0xFFFF9800)
+private val MissedDayColor = Color(0xFF2196F3)
+private val TodayWithoutTrainingColor = Color(0xFF9E9E9E)
 
 @Composable
 fun CalendarScreen(
@@ -40,6 +44,7 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val today = LocalDate.now()
 
     Column(
         modifier = modifier
@@ -73,10 +78,7 @@ fun CalendarScreen(
 
             Text(
                 text = state.displayedMonth.format(
-                    DateTimeFormatter.ofPattern(
-                        "LLLL yyyy",
-                        Locale.getDefault(),
-                    )
+                    DateTimeFormatter.ofPattern("LLLL yyyy", Locale.getDefault())
                 ).replaceFirstChar { it.uppercase(Locale.getDefault()) },
                 style = MaterialTheme.typography.titleMedium,
             )
@@ -117,11 +119,7 @@ fun CalendarScreen(
 
         val dates: List<LocalDate?> = (0 until cellCount).map { index ->
             val dayNumber = index - leadingEmptyCells + 1
-            if (dayNumber in 1..month.lengthOfMonth()) {
-                month.atDay(dayNumber)
-            } else {
-                null
-            }
+            if (dayNumber in 1..month.lengthOfMonth()) month.atDay(dayNumber) else null
         }
 
         dates.chunked(7).forEach { week ->
@@ -132,42 +130,40 @@ fun CalendarScreen(
                             .weight(1f)
                             .aspectRatio(1f)
                             .then(
-                                if (date != null) {
-                                    Modifier.clickable {
-                                        onDateSelected(date)
-                                    }
-                                } else {
-                                    Modifier
-                                }
+                                if (date != null) Modifier.clickable { onDateSelected(date) }
+                                else Modifier
                             ),
                         contentAlignment = Alignment.Center,
                     ) {
                         if (date != null) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.Center,
+                            val ringColor = when {
+                                date in state.activeDates -> TrainingDayColor
+                                date == today -> TodayWithoutTrainingColor
+                                state.firstTrainingDate != null &&
+                                    date >= state.firstTrainingDate &&
+                                    date < today -> MissedDayColor
+                                else -> null
+                            }
+
+                            Box(
+                                modifier = Modifier.size(40.dp),
+                                contentAlignment = Alignment.Center,
                             ) {
+                                if (ringColor != null) {
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .border(
+                                                width = 1.5.dp,
+                                                color = ringColor,
+                                                shape = CircleShape,
+                                            )
+                                    )
+                                }
                                 Text(
                                     text = date.dayOfMonth.toString(),
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
-
-                                Spacer(Modifier.size(4.dp))
-
-                                if (date in state.activeDates) {
-                                    Box(
-                                        modifier = Modifier
-                                            .size(6.dp)
-                                            .background(
-                                                color = androidx.compose.ui.graphics.Color(
-                                                    0xFFFF9800
-                                                ),
-                                                shape = CircleShape,
-                                            )
-                                    )
-                                } else {
-                                    Spacer(Modifier.size(6.dp))
-                                }
                             }
                         }
                     }
