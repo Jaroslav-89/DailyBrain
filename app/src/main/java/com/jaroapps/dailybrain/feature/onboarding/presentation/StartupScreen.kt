@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 
 @Composable
@@ -43,7 +44,10 @@ fun StartupScreen(
             // Wait until profile initialization has produced a real active profile.
             userProfileRepository.observeProfile().first()
             val progress = onboardingProgressRepository.getActiveProgress()
+            onStartupResolved()
             onDestinationReady(if (progress.hasSeenAppIntro) "home" else "app_onboarding")
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             hasError = true
         } finally {
