@@ -79,6 +79,7 @@ fun MemoryTrainingScreen(
             MemorizingContent(
                 words = currentState.words.map { it.text },
                 progress = currentState.progress,
+                onStartRecall = viewModel::startRecallEarly,
                 onExit = onExit
             )
         }
@@ -129,6 +130,7 @@ private fun LoadingContent() {
 private fun MemorizingContent(
     words: List<String>,
     progress: Float,
+    onStartRecall: () -> Unit,
     onExit: () -> Unit
 ) {
     Column(
@@ -144,11 +146,16 @@ private fun MemorizingContent(
                 Text(stringResource(R.string.action_exit))
             }
             Spacer(Modifier.weight(1f))
-            Text(
-                text = stringResource(R.string.memory_title),
-                style = MaterialTheme.typography.titleLarge
-            )
+            OutlinedButton(onClick = onStartRecall) {
+                Text(stringResource(R.string.memory_start_recall))
+            }
         }
+
+        Text(
+            text = stringResource(R.string.memory_title),
+            modifier = Modifier.padding(top = 12.dp),
+            style = MaterialTheme.typography.titleLarge
+        )
 
         Spacer(Modifier.height(16.dp))
 
