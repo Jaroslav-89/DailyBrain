@@ -21,6 +21,8 @@ interface TrainingDayDao {
     suspend fun hasTrainingOnDate(userId: String, date: Int): Boolean
     @Query("SELECT * FROM training_days WHERE userId = :userId ORDER BY date ASC")
     fun observeAll(userId: String): Flow<List<TrainingDayEntity>>
+    @Query("SELECT * FROM training_days WHERE userId = :userId ORDER BY date ASC")
+    suspend fun getAll(userId: String): List<TrainingDayEntity>
     @Query("SELECT * FROM training_days WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date ASC")
     fun observeBetweenDates(userId: String, startDate: Int, endDate: Int): Flow<List<TrainingDayEntity>>
 }
