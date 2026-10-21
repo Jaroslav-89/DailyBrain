@@ -194,7 +194,7 @@
     <string name="intro_memory">You will memorize a set of words and then recall as many as you can. Pay attention to each word and use associations that work for you.</string>
     <string name="rules_memory">Memorize the words during the allotted time. Then enter the words you remember in the fields. Order does not matter, and you can leave fields empty.</string>
     <string name="intro_counting">This exercise asks you to count aloud from 1 to 120. Focus on the sequence and try to complete it without skipping numbers.</string>
-    <string name="rules_counting">Start the next screen and count aloud from 1 to 120. Finish the exercise when you reach the end. Try not to skip numbers and use a natural pace.</string>
+    <string name="rules_counting">Tap “Start exercise” and count aloud from 1 to 120. Finish the exercise when you reach the end. Try not to skip numbers and use a natural pace.</string>
     <string name="intro_stroop">In the Stroop test, focus on the colour of the text rather than the word itself. This exercise requires attention and control over the automatic response to reading.</string>
     <string name="rules_stroop">Name the colour of the text and ignore the meaning of the word. Focus on the colour of the letters. Work carefully at a comfortable pace.</string>
 
