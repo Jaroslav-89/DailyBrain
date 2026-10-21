@@ -43,6 +43,9 @@ import com.jaroapps.dailybrain.feature.profile.data.repository.ProfileStatistics
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
@@ -84,6 +87,9 @@ val appModule = module {
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveUserProfileUseCase(repository = get()) }
+    factory { ObserveLocalProfilesUseCase(repository = get()) }
+    factory { CreateLocalProfileUseCase(repository = get()) }
+    factory { SwitchActiveProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
