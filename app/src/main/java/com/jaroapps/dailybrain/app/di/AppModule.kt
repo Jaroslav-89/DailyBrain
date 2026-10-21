@@ -122,7 +122,7 @@ val appModule = module {
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }
-    factory { SwitchActiveProfileUseCase(repository = get()) }
+    factory { SwitchActiveProfileUseCase(repository = get(), stateChangedNotifier = get()) }
     factory { DeleteActiveProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
