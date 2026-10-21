@@ -5,7 +5,7 @@
 
     <style name="Theme.DailyBrain.Starting" parent="Theme.SplashScreen">
         <item name="windowSplashScreenBackground">@android:color/white</item>
-        <item name="windowSplashScreenAnimatedIcon">@mipmap/ic_launcher</item>
+        <item name="windowSplashScreenAnimatedIcon">@drawable/brain_base</item>
         <item name="postSplashScreenTheme">@style/Theme.DailyBrain</item>
     </style>
 </resources>
