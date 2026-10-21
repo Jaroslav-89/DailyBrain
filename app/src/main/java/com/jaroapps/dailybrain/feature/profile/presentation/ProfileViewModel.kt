@@ -10,6 +10,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUse
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteActiveProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +24,7 @@ data class ProfileUiState(
     val statistics: ProfileStatistics = ProfileStatistics(),
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
+    val deleteError: Boolean = false,
 )
 
 class ProfileViewModel(
@@ -32,9 +34,11 @@ class ProfileViewModel(
     observeLocalProfiles: ObserveLocalProfilesUseCase,
     private val createLocalProfile: CreateLocalProfileUseCase,
     private val switchActiveProfile: SwitchActiveProfileUseCase,
+    private val deleteActiveProfile: DeleteActiveProfileUseCase,
 ) : ViewModel() {
     private val saving = MutableStateFlow(false)
     private val saveError = MutableStateFlow(false)
+    private val deleteError = MutableStateFlow(false)
 
     val uiState: StateFlow<ProfileUiState> = combine(
         observeUserProfile(),
@@ -42,8 +46,9 @@ class ProfileViewModel(
         observeProfileStatistics(),
         saving,
         saveError,
-    ) { profile, profiles, statistics, isSaving, hasError ->
-        ProfileUiState(profile, profiles, statistics, isSaving, hasError)
+        deleteError,
+    ) { profile, profiles, statistics, isSaving, hasSaveError, hasDeleteError ->
+        ProfileUiState(profile, profiles, statistics, isSaving, hasSaveError, hasDeleteError)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
     fun createProfile() {
@@ -67,6 +72,22 @@ class ProfileViewModel(
                 saveError.value = true
             }
         }
+    }
+
+    fun deleteProfile(onDeleted: () -> Unit) {
+        viewModelScope.launch {
+            deleteError.value = false
+            try {
+                deleteActiveProfile()
+                onDeleted()
+            } catch (_: Exception) {
+                deleteError.value = true
+            }
+        }
+    }
+
+    fun clearDeleteError() {
+        deleteError.value = false
     }
 
     fun saveProfile(
