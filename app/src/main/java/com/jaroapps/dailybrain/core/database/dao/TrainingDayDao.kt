@@ -17,6 +17,8 @@ interface TrainingDayDao {
     suspend fun deleteAll(userId: String)
     @Query("UPDATE training_days SET exerciseCount = exerciseCount + 1 WHERE userId = :userId AND date = :date")
     suspend fun incrementExerciseCount(userId: String, date: Int)
+    @Query("SELECT EXISTS(SELECT 1 FROM training_days WHERE userId = :userId AND date = :date)")
+    suspend fun hasTrainingOnDate(userId: String, date: Int): Boolean
     @Query("SELECT * FROM training_days WHERE userId = :userId ORDER BY date ASC")
     fun observeAll(userId: String): Flow<List<TrainingDayEntity>>
     @Query("SELECT * FROM training_days WHERE userId = :userId AND date BETWEEN :startDate AND :endDate ORDER BY date ASC")
