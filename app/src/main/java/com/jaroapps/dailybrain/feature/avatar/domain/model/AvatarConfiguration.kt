@@ -19,9 +19,12 @@ data class AvatarConfiguration(
     val clothingColorId: Int = DEFAULT_CLOTHING_COLOR_ID,
     val glassesId: Int = NO_GLASSES_ID,
     val frecklesId: Int = NO_FRECKLES_ID,
+    val bodyTypeId: Int = DEFAULT_BODY_TYPE_ID,
+    val hairLengthId: Int = DEFAULT_HAIR_LENGTH_ID,
+    val facialHairId: Int = NO_FACIAL_HAIR_ID,
 ) {
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 2
+        const val CURRENT_SCHEMA_VERSION = 4
         const val DEFAULT_SKIN_TONE_ID = 2
         const val DEFAULT_HAIR_STYLE_ID = 1
         const val DEFAULT_HAIR_COLOR_ID = 2
@@ -35,6 +38,9 @@ data class AvatarConfiguration(
         const val DEFAULT_CLOTHING_COLOR_ID = 6
         const val NO_GLASSES_ID = 0
         const val NO_FRECKLES_ID = 0
+        const val DEFAULT_BODY_TYPE_ID = 3
+        const val DEFAULT_HAIR_LENGTH_ID = 2
+        const val NO_FACIAL_HAIR_ID = 0
 
         val Default = AvatarConfiguration()
     }

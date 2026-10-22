@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.avatar.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
@@ -52,7 +53,8 @@ class AvatarViewModel(
                 saveAvatar(_uiState.value.configuration)
                 hasLocalDraft = false
                 onSaved()
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                Log.e("AvatarViewModel", "Failed to save avatar", error)
                 _uiState.value = _uiState.value.copy(saveError = true)
             } finally {
                 _uiState.value = _uiState.value.copy(isSaving = false)
@@ -67,7 +69,8 @@ class AvatarViewModel(
                 resetAvatar()
                 hasLocalDraft = false
                 _uiState.value = _uiState.value.copy(configuration = AvatarConfiguration.Default)
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                Log.e("AvatarViewModel", "Failed to reset avatar", error)
                 _uiState.value = _uiState.value.copy(saveError = true)
             } finally {
                 _uiState.value = _uiState.value.copy(isSaving = false)
