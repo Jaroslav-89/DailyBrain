@@ -21,6 +21,33 @@ class SaveAvatarUseCaseTest {
     }
 
     @Test
+    fun `all newest editor options are accepted for persistence`() = runTest {
+        val repository = FakeAvatarRepository()
+        val configuration = AvatarConfiguration(
+            skinToneId = 5,
+            hairStyleId = 5,
+            hairColorId = 5,
+            eyeStyleId = 5,
+            mouthStyleId = 2,
+            accessoryId = 2,
+            backgroundId = 10,
+            faceTypeId = 5,
+            eyeColorId = 5,
+            clothingStyleId = 5,
+            clothingColorId = 11,
+            glassesId = 5,
+            frecklesId = 4,
+            bodyTypeId = 5,
+            hairLengthId = 5,
+            facialHairId = 4,
+        )
+
+        SaveAvatarUseCase(repository)(configuration)
+
+        assertEquals(configuration, repository.saved)
+    }
+
+    @Test
     fun `unknown asset id is rejected before persistence`() = runTest {
         val repository = FakeAvatarRepository()
         val useCase = SaveAvatarUseCase(repository)
