@@ -190,13 +190,18 @@ fun DayHistoryScreen(
                                     Spacer(Modifier.size(4.dp))
                                 }
 
-                                Text(
-                                    stringResource(
-                                        R.string.history_correct_answers,
-                                        session.correctCount,
-                                        session.taskCount,
+                                if (
+                                    exerciseType != ExerciseType.COUNTING_TRAINING &&
+                                    exerciseType != ExerciseType.STROOP_TEST
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            R.string.history_correct_answers,
+                                            session.correctCount,
+                                            session.taskCount,
+                                        )
                                     )
-                                )
+                                }
                             }
 
                             IconButton(
