@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,7 +121,13 @@ fun DayHistoryScreen(
                     key = { it.id },
                 ) { session ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateItem(
+                                fadeInSpec = tween(durationMillis = 180),
+                                placementSpec = tween(durationMillis = 280),
+                                fadeOutSpec = tween(durationMillis = 180),
+                            ),
                     ) {
                         Box {
                             Column(
