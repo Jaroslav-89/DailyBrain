@@ -18,7 +18,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -39,8 +38,6 @@ import java.util.Locale
 @Composable
 fun HomeScreen(
     onStartTraining: () -> Unit,
-    onOpenStatistics: () -> Unit,
-    onOpenProfile: () -> Unit,
     onOpenCalendar: () -> Unit,
     onStartMemoryTraining: () -> Unit,
     onStartStroopTest: () -> Unit,
@@ -173,24 +170,6 @@ fun HomeScreen(
         }
 
         Spacer(Modifier.height(24.dp))
-
-        OutlinedButton(
-            onClick = onOpenProfile,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.home_profile))
-        }
-
-        Spacer(Modifier.height(12.dp))
-
-        OutlinedButton(
-            onClick = onOpenStatistics,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.home_statistics))
-        }
-
-        Spacer(Modifier.height(12.dp))
 
         Button(
             onClick = onStartTraining,
