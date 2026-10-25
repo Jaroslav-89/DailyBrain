@@ -1,5 +1,9 @@
 package com.jaroapps.dailybrain.feature.onboarding.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -29,7 +33,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
-
 
 @Composable
 fun ExerciseEntryScreen(
@@ -104,7 +107,11 @@ fun BrainTrainingArticleScreen(onClose: () -> Unit) {
                 title = { Text(stringResource(R.string.article_title)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Text("×", style = MaterialTheme.typography.headlineMedium)
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.action_close),
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 },
             )
@@ -201,8 +208,12 @@ fun ExerciseRulesScreen(
             Text(stringResource(R.string.action_start_exercise))
         }
         Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.action_back))
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.action_close),
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }
