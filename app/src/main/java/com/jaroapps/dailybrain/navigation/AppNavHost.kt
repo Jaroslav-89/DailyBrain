@@ -1,10 +1,25 @@
 package com.jaroapps.dailybrain.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.BarChart
+import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Icon
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarEditorScreen
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticScreen
@@ -29,6 +44,13 @@ import java.time.format.DateTimeFormatter
 @Composable
 fun AppNavHost(startDestination: String = Route.STARTUP) {
     val navController = rememberNavController()
+    val currentBackStackEntry by navController.currentBackStackEntryAsState()
+    val currentRoute = currentBackStackEntry?.destination?.route
+    val showBottomNavigation = currentRoute in setOf(
+        Route.HOME,
+        Route.STATISTICS,
+        Route.PROFILE,
+    )
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
 
     val restartStartup: () -> Unit = {
@@ -38,10 +60,27 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         }
     }
 
-    NavHost(
-        navController = navController,
-        startDestination = startDestination,
-    ) {
+    Scaffold(
+        bottomBar = {
+            if (showBottomNavigation) {
+                AppBottomNavigation(
+                    currentRoute = currentRoute,
+                    onDestinationSelected = { route ->
+                        navController.navigate(route) {
+                            popUpTo(Route.HOME) { saveState = true }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    },
+                )
+            }
+        },
+    ) { innerPadding ->
+        NavHost(
+            navController = navController,
+            startDestination = startDestination,
+            modifier = Modifier.padding(innerPadding),
+        ) {
         composable(Route.STARTUP) {
             StartupScreen(
                 onDestinationReady = { destination ->
@@ -75,8 +114,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             HomeScreen(
                 onOpenCalendar = { navController.navigate(Route.CALENDAR) },
                 onStartTraining = { navController.navigate(Route.exerciseEntry("arithmetic")) },
-                onOpenProfile = { navController.navigate(Route.PROFILE) },
-                onOpenStatistics = { navController.navigate(Route.STATISTICS) },
                 onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
                 onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
                 onStartCountingTraining = { navController.navigate(Route.exerciseEntry("counting")) },
@@ -148,7 +185,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
 
         composable(Route.PROFILE) {
             ProfileScreen(
-                onBack = restartStartup,
                 onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
                 onActiveProfileChanged = restartStartup,
             )
@@ -166,7 +202,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         }
 
         composable(Route.STATISTICS) {
-            StatisticsScreen(onBack = { navController.popBackStack() })
+            StatisticsScreen()
         }
 
         composable(Route.CALENDAR) {
@@ -199,6 +235,58 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 onExit = {
                     navController.popBackStack(route = Route.HOME, inclusive = false)
                 },
+            )
+        }
+        }
+    }
+}
+
+
+private data class BottomNavigationDestination(
+    val route: String,
+    val label: String,
+    val icon: ImageVector,
+)
+
+@Composable
+private fun AppBottomNavigation(
+    currentRoute: String?,
+    onDestinationSelected: (String) -> Unit,
+) {
+    val destinations = listOf(
+        BottomNavigationDestination(
+            route = Route.HOME,
+            label = stringResource(R.string.action_home),
+            icon = Icons.Filled.Home,
+        ),
+        BottomNavigationDestination(
+            route = Route.STATISTICS,
+            label = stringResource(R.string.statistics_title),
+            icon = Icons.Filled.BarChart,
+        ),
+        BottomNavigationDestination(
+            route = Route.PROFILE,
+            label = stringResource(R.string.profile_title),
+            icon = Icons.Filled.Person,
+        ),
+    )
+
+    NavigationBar {
+        destinations.forEach { destination ->
+            NavigationBarItem(
+                selected = currentRoute == destination.route,
+                onClick = {
+                    if (currentRoute != destination.route) {
+                        onDestinationSelected(destination.route)
+                    }
+                },
+                icon = {
+                    Icon(
+                        imageVector = destination.icon,
+                        contentDescription = destination.label,
+                    )
+                },
+                label = null,
             )
         }
     }
