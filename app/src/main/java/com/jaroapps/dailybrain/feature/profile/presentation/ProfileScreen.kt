@@ -71,11 +71,6 @@ fun ProfileScreen(
     ) {
         TopAppBar(
             title = { Text(stringResource(R.string.profile_title)) },
-            actions = {
-                IconButton(onClick = onEditProfile) {
-                    Text("⚙", modifier = Modifier.semantics { contentDescription = "Edit profile" }, style = MaterialTheme.typography.titleLarge)
-                }
-            },
         )
         Spacer(Modifier.height(8.dp))
         Surface(
@@ -85,7 +80,7 @@ fun ProfileScreen(
         ) {
             Column(modifier = Modifier.padding(16.dp)) {
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
                     verticalAlignment = Alignment.Top,
                 ) {
                     Surface(
@@ -105,7 +100,7 @@ fun ProfileScreen(
                         Text(
                             text = profile?.let { user -> profileNameWithAge(user, today) }
                                 ?: stringResource(R.string.profile_loading),
-                            style = MaterialTheme.typography.headlineSmall,
+                            style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold,
                         )
                         profile?.let { user ->
@@ -130,6 +125,17 @@ fun ProfileScreen(
                                 )
                             }
                         }
+                    }
+                    IconButton(
+                        onClick = onEditProfile,
+                        modifier = Modifier.semantics {
+                            contentDescription = "Edit profile"
+                        },
+                    ) {
+                        Text(
+                            text = "⚙",
+                            style = MaterialTheme.typography.titleLarge,
+                        )
                     }
                 }
                 accountPeriod?.let { elapsed ->
