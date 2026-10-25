@@ -47,7 +47,6 @@ import java.time.ZoneId
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onBack: () -> Unit,
     onEditProfile: () -> Unit,
     onActiveProfileChanged: () -> Unit,
     modifier: Modifier = Modifier,
@@ -211,10 +210,6 @@ fun ProfileScreen(
         BestResultCard(stringResource(R.string.exercise_counting), stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }, BestKind.DURATION)
         Spacer(Modifier.height(8.dp))
         BestResultCard(stringResource(R.string.exercise_stroop), stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }, BestKind.DURATION)
-        Spacer(Modifier.height(20.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.action_home))
-        }
     }
 }
 
