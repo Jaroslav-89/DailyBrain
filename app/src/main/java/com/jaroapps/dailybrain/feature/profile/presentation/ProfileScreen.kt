@@ -57,6 +57,7 @@ fun ProfileScreen(
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
     val stats = state.statistics
+    val editProfileDescription = stringResource(R.string.profile_edit)
     val today = LocalDate.now()
     val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
     val accountPeriod = profile?.let {
@@ -129,7 +130,7 @@ fun ProfileScreen(
                     IconButton(
                         onClick = onEditProfile,
                         modifier = Modifier.semantics {
-                            contentDescription = "Edit profile"
+                            contentDescription = editProfileDescription
                         },
                     ) {
                         Text(
