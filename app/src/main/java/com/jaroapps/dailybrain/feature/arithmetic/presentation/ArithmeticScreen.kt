@@ -1,5 +1,10 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -354,8 +359,12 @@ private fun AnswerReviewContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = onBack) {
-                Text(stringResource(R.string.action_back))
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
 
             Spacer(Modifier.weight(1f))
