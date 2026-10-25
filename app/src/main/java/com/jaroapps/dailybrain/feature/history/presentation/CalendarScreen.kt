@@ -1,5 +1,9 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -55,8 +59,12 @@ fun CalendarScreen(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onBack) {
-                Text(stringResource(R.string.action_back))
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
 
             Text(
