@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -120,7 +121,13 @@ fun DayHistoryScreen(
                     key = { it.id },
                 ) { session ->
                     Card(
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateItem(
+                                fadeInSpec = tween(durationMillis = 180),
+                                placementSpec = tween(durationMillis = 280),
+                                fadeOutSpec = tween(durationMillis = 180),
+                            ),
                     ) {
                         Box {
                             Column(
@@ -128,7 +135,8 @@ fun DayHistoryScreen(
                                     .fillMaxWidth()
                                     .padding(16.dp),
                             ) {
-                                val exerciseName = when (ExerciseType.fromStorage(session.exerciseType)) {
+                                val exerciseType = ExerciseType.fromStorage(session.exerciseType)
+                                val exerciseName = when (exerciseType) {
                                     ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
                                     ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
                                     ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
@@ -162,28 +170,38 @@ fun DayHistoryScreen(
                                     )
                                 )
 
-                                Spacer(Modifier.size(4.dp))
+                                if (
+                                    exerciseType != ExerciseType.COUNTING_TRAINING &&
+                                    exerciseType != ExerciseType.STROOP_TEST
+                                ) {
+                                    Spacer(Modifier.size(4.dp))
 
-                                Text(
-                                    stringResource(
-                                        R.string.history_accuracy,
-                                        String.format(
-                                            Locale.getDefault(),
-                                            "%.0f",
-                                            session.accuracyPercent,
-                                        ),
+                                    Text(
+                                        stringResource(
+                                            R.string.history_accuracy,
+                                            String.format(
+                                                Locale.getDefault(),
+                                                "%.0f",
+                                                session.accuracyPercent,
+                                            ),
+                                        )
                                     )
-                                )
 
-                                Spacer(Modifier.size(4.dp))
+                                    Spacer(Modifier.size(4.dp))
+                                }
 
-                                Text(
-                                    stringResource(
-                                        R.string.history_correct_answers,
-                                        session.correctCount,
-                                        session.taskCount,
+                                if (
+                                    exerciseType != ExerciseType.COUNTING_TRAINING &&
+                                    exerciseType != ExerciseType.STROOP_TEST
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            R.string.history_correct_answers,
+                                            session.correctCount,
+                                            session.taskCount,
+                                        )
                                     )
-                                )
+                                }
                             }
 
                             IconButton(
