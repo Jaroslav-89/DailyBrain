@@ -1,25 +1,26 @@
 package com.jaroapps.dailybrain.navigation
 
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.navigation.NavType
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import androidx.navigation.NavType
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticScreen
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarEditorScreen
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingScreen
@@ -37,9 +38,8 @@ import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
-import com.jaroapps.dailybrain.R
-import java.time.format.DateTimeFormatter
 import org.koin.androidx.compose.koinViewModel
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppNavHost(startDestination: String = Route.STARTUP) {
