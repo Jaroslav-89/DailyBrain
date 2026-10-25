@@ -1,5 +1,8 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -80,8 +83,12 @@ fun DayHistoryScreen(
             .fillMaxSize()
             .padding(16.dp),
     ) {
-        TextButton(onClick = onBack) {
-            Text("‹ " + stringResource(R.string.action_back))
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.action_close),
+                modifier = Modifier.size(24.dp),
+            )
         }
 
         Text(
