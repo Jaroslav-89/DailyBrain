@@ -1,5 +1,10 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.aspectRatio
@@ -70,7 +75,15 @@ fun EditProfileScreen(
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
         TopAppBar(
             title = { Text(stringResource(R.string.profile_edit_title)) },
-            navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.action_cancel)) } },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.action_close),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            },
         )
         Spacer(Modifier.height(12.dp))
         OutlinedButton(onClick = onEditAvatar, modifier = Modifier.fillMaxWidth()) {
