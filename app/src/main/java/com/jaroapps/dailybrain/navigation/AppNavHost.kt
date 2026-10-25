@@ -1,28 +1,27 @@
 package com.jaroapps.dailybrain.navigation
 
-import androidx.compose.runtime.Composable
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.Icons
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.jaroapps.dailybrain.R
-import androidx.navigation.NavType
-import androidx.navigation.navArgument
-import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
+import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
-import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarEditorScreen
+import androidx.navigation.navArgument
+import androidx.navigation.NavType
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticScreen
+import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarEditorScreen
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingScreen
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
@@ -38,8 +37,9 @@ import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
-import org.koin.androidx.compose.koinViewModel
+import com.jaroapps.dailybrain.R
 import java.time.format.DateTimeFormatter
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun AppNavHost(startDestination: String = Route.STARTUP) {
@@ -81,162 +81,162 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
         ) {
-        composable(Route.STARTUP) {
-            StartupScreen(
-                onDestinationReady = { destination ->
-                    navController.navigate(destination) {
-                        popUpTo(Route.STARTUP) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-                onStartupResolved = {},
-            )
-        }
-
-        composable(Route.APP_ONBOARDING) {
-            AppOnboardingScreen(
-                onContinue = {
-                    onboardingViewModel.markAppIntroComplete {
-                        navController.navigate(Route.HOME) {
-                            popUpTo(Route.APP_ONBOARDING) { inclusive = true }
+            composable(Route.STARTUP) {
+                StartupScreen(
+                    onDestinationReady = { destination ->
+                        navController.navigate(destination) {
+                            popUpTo(Route.STARTUP) { inclusive = true }
                             launchSingleTop = true
                         }
-                    }
-                },
-            )
-        }
+                    },
+                    onStartupResolved = {},
+                )
+            }
 
-        composable(Route.BRAIN_ARTICLE) {
-            BrainTrainingArticleScreen(onClose = { navController.popBackStack() })
-        }
+            composable(Route.APP_ONBOARDING) {
+                AppOnboardingScreen(
+                    onContinue = {
+                        onboardingViewModel.markAppIntroComplete {
+                            navController.navigate(Route.HOME) {
+                                popUpTo(Route.APP_ONBOARDING) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                )
+            }
 
-        composable(Route.HOME) {
-            HomeScreen(
-                onOpenCalendar = { navController.navigate(Route.CALENDAR) },
-                onStartTraining = { navController.navigate(Route.exerciseEntry("arithmetic")) },
-                onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
-                onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
-                onStartCountingTraining = { navController.navigate(Route.exerciseEntry("counting")) },
-                onOpenArticle = { navController.navigate(Route.BRAIN_ARTICLE) },
-            )
-        }
+            composable(Route.BRAIN_ARTICLE) {
+                BrainTrainingArticleScreen(onClose = { navController.popBackStack() })
+            }
 
-        composable(
-            route = Route.EXERCISE_ENTRY,
-            arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
-        ) { entry ->
-            val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-            ExerciseEntryScreen(
-                exerciseKey = exerciseKey,
-                onDestinationReady = { destination ->
-                    navController.navigate(destination) {
-                        popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-            )
-        }
+            composable(Route.HOME) {
+                HomeScreen(
+                    onOpenCalendar = { navController.navigate(Route.CALENDAR) },
+                    onStartTraining = { navController.navigate(Route.exerciseEntry("arithmetic")) },
+                    onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
+                    onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
+                    onStartCountingTraining = { navController.navigate(Route.exerciseEntry("counting")) },
+                    onOpenArticle = { navController.navigate(Route.BRAIN_ARTICLE) },
+                )
+            }
 
-        composable(
-            route = Route.EXERCISE_INTRO,
-            arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
-        ) { entry ->
-            val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-            ExerciseIntroScreen(
-                exerciseKey = exerciseKey,
-                onBack = { navController.popBackStack(Route.HOME, false) },
-                onContinue = {
-                    onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
-                        navController.navigate(Route.exerciseRules(exerciseKey)) {
-                            popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
+            composable(
+                route = Route.EXERCISE_ENTRY,
+                arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+            ) { entry ->
+                val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                ExerciseEntryScreen(
+                    exerciseKey = exerciseKey,
+                    onDestinationReady = { destination ->
+                        navController.navigate(destination) {
+                            popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
                             launchSingleTop = true
                         }
-                    }
-                },
-            )
-        }
+                    },
+                )
+            }
 
-        composable(
-            route = Route.EXERCISE_RULES,
-            arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
-        ) { entry ->
-            val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-            ExerciseRulesScreen(
-                exerciseKey = exerciseKey,
-                onBack = { navController.popBackStack(Route.HOME, false) },
-                onStart = {
-                    val destination = when (exerciseKey) {
-                        "memory" -> Route.MEMORY_TRAINING
-                        "counting" -> Route.COUNTING_TRAINING
-                        "stroop" -> Route.STROOP_TEST
-                        else -> Route.ARITHMETIC
-                    }
-                    navController.navigate(destination) {
-                        popUpTo(Route.EXERCISE_RULES) { inclusive = true }
-                        launchSingleTop = true
-                    }
-                },
-            )
-        }
+            composable(
+                route = Route.EXERCISE_INTRO,
+                arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+            ) { entry ->
+                val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                ExerciseIntroScreen(
+                    exerciseKey = exerciseKey,
+                    onBack = { navController.popBackStack(Route.HOME, false) },
+                    onContinue = {
+                        onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
+                            navController.navigate(Route.exerciseRules(exerciseKey)) {
+                                popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    },
+                )
+            }
 
-        composable(Route.ARITHMETIC) {
-            ArithmeticScreen(onExit = { navController.popBackStack() })
-        }
+            composable(
+                route = Route.EXERCISE_RULES,
+                arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+            ) { entry ->
+                val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                ExerciseRulesScreen(
+                    exerciseKey = exerciseKey,
+                    onBack = { navController.popBackStack(Route.HOME, false) },
+                    onStart = {
+                        val destination = when (exerciseKey) {
+                            "memory" -> Route.MEMORY_TRAINING
+                            "counting" -> Route.COUNTING_TRAINING
+                            "stroop" -> Route.STROOP_TEST
+                            else -> Route.ARITHMETIC
+                        }
+                        navController.navigate(destination) {
+                            popUpTo(Route.EXERCISE_RULES) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
 
-        composable(Route.PROFILE) {
-            ProfileScreen(
-                onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
-                onActiveProfileChanged = restartStartup,
-            )
-        }
+            composable(Route.ARITHMETIC) {
+                ArithmeticScreen(onExit = { navController.popBackStack() })
+            }
 
-        composable(Route.EDIT_PROFILE) {
-            EditProfileScreen(
-                onBack = { navController.popBackStack() },
-                onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
-            )
-        }
+            composable(Route.PROFILE) {
+                ProfileScreen(
+                    onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
+                    onActiveProfileChanged = restartStartup,
+                )
+            }
 
-        composable(Route.AVATAR_EDITOR) {
-            AvatarEditorScreen(onBack = { navController.popBackStack() })
-        }
+            composable(Route.EDIT_PROFILE) {
+                EditProfileScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
+                )
+            }
 
-        composable(Route.STATISTICS) {
-            StatisticsScreen()
-        }
+            composable(Route.AVATAR_EDITOR) {
+                AvatarEditorScreen(onBack = { navController.popBackStack() })
+            }
 
-        composable(Route.CALENDAR) {
-            CalendarScreen(
-                onBack = { navController.popBackStack() },
-                onDateSelected = { date ->
-                    val dateKey = date.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
-                    navController.navigate(Route.dayHistory(dateKey))
-                },
-            )
-        }
+            composable(Route.STATISTICS) {
+                StatisticsScreen()
+            }
 
-        composable(
-            route = Route.DAY_HISTORY,
-            arguments = listOf(navArgument("date") { type = NavType.IntType }),
-        ) {
-            DayHistoryScreen(onBack = { navController.popBackStack() })
-        }
+            composable(Route.CALENDAR) {
+                CalendarScreen(
+                    onBack = { navController.popBackStack() },
+                    onDateSelected = { date ->
+                        val dateKey = date.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
+                        navController.navigate(Route.dayHistory(dateKey))
+                    },
+                )
+            }
 
-        composable(Route.MEMORY_TRAINING) {
-            MemoryTrainingScreen(onExit = { navController.popBackStack() })
-        }
+            composable(
+                route = Route.DAY_HISTORY,
+                arguments = listOf(navArgument("date") { type = NavType.IntType }),
+            ) {
+                DayHistoryScreen(onBack = { navController.popBackStack() })
+            }
 
-        composable(Route.STROOP_TEST) {
-            StroopScreen(onExit = { navController.popBackStack() })
-        }
+            composable(Route.MEMORY_TRAINING) {
+                MemoryTrainingScreen(onExit = { navController.popBackStack() })
+            }
 
-        composable(Route.COUNTING_TRAINING) {
-            CountingTrainingScreen(
-                onExit = {
-                    navController.popBackStack(route = Route.HOME, inclusive = false)
-                },
-            )
-        }
+            composable(Route.STROOP_TEST) {
+                StroopScreen(onExit = { navController.popBackStack() })
+            }
+
+            composable(Route.COUNTING_TRAINING) {
+                CountingTrainingScreen(
+                    onExit = {
+                        navController.popBackStack(route = Route.HOME, inclusive = false)
+                    },
+                )
+            }
         }
     }
 }
