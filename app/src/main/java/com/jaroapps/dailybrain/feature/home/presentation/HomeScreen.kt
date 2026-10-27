@@ -242,8 +242,8 @@ fun HomeScreen(
                             if (today) {
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
-                                    initialRadius = 34.dp,
-                                    targetRadius = 42.dp,
+                                    initialRadius = 31.dp,
+                                    targetRadius = 38.dp,
                                 )
                             }
 
