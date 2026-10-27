@@ -363,9 +363,9 @@ private fun dynamicWeekBackground(state: HomeUiState): Brush {
 }
 
 private fun lightenForBackground(color: Color): Color = Color(
-    red = color.red + (1f - color.red) * 0.88f,
-    green = color.green + (1f - color.green) * 0.88f,
-    blue = color.blue + (1f - color.blue) * 0.88f,
+    red = color.red + (1f - color.red) * 0.80f,
+    green = color.green + (1f - color.green) * 0.80f,
+    blue = color.blue + (1f - color.blue) * 0.80f,
     alpha = 1f,
 )
 
@@ -437,10 +437,27 @@ private fun StaticRing(
     radius: Dp,
 ) {
     Canvas(modifier = modifier) {
+        val ringRadius = radius.toPx()
+        val lowerCenter = center.copy(y = center.y + 2.dp.toPx())
+        val upperCenter = center.copy(y = center.y - 1.dp.toPx())
+        // Dark lower edge gives the orange ring a raised, beveled look.
+        drawCircle(
+            color = Color(0xFFC96A00),
+            radius = ringRadius,
+            center = lowerCenter,
+            style = Stroke(width = 5.dp.toPx()),
+        )
         drawCircle(
             color = BrainOrange,
-            radius = radius.toPx(),
+            radius = ringRadius,
+            center = upperCenter,
             style = Stroke(width = 4.dp.toPx()),
+        )
+        drawCircle(
+            color = Color(0xFFFFD49A),
+            radius = ringRadius - 1.dp.toPx(),
+            center = upperCenter.copy(y = upperCenter.y - 0.5.dp.toPx()),
+            style = Stroke(width = 1.dp.toPx()),
         )
     }
 }
@@ -466,10 +483,26 @@ private fun PulsingRing(
     )
 
     Canvas(modifier = modifier) {
+        val ringRadius = radiusDp.dp.toPx()
+        val lowerCenter = center.copy(y = center.y + 2.dp.toPx())
+        val upperCenter = center.copy(y = center.y - 1.dp.toPx())
+        drawCircle(
+            color = Color(0xFFC96A00),
+            radius = ringRadius,
+            center = lowerCenter,
+            style = Stroke(width = 5.dp.toPx()),
+        )
         drawCircle(
             color = BrainOrange,
-            radius = radiusDp.dp.toPx(),
+            radius = ringRadius,
+            center = upperCenter,
             style = Stroke(width = 4.dp.toPx()),
+        )
+        drawCircle(
+            color = Color(0xFFFFD49A),
+            radius = ringRadius - 1.dp.toPx(),
+            center = upperCenter.copy(y = upperCenter.y - 0.5.dp.toPx()),
+            style = Stroke(width = 1.dp.toPx()),
         )
     }
 }
