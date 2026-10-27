@@ -201,6 +201,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             composable(Route.PROFILE) {
                 ProfileScreen(
                     onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
+                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
                     onActiveProfileChanged = restartStartup,
                 )
@@ -210,7 +211,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 ProfileSettingsScreen(
                     onBack = { navController.popBackStack() },
                     onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
-                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenParameters = { navController.navigate(Route.PARAMETERS) },
                 )
             }
