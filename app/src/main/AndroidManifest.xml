@@ -20,7 +20,7 @@
             android:name="com.jaroapps.dailybrain.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@drawable/brain_base"
             android:theme="@style/Theme.DailyBrain.Starting"
             android:windowSoftInputMode="adjustResize">
             <intent-filter>
