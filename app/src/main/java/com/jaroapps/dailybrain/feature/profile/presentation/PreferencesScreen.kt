@@ -100,7 +100,11 @@ private fun SettingToggle(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
-        Text(label, style = MaterialTheme.typography.bodyLarge)
+        Text(
+            text = label,
+            modifier = androidx.compose.ui.Modifier.weight(1f).padding(end = 12.dp),
+            style = MaterialTheme.typography.bodyLarge,
+        )
         Switch(
             checked = checked,
             onCheckedChange = onCheckedChange,
