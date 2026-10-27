@@ -193,6 +193,6 @@ val appModule = module {
         )
     }
 
-    viewModel { HomeViewModel(observeTrainingDaysInRange = get(), observeTotalTrainingCount = get()) }
+    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeTotalTrainingCount = get()) }
     viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), observeStatistics = get()) }
 }
