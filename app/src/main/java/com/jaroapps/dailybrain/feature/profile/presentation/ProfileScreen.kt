@@ -379,7 +379,10 @@ private enum class BestKind { DURATION, MEMORY }
 @Composable
 private fun BestResultCard(title: String, stats: BestExerciseResult?, kind: BestKind) {
     val value = when (kind) {
-        BestKind.DURATION -> stats?.bestDurationMs?.let(::formatDuration)
+        BestKind.DURATION -> {
+            val durationMs = stats?.bestDurationMs
+            if (durationMs != null) formatDuration(durationMs) else null
+        }
         BestKind.MEMORY -> stats?.bestCorrectCount?.toString()
     }
     ProfileStatCard(
