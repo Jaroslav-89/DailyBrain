@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.core.app.NotificationCompat
+import androidx.core.graphics.drawable.toBitmap
 import androidx.core.app.NotificationManagerCompat
 import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.MainActivity
@@ -112,6 +113,8 @@ class ReminderReceiver : BroadcastReceiver() {
         }
         val notification = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification_brain)
+            .setLargeIcon(ContextCompat.getDrawable(context, R.drawable.brain_base)?.toBitmap())
+            .setColor(android.graphics.Color.rgb(255, 152, 0))
             .setContentTitle(context.getString(R.string.reminder_title))
             .setContentText(context.getString(message))
             .setContentIntent(openAppIntent)
