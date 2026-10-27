@@ -36,6 +36,8 @@ import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseRulesScre
 import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import org.koin.androidx.compose.koinViewModel
@@ -117,7 +119,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
                     onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
                     onStartCountingTraining = { navController.navigate(Route.exerciseEntry("counting")) },
-                    onOpenArticle = { navController.navigate(Route.BRAIN_ARTICLE) },
                 )
             }
 
@@ -186,8 +187,18 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             composable(Route.PROFILE) {
                 ProfileScreen(
                     onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
+                    onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
+                    onOpenFriends = { navController.navigate(Route.FRIENDS) },
                     onActiveProfileChanged = restartStartup,
                 )
+            }
+
+            composable(Route.PROFILE_SETTINGS) {
+                ProfileSettingsScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Route.FRIENDS) {
+                FriendsScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.EDIT_PROFILE) {
@@ -211,6 +222,9 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onDateSelected = { date ->
                         val dateKey = date.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
                         navController.navigate(Route.dayHistory(dateKey))
+                    },
+                    onStartExercise = {
+                        navController.navigate(Route.exerciseEntry("arithmetic"))
                     },
                 )
             }
