@@ -93,13 +93,11 @@ fun CountingTrainingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .padding(horizontal = 24.dp, vertical = 12.dp),
         ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.End,
+                verticalAlignment = Alignment.CenterVertically,
             ) {
                 IconButton(onClick = requestExit) {
                     Icon(
@@ -109,28 +107,34 @@ fun CountingTrainingScreen(
                 }
             }
 
-            Spacer(Modifier.height(8.dp))
-
-            Text(
-                text = stringResource(R.string.counting_instruction),
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center,
-            )
-
-            Spacer(Modifier.height(32.dp))
-
-            Text(
-                text = formatCountingTime(state.elapsedTimeMs),
-                style = MaterialTheme.typography.displayMedium,
-            )
-
-            Spacer(Modifier.height(32.dp))
-
-            Button(
-                onClick = viewModel::finishTraining,
-                modifier = Modifier.fillMaxWidth(),
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
             ) {
-                Text(stringResource(R.string.action_finish_training))
+                Text(
+                    text = stringResource(R.string.counting_instruction),
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
+                )
+
+                Spacer(Modifier.height(32.dp))
+
+                Text(
+                    text = formatCountingTime(state.elapsedTimeMs),
+                    style = MaterialTheme.typography.displayMedium,
+                )
+
+                Spacer(Modifier.height(32.dp))
+
+                Button(
+                    onClick = viewModel::finishTraining,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(stringResource(R.string.action_finish_training))
+                }
             }
         }
     }
