@@ -70,8 +70,13 @@ class UserProfileRepositoryImpl(
             val activeId = activeUserProvider.currentUserId()
             val activeProfile = profiles.firstOrNull { it.localAccountId == activeId }
                 ?: throw IllegalStateException("Active profile does not exist")
-            val replacement = profiles.firstOrNull { it.localAccountId != activeId }
-                ?: throw IllegalStateException("Cannot delete the only local profile")
+            val replacement = profiles.firstOrNull { it.localAccountId != activeId } ?: run {
+                // Keep the invariant that there is always one active local profile.
+                // Deleting the last profile therefore replaces it with a fresh empty profile.
+                val newProfile = createInitialProfile(UUID.randomUUID().toString(), firstTrainingAt = null)
+                profileDao.insertIfAbsent(newProfile)
+                requireNotNull(profileDao.getProfile(newProfile.localAccountId))
+            }
 
             database.appSettingsDao().setActiveAccount(
                 AppSettingsEntity(activeLocalAccountId = replacement.localAccountId),
