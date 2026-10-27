@@ -1,6 +1,13 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
 import androidx.compose.foundation.background
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +35,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -104,6 +112,17 @@ fun HomeScreen(
         ) {
             val smallSize = 56.dp
             val largeSize = 88.dp
+            val pulseContainerSize = 88.dp
+            val pulseTransition = rememberInfiniteTransition(label = "todayArithmeticPulse")
+            val pulseRadius by pulseTransition.animateDp(
+                initialValue = 34.dp,
+                targetValue = 42.dp,
+                animationSpec = infiniteRepeatable(
+                    animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+                    repeatMode = RepeatMode.Reverse,
+                ),
+                label = "todayArithmeticPulseRadius",
+            )
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
 
@@ -171,40 +190,53 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .offset(
-                            x = x(positions[index].first, smallSize),
-                            y = y(positions[index].second, smallSize),
+                            x = x(positions[index].first, smallSize) -
+                                if (today) (pulseContainerSize - smallSize) / 2 else 0.dp,
+                            y = y(positions[index].second, smallSize) -
+                                if (today) (pulseContainerSize - smallSize) / 2 else 0.dp,
                         )
-                        .size(smallSize)
-                        .clip(CircleShape)
-                        .background(color)
-                        .then(
-                            if (today) Modifier.border(2.dp, color, CircleShape)
-                            else Modifier
-                        )
-                        .clickable(enabled = enabled, onClick = onStartTraining)
-                        .semantics {
-                            contentDescription = when (status) {
-                                ArithmeticDayStatus.FUTURE -> "$dateLabel: ещё не доступно"
-                                ArithmeticDayStatus.AVAILABLE_TODAY -> "$dateLabel: начать арифметику"
-                                ArithmeticDayStatus.COMPLETED -> "$dateLabel: тренировка выполнена"
-                                ArithmeticDayStatus.MISSED -> "$dateLabel: пропущенный день"
-                            }
-                        },
+                        .size(if (today) pulseContainerSize else smallSize),
                     contentAlignment = Alignment.Center,
                 ) {
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.Center,
+                    if (today) {
+                        Canvas(modifier = Modifier.fillMaxSize()) {
+                            drawCircle(
+                                color = BrainOrange,
+                                radius = pulseRadius.toPx(),
+                                style = Stroke(width = 4.dp.toPx()),
+                            )
+                        }
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(smallSize)
+                            .clip(CircleShape)
+                            .background(color)
+                            .clickable(enabled = enabled, onClick = onStartTraining)
+                            .semantics {
+                                contentDescription = when (status) {
+                                    ArithmeticDayStatus.FUTURE -> "$dateLabel: ещё не доступно"
+                                    ArithmeticDayStatus.AVAILABLE_TODAY -> "$dateLabel: начать арифметику"
+                                    ArithmeticDayStatus.COMPLETED -> "$dateLabel: тренировка выполнена"
+                                    ArithmeticDayStatus.MISSED -> "$dateLabel: пропущенный день"
+                                }
+                            },
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Text(
-                            text = dateLabel.take(2),
-                            color = Color.White,
-                            fontSize = 10.sp,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                            Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
-                            Icon(Icons.Filled.Remove, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center,
+                        ) {
+                            Text(
+                                text = dateLabel.take(2),
+                                color = Color.White,
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold,
+                            )
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                                Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                                Icon(Icons.Filled.Remove, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                            }
                         }
                     }
                 }
