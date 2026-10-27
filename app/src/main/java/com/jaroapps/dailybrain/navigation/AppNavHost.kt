@@ -309,8 +309,14 @@ private fun AppBottomNavigation(
     Column(
         modifier = Modifier
             .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surface),
+            .background(MaterialTheme.colorScheme.surfaceVariant),
     ) {
+        Spacer(
+            Modifier
+                .fillMaxWidth()
+                .height(1.dp)
+                .background(Color(0xFFD6D6D6)),
+        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
