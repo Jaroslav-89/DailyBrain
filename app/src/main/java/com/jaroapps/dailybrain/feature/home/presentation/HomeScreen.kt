@@ -3,7 +3,7 @@ package com.jaroapps.dailybrain.feature.home.presentation
 import androidx.compose.foundation.background
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
@@ -113,11 +113,14 @@ fun HomeScreen(
             val largeSize = 88.dp
             val pulseContainerSize = 88.dp
             val pulseTransition = rememberInfiniteTransition(label = "todayArithmeticPulse")
-            val pulseRadius by pulseTransition.animateDp(
-                initialValue = 34.dp,
-                targetValue = 42.dp,
-                animationSpec = infiniteRepeatable(
-                    animation = tween(durationMillis = 1000, easing = FastOutSlowInEasing),
+            val pulseRadiusDp by pulseTransition.animateFloat(
+                initialValue = 34f,
+                targetValue = 42f,
+                animationSpec = infiniteRepeatable<Float>(
+                    animation = tween<Float>(
+                        durationMillis = 1000,
+                        easing = FastOutSlowInEasing,
+                    ),
                     repeatMode = RepeatMode.Reverse,
                 ),
                 label = "todayArithmeticPulseRadius",
@@ -201,7 +204,7 @@ fun HomeScreen(
                         Canvas(modifier = Modifier.fillMaxSize()) {
                             drawCircle(
                                 color = BrainOrange,
-                                radius = pulseRadius.toPx(),
+                                radius = pulseRadiusDp.dp.toPx(),
                                 style = Stroke(width = 4.dp.toPx()),
                             )
                         }
