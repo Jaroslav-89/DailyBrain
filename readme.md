@@ -62,7 +62,7 @@ Android-приложение для ежедневных упражнений н
 
 - При первом запуске показывается вводный экран приложения. Перед первым запуском каждого типа тренировки показываются вступление и правила; завершение хранится отдельно для каждого локального профиля.
 - Локальные напоминания планируются на **18:00** и **21:00**. Уведомление показывается только если для активного профиля сегодня ещё нет записи о тренировке. После срабатывания напоминание планируется на следующий день; расписание восстанавливается при загрузке устройства и изменении времени/часового пояса.
-- Есть два состояния изображения мозга: обычное и «кислое». После тренировки за сегодня состояние обычное; если сегодня ещё не тренировались, после 20:00 используется «кислое». Состояние обновляет иконку приложения через activity-alias и виджет с серией дней и статусом занятия.
+- Иконка приложения всегда оранжевая (`brain_base`); она объявлена непосредственно на `MainActivity`, без переключаемых `activity-alias`. Состояние мозга по-прежнему зависит от тренировки за сегодня и времени суток: после 20:00 без тренировки виджет может показывать «кислое» состояние, но иконка в лаунчере не меняется.
 - Для Android 13+ приложение запрашивает разрешение на уведомления. Объявлены также приём загрузки устройства, ресивер состояния мозга и App Widget.
 
 ## Стек и конфигурация
@@ -140,7 +140,7 @@ app/src/main/java/com/jaroapps/dailybrain/
 ├── feature/
 │   ├── arithmetic/               # генерация задач, проверка, экран и ViewModel
 │   ├── avatar/                   # модель конфигурации, JSON, репозиторий, редактор
-│   ├── brain/                    # состояние мозга, иконка приложения, виджет
+│   ├── brain/                    # состояние мозга и виджет
 │   ├── counting/                 # тренировка с таймером
 │   ├── history/                  # календарь и история дня
 │   ├── home/                     # главный экран и сводка последних дней
@@ -186,7 +186,7 @@ app/src/main/java/com/jaroapps/dailybrain/
 | Профиль | `UserProfile`, `UserProfileRepository` / `UserProfileRepositoryImpl`, `ProfileStatisticsRepository` / `ProfileStatisticsRepositoryImpl`, профильные use case’ы и ViewModel |
 | Аватар | `AvatarConfiguration`, `AvatarJsonCodec`, `AvatarRepository` / `AvatarRepositoryImpl`, `AvatarViewModel`, `AvatarDrawableFactory`, `AvatarEditorScreen` |
 | Онбординг | `OnboardingProgress`, `OnboardingProgressRepository`, `GetStartupDestinationUseCase`, `GetExerciseEntryDestinationUseCase`, `StartupViewModel`, `ExerciseEntryViewModel`, `OnboardingProgressViewModel` |
-| Состояние мозга | `BrainMood`, `BrainStateManager`, `BrainStateScheduler`, `BrainStateReceiver`, `AppIconController`, `BrainWidgetProvider`, `BrainWidgetUpdater` |
+| Состояние мозга | `BrainMood`, `BrainStateManager`, `BrainStateScheduler`, `BrainStateReceiver`, `BrainWidgetProvider`, `BrainWidgetUpdater` |
 | Напоминания | `ReminderScheduler`, `ReminderReceiver` |
 
 ## Навигация
@@ -364,8 +364,6 @@ Workflow запускает проверки при push в `version_1_singl_mod
 Добавлены unit-тесты `HomeUiStateTest` и `CalendarUiStateTest` для недельного диапазона, серии, состояния арифметических кнопок и расчёта оставшихся часов. Workflow CI теперь также срабатывает на push в ветки `feature/**`.
 
 
-### Android Studio: ошибка `Activity class ... LauncherBase does not exist`
+### Android Studio: стабильная оранжевая иконка запуска
 
-В приложении два `activity-alias` для динамической иконки (`LauncherBase` и `LauncherSour`). `AppIconController` отключает один из них в зависимости от состояния мозга; поэтому конфигурация Android Studio, которая явно запускает `LauncherBase`, может ссылаться на отключённый компонент.
-
-Используйте разделяемую конфигурацию **`DailyBrain — MainActivity`** из `.idea/runConfigurations/DailyBrain_MainActivity.xml`: она запускает стабильный компонент `com.jaroapps.dailybrain.MainActivity`, а не конкретный alias. В Android Studio выберите эту конфигурацию в выпадающем списке Run/Debug рядом с кнопкой запуска. Настройка сохраняется в репозитории; после синхронизации проекта Android Studio должна её показать.
+Лаунчер-иконка больше не переключается по состоянию мозга: `MainActivity` сама объявлена компонентом `MAIN`/`LAUNCHER` и использует `@drawable/brain_base`. Alias-компоненты `LauncherBase` и `LauncherSour` удалены, а `BrainStateManager` обновляет состояние виджета без изменения иконки приложения. В Android Studio запускайте конфигурацию **`DailyBrain — MainActivity`** из `.idea/runConfigurations/DailyBrain_MainActivity.xml`.
