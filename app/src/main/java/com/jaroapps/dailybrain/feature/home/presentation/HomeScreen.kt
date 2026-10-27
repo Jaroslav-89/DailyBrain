@@ -290,13 +290,13 @@ fun HomeScreen(
                                         tint = Color.White,
                                         modifier = Modifier
                                             .align(Alignment.TopStart)
-                                            .padding(start = 9.dp, top = 7.dp)
-                                            .size(14.dp),
+                                            .padding(start = 14.dp, top = 13.dp)
+                                            .size(12.dp),
                                     )
                                     Text(
                                         text = "/",
                                         color = Color.White,
-                                        fontSize = 18.sp,
+                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.align(Alignment.Center),
                                     )
@@ -306,8 +306,8 @@ fun HomeScreen(
                                         tint = Color.White,
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
-                                            .padding(end = 9.dp, bottom = 7.dp)
-                                            .size(14.dp),
+                                            .padding(end = 14.dp, bottom = 13.dp)
+                                            .size(12.dp),
                                     )
                                 }
                             }
@@ -346,6 +346,8 @@ private fun depthColor(color: Color): Color = Color(
 )
 
 private fun dynamicWeekBackground(state: HomeUiState): Brush {
+    // The gradient is derived from the exact button colors, so future exercise colors (for example
+    // violet) can be added once in arithmeticButtonColor and will get a matching pastel background.
     val colors = state.currentWeekDates.map { date ->
         lightenForBackground(arithmeticButtonColor(state.arithmeticDayStatus(date)))
     }
