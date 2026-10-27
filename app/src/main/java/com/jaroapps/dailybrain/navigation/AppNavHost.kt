@@ -6,13 +6,10 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
-import androidx.compose.foundation.layout.WindowInsets.Companion.navigationBars
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.windowInsetsBottomHeight
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
@@ -350,7 +347,7 @@ private fun AppBottomNavigation(
             }
         }
 
-        // Keep the system navigation gesture area clear while reducing the visible bar height.
-        Spacer(Modifier.windowInsetsBottomHeight(WindowInsets.navigationBars))
+        // Reserve a small bottom area for system navigation gestures.
+        Spacer(Modifier.height(24.dp))
     }
 }
