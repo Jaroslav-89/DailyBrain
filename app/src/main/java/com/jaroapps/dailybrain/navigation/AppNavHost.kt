@@ -200,7 +200,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
 
             composable(Route.PROFILE) {
                 ProfileScreen(
-                    onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
                     onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
                     onActiveProfileChanged = restartStartup,
