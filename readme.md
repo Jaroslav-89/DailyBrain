@@ -362,3 +362,10 @@ Workflow запускает проверки при push в `version_1_singl_mod
 Из `app/src/main/assets/memory_words.json` удалено 43 точных совпадения со списком, а также слово `запонка` в единственном числе — как соответствующая форма к запрошенному «запонки». Слово «мать и мачеха» в исходном массиве отсутствовало. Повторные пункты «банджо» и «соусник» удалены один раз, поскольку в исходном списке каждое встречалось по одному разу.
 
 Добавлены unit-тесты `HomeUiStateTest` и `CalendarUiStateTest` для недельного диапазона, серии, состояния арифметических кнопок и расчёта оставшихся часов. Workflow CI теперь также срабатывает на push в ветки `feature/**`.
+
+
+### Android Studio: ошибка `Activity class ... LauncherBase does not exist`
+
+В приложении два `activity-alias` для динамической иконки (`LauncherBase` и `LauncherSour`). `AppIconController` отключает один из них в зависимости от состояния мозга; поэтому конфигурация Android Studio, которая явно запускает `LauncherBase`, может ссылаться на отключённый компонент.
+
+Используйте разделяемую конфигурацию **`DailyBrain — MainActivity`** из `.idea/runConfigurations/DailyBrain_MainActivity.xml`: она запускает стабильный компонент `com.jaroapps.dailybrain.MainActivity`, а не конкретный alias. В Android Studio выберите эту конфигурацию в выпадающем списке Run/Debug рядом с кнопкой запуска. Настройка сохраняется в репозитории; после синхронизации проекта Android Studio должна её показать.
