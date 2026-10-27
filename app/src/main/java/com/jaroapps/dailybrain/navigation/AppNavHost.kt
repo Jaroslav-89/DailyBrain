@@ -226,6 +226,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             composable(Route.EDIT_PROFILE) {
                 EditProfileScreen(
                     onBack = { navController.popBackStack() },
+                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                 )
             }
 
@@ -320,7 +321,7 @@ private fun AppBottomNavigation(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(56.dp)
+                .height(48.dp)
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
@@ -331,11 +332,11 @@ private fun AppBottomNavigation(
                     onClick = {
                         if (!selected) onDestinationSelected(destination.route)
                     },
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(40.dp),
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(40.dp)
+                            .size(34.dp)
                             .background(
                                 color = if (selected) {
                                     MaterialTheme.colorScheme.secondaryContainer
@@ -349,7 +350,7 @@ private fun AppBottomNavigation(
                         Icon(
                             imageVector = destination.icon,
                             contentDescription = destination.label,
-                            modifier = Modifier.size(24.dp),
+                            modifier = Modifier.size(21.dp),
                             tint = if (selected) {
                                 MaterialTheme.colorScheme.onSecondaryContainer
                             } else {
@@ -362,6 +363,6 @@ private fun AppBottomNavigation(
         }
 
         // Reserve a small bottom area for system navigation gestures.
-        Spacer(Modifier.height(24.dp))
+        Spacer(Modifier.height(2.dp))
     }
 }
