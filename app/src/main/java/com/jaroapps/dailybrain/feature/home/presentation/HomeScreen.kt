@@ -35,6 +35,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
@@ -71,12 +75,24 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayButtonsDescription = state.currentWeekDates.zip(WeekdayLabels)
+    val context = LocalContext.current
+    HomeAppearancePreference.ensureLoaded(context)
+    val homeBackground = if (HomeAppearancePreference.dynamicBackgroundEnabled) {
+        dynamicWeekBackground(state)
+    } else {
+        SolidColor(MaterialTheme.colorScheme.background)
+    }
 
-    Column(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp, vertical = 10.dp),
+            .background(homeBackground),
     ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 10.dp),
+        ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
@@ -202,12 +218,7 @@ fun HomeScreen(
 
             state.currentWeekDates.forEachIndexed { index, date ->
                 val status = state.arithmeticDayStatus(date)
-                val color = when (status) {
-                    ArithmeticDayStatus.COMPLETED -> BrainOrange
-                    ArithmeticDayStatus.MISSED -> MissedBlue
-                    ArithmeticDayStatus.AVAILABLE_TODAY,
-                    ArithmeticDayStatus.FUTURE -> UnavailableGray
-                }
+                val color = arithmeticButtonColor(status)
                 val today = date == state.today
                 val dateLabel = dayButtonsDescription[index].second
 
@@ -235,9 +246,22 @@ fun HomeScreen(
 
                             Box(
                                 modifier = Modifier
+                                    .offset(y = 4.dp)
                                     .size(arithmeticButtonSize)
                                     .clip(CircleShape)
-                                    .background(color)
+                                    .background(depthColor(color)),
+                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(arithmeticButtonSize)
+                                    .graphicsLayer {
+                                        rotationX = 9f
+                                        cameraDistance = 12f * density
+                                        shadowElevation = 7.dp.toPx()
+                                        shape = CircleShape
+                                        clip = true
+                                    }
+                                    .background(color, CircleShape)
                                     .clickable(
                                         enabled = today,
                                         onClick = onStartTraining,
@@ -263,13 +287,13 @@ fun HomeScreen(
                                         tint = Color.White,
                                         modifier = Modifier
                                             .align(Alignment.TopStart)
-                                            .padding(start = 5.dp, top = 4.dp)
-                                            .size(18.dp),
+                                            .padding(start = 9.dp, top = 7.dp)
+                                            .size(14.dp),
                                     )
                                     Text(
                                         text = "/",
                                         color = Color.White,
-                                        fontSize = 20.sp,
+                                        fontSize = 18.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.align(Alignment.Center),
                                     )
@@ -279,8 +303,8 @@ fun HomeScreen(
                                         tint = Color.White,
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
-                                            .padding(end = 5.dp, bottom = 4.dp)
-                                            .size(18.dp),
+                                            .padding(end = 9.dp, bottom = 7.dp)
+                                            .size(14.dp),
                                     )
                                 }
                             }
@@ -300,8 +324,45 @@ fun HomeScreen(
                 }
             }
         }
+        }
     }
 }
+
+private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (status) {
+    ArithmeticDayStatus.COMPLETED -> BrainOrange
+    ArithmeticDayStatus.MISSED -> MissedBlue
+    ArithmeticDayStatus.AVAILABLE_TODAY,
+    ArithmeticDayStatus.FUTURE -> UnavailableGray
+}
+
+private fun depthColor(color: Color): Color = Color(
+    red = color.red * 0.72f,
+    green = color.green * 0.72f,
+    blue = color.blue * 0.72f,
+    alpha = color.alpha,
+)
+
+private fun dynamicWeekBackground(state: HomeUiState): Brush {
+    val colors = state.currentWeekDates.map { date ->
+        lightenForBackground(arithmeticButtonColor(state.arithmeticDayStatus(date)))
+    }
+    val stops = buildList {
+        add(0f to colors.first())
+        add(0.12f to colors.first())
+        colors.forEachIndexed { index, color ->
+            add((0.16f + index * 0.13f).coerceAtMost(0.94f) to color)
+        }
+        add(1f to colors.last())
+    }.toTypedArray()
+    return Brush.verticalGradient(colorStops = stops)
+}
+
+private fun lightenForBackground(color: Color): Color = Color(
+    red = color.red + (1f - color.red) * 0.88f,
+    green = color.green + (1f - color.green) * 0.88f,
+    blue = color.blue + (1f - color.blue) * 0.88f,
+    alpha = 1f,
+)
 
 @Composable
 private fun RoundExerciseButton(
@@ -324,6 +385,7 @@ private fun RoundExerciseButton(
         )
     },
 ) {
+    val buttonColor = if (completed) BrainOrange else UnavailableGray
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
@@ -339,9 +401,22 @@ private fun RoundExerciseButton(
 
         Box(
             modifier = Modifier
+                .offset(y = 4.dp)
                 .size(size)
                 .clip(CircleShape)
-                .background(if (completed) BrainOrange else UnavailableGray)
+                .background(depthColor(buttonColor)),
+        )
+        Box(
+            modifier = Modifier
+                .size(size)
+                .graphicsLayer {
+                    rotationX = 9f
+                    cameraDistance = 12f * density
+                    shadowElevation = 7.dp.toPx()
+                    shape = CircleShape
+                    clip = true
+                }
+                .background(buttonColor, CircleShape)
                 .clickable(onClick = onClick)
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
