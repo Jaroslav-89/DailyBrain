@@ -192,9 +192,20 @@ fun HomeScreen(
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                        Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
-                        Icon(Icons.Filled.Remove, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.Center,
+                    ) {
+                        Text(
+                            text = dateLabel.take(2),
+                            color = Color.White,
+                            fontSize = 10.sp,
+                            fontWeight = FontWeight.Bold,
+                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
+                            Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                            Icon(Icons.Filled.Remove, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                        }
                     }
                 }
             }
