@@ -29,6 +29,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -76,7 +77,9 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayButtonsDescription = state.currentWeekDates.zip(WeekdayLabels)
     val context = LocalContext.current
-    HomeAppearancePreference.ensureLoaded(context)
+    LaunchedEffect(context) {
+        HomeAppearancePreference.ensureLoaded(context)
+    }
     val homeBackground = if (HomeAppearancePreference.dynamicBackgroundEnabled) {
         dynamicWeekBackground(state)
     } else {
