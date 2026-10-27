@@ -21,6 +21,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -43,7 +44,9 @@ fun PreferencesScreen(onBack: () -> Unit) {
         },
     ) { padding ->
         val context = LocalContext.current
-        HomeAppearancePreference.ensureLoaded(context)
+        LaunchedEffect(context) {
+            HomeAppearancePreference.ensureLoaded(context)
+        }
         val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
 
         Column(
