@@ -60,7 +60,6 @@ import java.time.ZoneId
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    onEditProfile: () -> Unit,
     onOpenSettings: () -> Unit,
     onOpenFriends: () -> Unit,
     onActiveProfileChanged: () -> Unit,
