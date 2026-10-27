@@ -1,6 +1,5 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
-import androidx.compose.foundation.background
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -8,6 +7,7 @@ import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,19 +27,20 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -47,12 +48,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import org.koin.androidx.compose.koinViewModel
-import java.time.format.TextStyle
+import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val BrainOrange = Color(0xFFFF9800)
 private val MissedBlue = Color(0xFF2196F3)
 private val UnavailableGray = Color(0xFFBDBDBD)
+private val ZeroStreakGray = Color(0xFF9E9E9E)
+private val WeekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault())
+
+private val WeekdayLabels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
 
 @Composable
 fun HomeScreen(
@@ -65,106 +70,119 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val weekdayNames = state.currentWeekDates.map {
-        it.dayOfWeek.getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            .replaceFirstChar { char -> char.uppercase(Locale.getDefault()) }
-    }
-    val dayButtonsDescription = state.currentWeekDates.zip(weekdayNames)
+    val dayButtonsDescription = state.currentWeekDates.zip(WeekdayLabels)
 
-    Column(modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 10.dp)) {
-        Surface(
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+    ) {
+        Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .clip(MaterialTheme.shapes.extraLarge)
+                .clip(CircleShape)
                 .clickable(onClick = onOpenCalendar)
-                .semantics { contentDescription = "Серия тренировочных дней: ${state.currentStreakDays}. Открыть календарь" },
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            shape = MaterialTheme.shapes.extraLarge,
-        ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                androidx.compose.foundation.Image(
-                    painter = painterResource(R.drawable.brain_base),
-                    contentDescription = null,
-                    modifier = Modifier.size(34.dp),
-                )
-                Column {
-                    Text(
-                        text = "${state.currentStreakDays}",
-                        style = MaterialTheme.typography.headlineMedium,
-                        fontWeight = FontWeight.Bold,
-                    )
-                    Text("дней подряд", style = MaterialTheme.typography.bodySmall)
+                .semantics {
+                    contentDescription =
+                        "Серия тренировочных дней: ${state.currentStreakDays}. Открыть календарь"
                 }
-            }
+                .padding(horizontal = 4.dp, vertical = 2.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text(
+                text = state.currentStreakDays.toString(),
+                style = MaterialTheme.typography.titleLarge,
+                fontSize = 22.sp,
+                fontWeight = FontWeight.Bold,
+            )
+            androidx.compose.foundation.Image(
+                painter = painterResource(R.drawable.ic_notification_brain),
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                colorFilter = ColorFilter.tint(
+                    if (state.currentStreakDays > 0) BrainOrange else ZeroStreakGray,
+                ),
+            )
         }
 
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(12.dp))
+
+        Text(
+            text = "Ваше задание на неделю",
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.Bold,
+        )
+        Text(
+            text = "${state.currentWeekDates.first().format(WeekDateFormatter)} - " +
+                state.currentWeekDates.last().format(WeekDateFormatter),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp),
+        )
+
+        Spacer(Modifier.height(8.dp))
 
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f),
         ) {
-            val smallSize = 56.dp
-            val largeSize = 88.dp
-            val pulseContainerSize = 88.dp
-            val pulseTransition = rememberInfiniteTransition(label = "todayArithmeticPulse")
-            val pulseRadiusDp by pulseTransition.animateFloat(
-                initialValue = 34f,
-                targetValue = 42f,
-                animationSpec = infiniteRepeatable<Float>(
-                    animation = tween<Float>(
-                        durationMillis = 1000,
-                        easing = FastOutSlowInEasing,
-                    ),
-                    repeatMode = RepeatMode.Reverse,
-                ),
-                label = "todayArithmeticPulseRadius",
-            )
+            val arithmeticButtonSize = 56.dp
+            val arithmeticRingSize = 88.dp
+            val dayItemHeight = 112.dp
+            val additionalButtonSize = 72.dp
+            val additionalRingSize = 96.dp
+
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
 
-            // Три дополнительных упражнения по краям дуги.
             RoundExerciseButton(
                 label = "M",
                 description = "Тренировка памяти",
-                size = largeSize,
-                x = x(0.02f, largeSize),
-                y = y(0.08f, largeSize),
+                size = additionalButtonSize,
+                ringSize = additionalRingSize,
+                x = x(0.02f, additionalRingSize),
+                y = y(0.08f, additionalRingSize),
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS),
                 onClick = onStartMemoryTraining,
             )
             RoundExerciseButton(
                 label = "STROOP",
                 description = "Тест Струпа",
-                size = largeSize,
-                x = x(0.72f, largeSize),
-                y = y(0.43f, largeSize),
+                size = additionalButtonSize,
+                ringSize = additionalRingSize,
+                x = x(0.72f, additionalRingSize),
+                y = y(0.43f, additionalRingSize),
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST),
                 onClick = onStartStroopTest,
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(3.dp), verticalAlignment = Alignment.CenterVertically) {
-                    listOf(Color(0xFFE53935), Color(0xFF1E88E5), Color(0xFFF9A825), Color(0xFF43A047))
-                        .forEach { color ->
-                            Box(
-                                Modifier
-                                    .size(width = 7.dp, height = 28.dp)
-                                    .clip(CircleShape)
-                                    .background(color),
-                            )
-                        }
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(3.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    listOf(
+                        Color(0xFFE53935),
+                        Color(0xFF1E88E5),
+                        Color(0xFFF9A825),
+                        Color(0xFF43A047),
+                    ).forEach { color ->
+                        Box(
+                            Modifier
+                                .size(width = 6.dp, height = 24.dp)
+                                .clip(CircleShape)
+                                .background(color),
+                        )
+                    }
                 }
             }
             RoundExerciseButton(
                 label = "0..\n120",
                 description = "Устный счёт",
-                size = largeSize,
-                x = x(0.04f, largeSize),
-                y = y(0.80f, largeSize),
+                size = additionalButtonSize,
+                ringSize = additionalRingSize,
+                x = x(0.04f, additionalRingSize),
+                y = y(0.80f, additionalRingSize),
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.COUNTING_TRAINING),
                 onClick = onStartCountingTraining,
             )
@@ -178,6 +196,7 @@ fun HomeScreen(
                 0.54f to 0.73f,
                 0.69f to 0.86f,
             )
+
             state.currentWeekDates.forEachIndexed { index, date ->
                 val status = state.arithmeticDayStatus(date)
                 val color = when (status) {
@@ -186,60 +205,85 @@ fun HomeScreen(
                     ArithmeticDayStatus.AVAILABLE_TODAY,
                     ArithmeticDayStatus.FUTURE -> UnavailableGray
                 }
-                val enabled = date == state.today
                 val today = date == state.today
                 val dateLabel = dayButtonsDescription[index].second
+
                 Box(
                     modifier = Modifier
                         .offset(
-                            x = x(positions[index].first, smallSize) -
-                                if (today) (pulseContainerSize - smallSize) / 2 else 0.dp,
-                            y = y(positions[index].second, smallSize) -
-                                if (today) (pulseContainerSize - smallSize) / 2 else 0.dp,
+                            x = x(positions[index].first, arithmeticRingSize),
+                            y = y(positions[index].second, dayItemHeight),
                         )
-                        .size(if (today) pulseContainerSize else smallSize),
-                    contentAlignment = Alignment.Center,
+                        .size(width = arithmeticRingSize, height = dayItemHeight),
+                    contentAlignment = Alignment.TopCenter,
                 ) {
-                    if (today) {
-                        Canvas(modifier = Modifier.fillMaxSize()) {
-                            drawCircle(
-                                color = BrainOrange,
-                                radius = pulseRadiusDp.dp.toPx(),
-                                style = Stroke(width = 4.dp.toPx()),
-                            )
-                        }
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(smallSize)
-                            .clip(CircleShape)
-                            .background(color)
-                            .clickable(enabled = enabled, onClick = onStartTraining)
-                            .semantics {
-                                contentDescription = when (status) {
-                                    ArithmeticDayStatus.FUTURE -> "$dateLabel: ещё не доступно"
-                                    ArithmeticDayStatus.AVAILABLE_TODAY -> "$dateLabel: начать арифметику"
-                                    ArithmeticDayStatus.COMPLETED -> "$dateLabel: тренировка выполнена"
-                                    ArithmeticDayStatus.MISSED -> "$dateLabel: пропущенный день"
-                                }
-                            },
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center,
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Box(
+                            modifier = Modifier.size(arithmeticRingSize),
+                            contentAlignment = Alignment.Center,
                         ) {
-                            Text(
-                                text = dateLabel.take(2),
-                                color = Color.White,
-                                fontSize = 10.sp,
-                                fontWeight = FontWeight.Bold,
-                            )
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.Center) {
-                                Icon(Icons.Filled.Add, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
-                                Icon(Icons.Filled.Remove, contentDescription = null, tint = Color.White, modifier = Modifier.size(21.dp))
+                            if (today) {
+                                PulsingRing(
+                                    modifier = Modifier.fillMaxSize(),
+                                    initialRadius = 34.dp,
+                                    targetRadius = 42.dp,
+                                )
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .size(arithmeticButtonSize)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .clickable(
+                                        enabled = today,
+                                        onClick = onStartTraining,
+                                    )
+                                    .semantics {
+                                        contentDescription = when (status) {
+                                            ArithmeticDayStatus.FUTURE ->
+                                                "$dateLabel: ещё не доступно"
+                                            ArithmeticDayStatus.AVAILABLE_TODAY ->
+                                                "$dateLabel: начать арифметику"
+                                            ArithmeticDayStatus.COMPLETED ->
+                                                "$dateLabel: тренировка выполнена"
+                                            ArithmeticDayStatus.MISSED ->
+                                                "$dateLabel: пропущенный день"
+                                        }
+                                    },
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Box(Modifier.fillMaxSize()) {
+                                    Icon(
+                                        imageVector = Icons.Filled.Add,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.TopStart)
+                                            .padding(start = 8.dp, top = 6.dp)
+                                            .size(20.dp),
+                                    )
+                                    Icon(
+                                        imageVector = Icons.Filled.Remove,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier
+                                            .align(Alignment.BottomEnd)
+                                            .padding(end = 8.dp, bottom = 6.dp)
+                                            .size(20.dp),
+                                    )
+                                }
                             }
                         }
+
+                        Text(
+                            text = dateLabel,
+                            style = MaterialTheme.typography.labelSmall,
+                            fontWeight = if (today) FontWeight.Bold else FontWeight.Normal,
+                            color = if (today) BrainOrange else MaterialTheme.colorScheme.onSurface,
+                            textAlign = TextAlign.Center,
+                            maxLines = 1,
+                        )
                     }
                 }
             }
@@ -252,6 +296,7 @@ private fun RoundExerciseButton(
     label: String,
     description: String,
     size: Dp,
+    ringSize: Dp,
     x: Dp,
     y: Dp,
     completed: Boolean,
@@ -259,9 +304,9 @@ private fun RoundExerciseButton(
     content: @Composable () -> Unit = {
         Text(
             text = label,
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            lineHeight = 20.sp,
-            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            lineHeight = 18.sp,
+            style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
             color = Color.White,
         )
@@ -270,13 +315,56 @@ private fun RoundExerciseButton(
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
-            .size(size)
-            .clip(CircleShape)
-            .background(if (completed) BrainOrange else UnavailableGray)
-            .clickable(onClick = onClick)
-            .semantics { contentDescription = description },
+            .size(ringSize),
         contentAlignment = Alignment.Center,
     ) {
-        content()
+        if (!completed) {
+            PulsingRing(
+                modifier = Modifier.fillMaxSize(),
+                initialRadius = size / 2 + 2.dp,
+                targetRadius = size / 2 + 10.dp,
+            )
+        }
+
+        Box(
+            modifier = Modifier
+                .size(size)
+                .clip(CircleShape)
+                .background(if (completed) BrainOrange else UnavailableGray)
+                .clickable(onClick = onClick)
+                .semantics { contentDescription = description },
+            contentAlignment = Alignment.Center,
+        ) {
+            content()
+        }
+    }
+}
+
+@Composable
+private fun PulsingRing(
+    modifier: Modifier = Modifier,
+    initialRadius: Dp,
+    targetRadius: Dp,
+) {
+    val transition = rememberInfiniteTransition(label = "pulsingExerciseRing")
+    val radiusDp by transition.animateFloat(
+        initialValue = initialRadius.value,
+        targetValue = targetRadius.value,
+        animationSpec = infiniteRepeatable<Float>(
+            animation = tween<Float>(
+                durationMillis = 1000,
+                easing = FastOutSlowInEasing,
+            ),
+            repeatMode = RepeatMode.Reverse,
+        ),
+        label = "pulsingExerciseRingRadius",
+    )
+
+    Canvas(modifier = modifier) {
+        drawCircle(
+            color = BrainOrange,
+            radius = radiusDp.dp.toPx(),
+            style = Stroke(width = 4.dp.toPx()),
+        )
     }
 }
