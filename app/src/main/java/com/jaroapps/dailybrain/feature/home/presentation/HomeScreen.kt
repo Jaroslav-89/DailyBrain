@@ -166,7 +166,7 @@ fun HomeScreen(
                     ArithmeticDayStatus.AVAILABLE_TODAY,
                     ArithmeticDayStatus.FUTURE -> UnavailableGray
                 }
-                val enabled = status == ArithmeticDayStatus.AVAILABLE_TODAY
+                val enabled = date == state.today
                 val today = date == state.today
                 val dateLabel = dayButtonsDescription[index].second
                 Box(
