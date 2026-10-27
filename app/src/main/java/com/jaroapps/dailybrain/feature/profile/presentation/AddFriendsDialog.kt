@@ -26,10 +26,6 @@ fun AddFriendsDialog(onDismiss: () -> Unit) {
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     OutlinedButton(
-                        onClick = { selectedMethod = "по QR-коду" },
-                        modifier = Modifier.fillMaxWidth(),
-                    ) { Text("По QR-коду") }
-                    OutlinedButton(
                         onClick = { selectedMethod = "по коду приглашения" },
                         modifier = Modifier.fillMaxWidth(),
                     ) { Text("По коду приглашения") }
