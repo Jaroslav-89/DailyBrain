@@ -367,6 +367,6 @@ private fun AppBottomNavigation(
         }
 
         // Reserve a small bottom area for system navigation gestures.
-        Spacer(Modifier.height(2.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
