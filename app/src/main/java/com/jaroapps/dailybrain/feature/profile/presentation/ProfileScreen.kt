@@ -21,8 +21,6 @@ import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -174,18 +172,6 @@ fun ProfileScreen(
                         )
                     }
                 }
-            }
-
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = onEditAvatar,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
-                    contentColor = androidx.compose.ui.graphics.Color.White,
-                ),
-            ) {
-                Text("Редактировать аватар")
             }
 
             Spacer(Modifier.height(12.dp))
