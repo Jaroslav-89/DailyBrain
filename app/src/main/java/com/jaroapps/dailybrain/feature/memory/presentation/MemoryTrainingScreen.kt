@@ -251,11 +251,15 @@ private fun RecallContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(
+            IconButton(
                 onClick = onExit,
-                enabled = !isSaving
+                enabled = !isSaving,
             ) {
-                Text(stringResource(R.string.action_exit))
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
 
             Spacer(Modifier.weight(1f))
