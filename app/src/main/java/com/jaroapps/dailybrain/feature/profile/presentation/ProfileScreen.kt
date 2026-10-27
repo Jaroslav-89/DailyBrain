@@ -20,6 +20,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.contentDescription
@@ -49,6 +52,7 @@ fun ProfileScreen(
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
+    var showAddFriendsDialog by remember { mutableStateOf(false) }
     val today = LocalDate.now()
 
     Column(
@@ -123,7 +127,7 @@ fun ProfileScreen(
                     }
                 }
             }
-            OutlinedButton(onClick = onOpenFriends, modifier = Modifier.fillMaxWidth()) {
+            OutlinedButton(onClick = { showAddFriendsDialog = true }, modifier = Modifier.fillMaxWidth()) {
                 Text("Добавить друзей")
             }
         }
@@ -178,6 +182,10 @@ fun ProfileScreen(
                 modifier = Modifier.semantics { contentDescription = "Политика конфиденциальности" },
             )
         }
+    }
+
+    if (showAddFriendsDialog) {
+        AddFriendsDialog(onDismiss = { showAddFriendsDialog = false })
     }
 }
 
