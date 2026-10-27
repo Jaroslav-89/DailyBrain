@@ -50,6 +50,7 @@ import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
@@ -207,7 +208,16 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             }
 
             composable(Route.PROFILE_SETTINGS) {
-                ProfileSettingsScreen(onBack = { navController.popBackStack() })
+                ProfileSettingsScreen(
+                    onBack = { navController.popBackStack() },
+                    onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
+                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
+                    onOpenParameters = { navController.navigate(Route.PARAMETERS) },
+                )
+            }
+
+            composable(Route.PARAMETERS) {
+                PreferencesScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.FRIENDS) {
