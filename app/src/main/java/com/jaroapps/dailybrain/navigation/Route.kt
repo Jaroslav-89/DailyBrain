@@ -14,6 +14,7 @@ object Route {
     const val HOME = "home"
     const val PROFILE = "profile"
     const val PROFILE_SETTINGS = "profile_settings"
+    const val PARAMETERS = "profile_parameters"
     const val FRIENDS = "friends"
     const val EDIT_PROFILE = "edit_profile"
     const val AVATAR_EDITOR = "avatar_editor"
