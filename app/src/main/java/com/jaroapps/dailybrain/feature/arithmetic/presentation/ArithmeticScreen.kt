@@ -78,6 +78,7 @@ fun ArithmeticScreen(
 
     BackHandler {
         when {
+            state.isReviewingAnswers -> viewModel.closeAnswerReview()
             !state.isCompleted -> showExitConfirmation = true
             state.isSaved -> {
                 viewModel.cancelTraining()
