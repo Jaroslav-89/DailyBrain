@@ -25,6 +25,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -195,5 +196,5 @@ private fun profileNameWithAge(profile: UserProfile, today: LocalDate): String {
         Period.between(birthDate, today).years.takeIf { !Period.between(birthDate, today).isNegative }
     }
     if (age == null) return profile.effectiveDisplayName
-    return profile.effectiveDisplayName + ", " + age
+    return profile.effectiveDisplayName + ", " + pluralStringResource(R.plurals.profile_age_years, age, age)
 }
