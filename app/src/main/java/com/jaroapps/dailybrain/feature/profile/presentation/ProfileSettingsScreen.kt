@@ -35,7 +35,6 @@ import com.jaroapps.dailybrain.R
 fun ProfileSettingsScreen(
     onBack: () -> Unit,
     onEditProfile: () -> Unit,
-    onEditAvatar: () -> Unit,
     onOpenParameters: () -> Unit,
 ) {
     var pendingAction by remember { mutableStateOf<String?>(null) }
@@ -61,16 +60,6 @@ fun ProfileSettingsScreen(
         ) {
             OutlinedButton(onClick = onEditProfile, modifier = Modifier.fillMaxWidth()) {
                 Text("Профиль")
-            }
-            Button(
-                onClick = onEditAvatar,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
-                    contentColor = androidx.compose.ui.graphics.Color.White,
-                ),
-            ) {
-                Text("Редактирование аватара")
             }
             Button(
                 onClick = { pendingAction = "Удаление аккаунта пока не подключено." },
