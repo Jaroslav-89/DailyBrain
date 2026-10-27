@@ -19,6 +19,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.rememberDatePickerState
@@ -52,6 +53,7 @@ import java.time.ZoneOffset
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
+    onEditAvatar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -84,6 +86,17 @@ fun EditProfileScreen(
                 }
             },
         )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = onEditAvatar,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
+                contentColor = androidx.compose.ui.graphics.Color.White,
+            ),
+        ) {
+            Text("Редактировать аватар")
+        }
         Spacer(Modifier.height(12.dp))
         OutlinedTextField(
             value = displayName,
@@ -163,7 +176,7 @@ fun EditProfileScreen(
                     deleteDialogVisible = false
                     viewModel.clearDeleteError()
                 },
-                title = { Text(stringResource(R.string.profile_delete_title)) },
+                title = { Text("Удаление аккаунта?") },
                 text = {
                     Column {
                         Text(stringResource(R.string.profile_delete_warning))
@@ -223,18 +236,19 @@ fun EditProfileScreen(
         }
 
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(
+        Button(
             onClick = {
                 viewModel.clearDeleteError()
                 deleteDialogVisible = true
             },
             enabled = !state.isSaving && state.profiles.size > 1,
             modifier = Modifier.fillMaxWidth(),
-            colors = androidx.compose.material3.ButtonDefaults.outlinedButtonColors(
-                contentColor = MaterialTheme.colorScheme.error,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
             ),
         ) {
-            Text(stringResource(R.string.profile_delete))
+            Text("Удаление аккаунта")
         }
         if (state.profiles.size <= 1) {
             Spacer(Modifier.height(8.dp))
