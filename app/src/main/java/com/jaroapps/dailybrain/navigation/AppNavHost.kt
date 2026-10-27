@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.navigation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -26,6 +27,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -321,43 +325,43 @@ private fun AppBottomNavigation(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(48.dp)
+                .height(40.dp)
                 .padding(horizontal = 16.dp),
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically,
         ) {
             destinations.forEach { destination ->
                 val selected = currentRoute == destination.route
-                IconButton(
-                    onClick = {
-                        if (!selected) onDestinationSelected(destination.route)
-                    },
-                    modifier = Modifier.size(40.dp),
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(34.dp)
-                            .background(
-                                color = if (selected) {
-                                    MaterialTheme.colorScheme.secondaryContainer
-                                } else {
-                                    Color.Transparent
-                                },
-                                shape = CircleShape,
-                            ),
-                        contentAlignment = Alignment.Center,
-                    ) {
-                        Icon(
-                            imageVector = destination.icon,
-                            contentDescription = destination.label,
-                            modifier = Modifier.size(21.dp),
-                            tint = if (selected) {
-                                MaterialTheme.colorScheme.onSecondaryContainer
+                Box(
+                    modifier = Modifier
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(
+                            color = if (selected) {
+                                MaterialTheme.colorScheme.secondaryContainer
                             } else {
-                                MaterialTheme.colorScheme.onSurfaceVariant
+                                Color.Transparent
                             },
                         )
-                    }
+                        .clickable {
+                            if (!selected) onDestinationSelected(destination.route)
+                        }
+                        .semantics {
+                            contentDescription = destination.label
+                            role = Role.Button
+                        },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(
+                        imageVector = destination.icon,
+                        contentDescription = null,
+                        modifier = Modifier.size(19.dp),
+                        tint = if (selected) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                    )
                 }
             }
         }
