@@ -52,7 +52,6 @@ import java.time.ZoneOffset
 @Composable
 fun EditProfileScreen(
     onBack: () -> Unit,
-    onEditAvatar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -86,10 +85,6 @@ fun EditProfileScreen(
             },
         )
         Spacer(Modifier.height(12.dp))
-        OutlinedButton(onClick = onEditAvatar, modifier = Modifier.fillMaxWidth()) {
-            Text("Настроить аватар")
-        }
-        Spacer(Modifier.height(8.dp))
         OutlinedTextField(
             value = displayName,
             onValueChange = { displayName = it },
