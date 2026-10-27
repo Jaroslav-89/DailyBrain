@@ -102,7 +102,7 @@ private fun SettingToggle(
     ) {
         Text(
             text = label,
-            modifier = androidx.compose.ui.Modifier.weight(1f).padding(end = 12.dp),
+            modifier = Modifier.weight(1f).padding(end = 12.dp),
             style = MaterialTheme.typography.bodyLarge,
         )
         Switch(
