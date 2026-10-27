@@ -137,13 +137,16 @@ fun HomeScreen(
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
 
+            // Additional exercises sit on the first, second and third quarter-lines.
+            // The outer buttons share the same side margins; the middle one is on the opposite side
+            // to keep the arithmetic path clear.
             RoundExerciseButton(
                 label = "M",
                 description = "Тренировка памяти",
                 size = additionalButtonSize,
                 ringSize = additionalRingSize,
-                x = x(0.02f, additionalRingSize),
-                y = y(0.08f, additionalRingSize),
+                x = 0.dp,
+                y = maxHeight * 0.25f - additionalRingSize / 2,
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS),
                 onClick = onStartMemoryTraining,
             )
@@ -152,8 +155,8 @@ fun HomeScreen(
                 description = "Тест Струпа",
                 size = additionalButtonSize,
                 ringSize = additionalRingSize,
-                x = x(0.72f, additionalRingSize),
-                y = y(0.43f, additionalRingSize),
+                x = maxWidth - additionalRingSize,
+                y = maxHeight * 0.5f - additionalRingSize / 2,
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST),
                 onClick = onStartStroopTest,
             ) {
@@ -181,20 +184,20 @@ fun HomeScreen(
                 description = "Устный счёт",
                 size = additionalButtonSize,
                 ringSize = additionalRingSize,
-                x = x(0.04f, additionalRingSize),
-                y = y(0.80f, additionalRingSize),
+                x = 0.dp,
+                y = maxHeight * 0.75f - additionalRingSize / 2,
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.COUNTING_TRAINING),
                 onClick = onStartCountingTraining,
             )
 
-            val positions = listOf(
-                0.78f to 0.02f,
-                0.63f to 0.16f,
-                0.49f to 0.30f,
-                0.36f to 0.44f,
-                0.39f to 0.59f,
-                0.54f to 0.73f,
-                0.69f to 0.86f,
+            val horizontalPositions = listOf(
+                0.78f,
+                0.63f,
+                0.49f,
+                0.36f,
+                0.39f,
+                0.54f,
+                0.69f,
             )
 
             state.currentWeekDates.forEachIndexed { index, date ->
@@ -211,8 +214,8 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .offset(
-                            x = x(positions[index].first, arithmeticRingSize),
-                            y = y(positions[index].second, dayItemHeight),
+                            x = x(horizontalPositions[index], arithmeticRingSize),
+                            y = y(index / 6f, dayItemHeight),
                         )
                         .size(width = arithmeticRingSize, height = dayItemHeight),
                     contentAlignment = Alignment.TopCenter,
@@ -260,8 +263,15 @@ fun HomeScreen(
                                         tint = Color.White,
                                         modifier = Modifier
                                             .align(Alignment.TopStart)
-                                            .padding(start = 8.dp, top = 6.dp)
-                                            .size(20.dp),
+                                            .padding(start = 5.dp, top = 4.dp)
+                                            .size(18.dp),
+                                    )
+                                    Text(
+                                        text = "/",
+                                        color = Color.White,
+                                        fontSize = 20.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        modifier = Modifier.align(Alignment.Center),
                                     )
                                     Icon(
                                         imageVector = Icons.Filled.Remove,
@@ -269,8 +279,8 @@ fun HomeScreen(
                                         tint = Color.White,
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
-                                            .padding(end = 8.dp, bottom = 6.dp)
-                                            .size(20.dp),
+                                            .padding(end = 5.dp, bottom = 4.dp)
+                                            .size(18.dp),
                                     )
                                 }
                             }
@@ -278,8 +288,10 @@ fun HomeScreen(
 
                         Text(
                             text = dateLabel,
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = if (today) FontWeight.Bold else FontWeight.Normal,
+                            modifier = Modifier.offset(y = (-8).dp),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Bold,
                             color = if (today) BrainOrange else MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
@@ -319,10 +331,9 @@ private fun RoundExerciseButton(
         contentAlignment = Alignment.Center,
     ) {
         if (!completed) {
-            PulsingRing(
+            StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                initialRadius = size / 2 + 2.dp,
-                targetRadius = size / 2 + 10.dp,
+                radius = size / 2 + 6.dp,
             )
         }
 
@@ -337,6 +348,20 @@ private fun RoundExerciseButton(
         ) {
             content()
         }
+    }
+}
+
+@Composable
+private fun StaticRing(
+    modifier: Modifier = Modifier,
+    radius: Dp,
+) {
+    Canvas(modifier = modifier) {
+        drawCircle(
+            color = BrainOrange,
+            radius = radius.toPx(),
+            style = Stroke(width = 4.dp.toPx()),
+        )
     }
 }
 
