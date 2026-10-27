@@ -1,8 +1,6 @@
 package com.jaroapps.dailybrain.feature.reminders
 
 import android.Manifest
-import android.graphics.Bitmap
-import android.graphics.Canvas
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
