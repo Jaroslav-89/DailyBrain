@@ -9,17 +9,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
@@ -31,7 +28,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
 
@@ -40,7 +36,6 @@ import com.jaroapps.dailybrain.R
 fun FriendsScreen(onBack: () -> Unit) {
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddFriends by remember { mutableStateOf(false) }
-    var selectedMethod by remember { mutableStateOf<String?>(null) }
 
     Scaffold(
         topBar = {
@@ -84,36 +79,6 @@ fun FriendsScreen(onBack: () -> Unit) {
     }
 
     if (showAddFriends) {
-        AlertDialog(
-            onDismissRequest = { showAddFriends = false },
-            title = { Text("Добавить друзей") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    OutlinedButton(onClick = { selectedMethod = "по QR-коду"; showAddFriends = false }, modifier = Modifier.fillMaxWidth()) {
-                        Text("По QR-коду")
-                    }
-                    OutlinedButton(onClick = { selectedMethod = "по коду приглашения"; showAddFriends = false }, modifier = Modifier.fillMaxWidth()) {
-                        Text("По коду приглашения")
-                    }
-                    OutlinedButton(onClick = { selectedMethod = "по уникальному нику"; showAddFriends = false }, modifier = Modifier.fillMaxWidth()) {
-                        Text("По уникальному нику")
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { showAddFriends = false }) { Text("Закрыть") }
-            },
-        )
-    }
-
-    selectedMethod?.let { method ->
-        AlertDialog(
-            onDismissRequest = { selectedMethod = null },
-            title = { Text("Добавить друзей") },
-            text = { Text("Добавление друзей $method пока не подключено.") },
-            confirmButton = {
-                TextButton(onClick = { selectedMethod = null }) { Text("Понятно") }
-            },
-        )
+        AddFriendsDialog(onDismiss = { showAddFriends = false })
     }
 }
