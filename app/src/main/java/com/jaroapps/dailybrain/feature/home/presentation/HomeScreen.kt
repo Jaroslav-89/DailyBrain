@@ -139,8 +139,7 @@ fun HomeScreen(
                 }
             }
             RoundExerciseButton(
-                label = "0..
-120",
+                label = "0..\\n120",
                 description = "Устный счёт",
                 size = largeSize,
                 x = x(0.04f, largeSize),
