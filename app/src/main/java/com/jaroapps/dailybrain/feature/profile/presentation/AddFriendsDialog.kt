@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -200,7 +201,13 @@ fun AddFriendsDialog(
                         Text("Пользователь не найден.", style = MaterialTheme.typography.bodyMedium)
                     }
                     directoryState.searchResult?.let { user ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                directoryViewModel.resetSearch()
+                                onDismiss()
+                                onOpenUserProfile(user.firebaseUid)
+                            },
+                        ) {
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
@@ -212,16 +219,6 @@ fun AddFriendsDialog(
                                 )
                                 if (user.username.isNotBlank()) {
                                     Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
-                                }
-                                OutlinedButton(
-                                    onClick = {
-                                        directoryViewModel.resetSearch()
-                                        onDismiss()
-                                        onOpenUserProfile(user.firebaseUid)
-                                    },
-                                    modifier = Modifier.fillMaxWidth(),
-                                ) {
-                                    Text("Открыть профиль")
                                 }
                                 when {
                                     user.firebaseUid == activeProfile?.firebaseUid -> Text("Это ваш профиль.")
