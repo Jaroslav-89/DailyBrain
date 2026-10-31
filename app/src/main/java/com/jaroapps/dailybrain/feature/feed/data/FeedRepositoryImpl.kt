@@ -190,6 +190,7 @@ class FeedRepositoryImpl(
 
     private fun FeedEventEntity.toDomain() = FeedEvent(
         eventId = eventId,
+        isOwn = isLocal,
         authorFirebaseUid = authorFirebaseUid,
         authorName = authorName,
         authorUsername = authorUsername,
