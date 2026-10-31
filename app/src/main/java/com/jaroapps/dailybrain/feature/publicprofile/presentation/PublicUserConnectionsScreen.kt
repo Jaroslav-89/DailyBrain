@@ -93,7 +93,6 @@ fun PublicUserConnectionsScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
                                 Text(
                                     user.displayName?.takeIf(String::isNotBlank)
-                                        ?: user.username.takeIf(String::isNotBlank)?.let { "@$it" }
                                         ?: "Пользователь DailyBrain",
                                     style = MaterialTheme.typography.titleMedium,
                                 )
