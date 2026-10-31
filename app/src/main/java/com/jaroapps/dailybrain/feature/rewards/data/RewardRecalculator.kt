@@ -297,10 +297,11 @@ object RewardRecalculator {
             .forEach { allBadges += it.copy(isRevoked = true) }
         desiredBadges.values.forEach { badge ->
             val previous = existingBadges[badge.badgeId]
-            allBadges += if (previous == null) badge else badge.copy(
-                awardedAtEpochMs = previous.awardedAtEpochMs,
-                isRevoked = false,
-            )
+            allBadges += if (previous == null || previous.triggerWorkoutId != badge.triggerWorkoutId) {
+                badge
+            } else {
+                badge.copy(awardedAtEpochMs = previous.awardedAtEpochMs, isRevoked = false)
+            }
         }
         if (allBadges.isNotEmpty()) badgeDao.upsertAll(allBadges)
 
@@ -318,7 +319,19 @@ object RewardRecalculator {
         }
         desiredEvents.values.forEach { event ->
             val previous = existingLocalEvents[event.eventId]
-            reconciledEvents += if (previous != null && !previous.isRevoked && previous.syncState == SYNCED) {
+            val publishedContentUnchanged = previous != null &&
+                !previous.isRevoked &&
+                previous.syncState == SYNCED &&
+                previous.authorName == event.authorName &&
+                previous.authorUsername == event.authorUsername &&
+                previous.eventType == event.eventType &&
+                previous.occurredAtEpochMs == event.occurredAtEpochMs &&
+                previous.periodKey == event.periodKey &&
+                previous.exerciseType == event.exerciseType &&
+                previous.valueLong == event.valueLong &&
+                previous.valueInt == event.valueInt &&
+                previous.accuracyPercent == event.accuracyPercent
+            reconciledEvents += if (publishedContentUnchanged) {
                 event.copy(syncState = SYNCED)
             } else {
                 event
