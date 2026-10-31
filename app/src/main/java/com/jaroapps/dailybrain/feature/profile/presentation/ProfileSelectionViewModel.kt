@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
 import androidx.lifecycle.ViewModel
+import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
@@ -83,6 +84,8 @@ class ProfileSelectionViewModel(
         error.value = null
         try {
             action()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (_: Exception) {
             error.value = "Не удалось выполнить действие с профилем. Попробуйте ещё раз."
         } finally {
