@@ -581,6 +581,8 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
     private companion object {
         const val USERS = "users"
         const val PUBLIC_PROFILES = "publicProfiles"
+        const val PUBLIC_PROFILE_CARDS = "publicProfileCards"
+        const val BLOCKED_USERS = "blockedUsers"
         const val USERNAMES = "usernames"
         const val INVITE_CODES = "inviteCodes"
         const val FOLLOWS = "follows"
