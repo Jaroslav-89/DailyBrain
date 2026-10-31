@@ -296,6 +296,30 @@ class UserDirectoryViewModel(
         }
     }
 
+    fun unfollowUser(user: PublicUserProfile) {
+        val uid = profile.value?.firebaseUid ?: return
+        if (dataOwnerUid != uid) return
+        actions.value = actions.value.copy(relationshipError = null)
+        viewModelScope.launch {
+            try {
+                userDirectoryRepository.unfollowUser(uid, user.firebaseUid)
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    actions.value = actions.value.copy(
+                        followingUsers = actions.value.followingUsers.filterNot { it.firebaseUid == user.firebaseUid },
+                        relationshipError = null,
+                    )
+                    refreshRelationshipsNow(uid)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    actions.value = actions.value.copy(relationshipError = errorMessage(error))
+                }
+            }
+        }
+    }
+
     fun refreshRelationships() {
         val uid = profile.value?.firebaseUid
         if (uid == null) {
