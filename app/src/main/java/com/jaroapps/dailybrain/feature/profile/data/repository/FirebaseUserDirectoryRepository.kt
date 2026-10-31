@@ -70,7 +70,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             transaction.set(publicRef, mapOf(
                 "uid" to firebaseUid,
                 "displayName" to "",
-                "avatarUrl" to avatarUrl.orEmpty(),
+                "avatarUrl" to "",
                 "username" to username,
                 "usernameLower" to username,
                 "inviteCode" to inviteCode,
@@ -298,11 +298,38 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val relationships = firestore.collection(FOLLOWS).whereEqualTo(ownerField, uid).get().awaitResult()
         val profiles = mutableListOf<PublicUserProfile>()
         for (relationship in relationships.documents) {
-            val targetUid = relationship.getString(relatedField) ?: continue
-            firestore.collection(PUBLIC_PROFILES).document(targetUid).get().awaitResult()
-                .toPublicProfile(targetUid)?.let(profiles::add)
+            val relatedUid = relationship.getString(relatedField) ?: continue
+            if (ownerField == "followerUid") {
+                ensurePublicConnection(
+                    firestore.collection(PUBLIC_FOLLOWING).document(uid)
+                        .collection(PUBLIC_CONNECTIONS).document(relatedUid),
+                    relatedUid,
+                )
+                ensurePublicConnection(
+                    firestore.collection(PUBLIC_FOLLOWERS).document(relatedUid)
+                        .collection(PUBLIC_CONNECTIONS).document(uid),
+                    uid,
+                )
+            } else {
+                ensurePublicConnection(
+                    firestore.collection(PUBLIC_FOLLOWERS).document(uid)
+                        .collection(PUBLIC_CONNECTIONS).document(relatedUid),
+                    relatedUid,
+                )
+            }
+            firestore.collection(PUBLIC_PROFILES).document(relatedUid).get().awaitResult()
+                .toPublicProfile(relatedUid)?.let(profiles::add)
         }
         return profiles
+    }
+
+    private suspend fun ensurePublicConnection(
+        reference: com.google.firebase.firestore.DocumentReference,
+        relatedUid: String,
+    ) {
+        if (!reference.get().awaitResult().exists()) {
+            reference.set(mapOf("uid" to relatedUid)).awaitResult()
+        }
     }
 
     override suspend fun updatePublicProfile(
@@ -337,6 +364,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                 "city" to city?.trim().orEmpty(),
                 "gender" to gender.orEmpty(),
                 "memberSinceEpochMs" to memberSinceEpochMs,
+                "avatarUrl" to "",
                 "avatarConfigurationJson" to avatarConfigurationJson,
                 "statistics" to mapOf(
                     "currentStreakDays" to statistics.currentStreakDays,
