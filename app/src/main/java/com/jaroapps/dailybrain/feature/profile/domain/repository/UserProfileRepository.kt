@@ -24,6 +24,7 @@ interface UserProfileRepository {
         username: String?,
     ): LinkGoogleAccountResult
     suspend fun updateUsername(localAccountId: String, username: String?)
+    suspend fun cacheInviteCode(localAccountId: String, firebaseUid: String, inviteCode: String)
     suspend fun unlinkGoogleAccount(localAccountId: String)
     suspend fun saveProfile(
         displayName: String?,
