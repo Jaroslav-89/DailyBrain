@@ -12,7 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Block
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -56,7 +56,6 @@ fun FriendsScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     var pendingUnfollowUser by remember { mutableStateOf<PublicUserProfile?>(null) }
-    var pendingBlockUser by remember { mutableStateOf<PublicUserProfile?>(null) }
     val firebaseUid = directoryState.profile?.firebaseUid
 
     LaunchedEffect(firebaseUid) {
@@ -114,8 +113,9 @@ fun FriendsScreen(
                             showUnfollow = selectedTab == 0,
                             onUnfollow = { pendingUnfollowUser = user },
                             onOpenProfile = { onOpenUserProfile(user.firebaseUid) },
-                            showBlock = selectedTab == 1,
-                            onBlock = { pendingBlockUser = user },
+                            showFollowBack = selectedTab == 1 &&
+                                directoryState.followingUsers.none { it.firebaseUid == user.firebaseUid },
+                            onFollowBack = { directoryViewModel.followUser(user) },
                         )
                         Spacer(Modifier.height(8.dp))
                     }
@@ -154,29 +154,6 @@ fun FriendsScreen(
         )
     }
 
-    pendingBlockUser?.let { user ->
-        AlertDialog(
-            onDismissRequest = { pendingBlockUser = null },
-            title = { Text("Заблокировать пользователя?") },
-            text = {
-                Text(
-                    "Пользователь " +
-                        (user.displayName?.takeIf(String::isNotBlank) ?: user.username.let { "@" + it }) +
-                        " больше не сможет просматривать ваш полный профиль. Его подписка на вас также будет удалена.",
-                )
-            },
-            confirmButton = {
-                TextButton(onClick = {
-                    directoryViewModel.blockUser(user)
-                    pendingBlockUser = null
-                }) { Text("Заблокировать", color = MaterialTheme.colorScheme.error) }
-            },
-            dismissButton = {
-                TextButton(onClick = { pendingBlockUser = null }) { Text("Отмена") }
-            },
-        )
-    }
-
     if (showAddFriendsDialog) {
         AddFriendsDialog(
             profileState = state,
@@ -198,8 +175,8 @@ private fun FriendUserCard(
     showUnfollow: Boolean,
     onUnfollow: () -> Unit,
     onOpenProfile: () -> Unit,
-    showBlock: Boolean,
-    onBlock: () -> Unit,
+    showFollowBack: Boolean,
+    onFollowBack: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenProfile)) {
         androidx.compose.foundation.layout.Row(
@@ -227,12 +204,12 @@ private fun FriendUserCard(
                     )
                 }
             }
-            if (showBlock) {
-                IconButton(onClick = onBlock) {
+            if (showFollowBack) {
+                IconButton(onClick = onFollowBack) {
                     Icon(
-                        imageVector = Icons.Filled.Block,
-                        contentDescription = "Заблокировать пользователя",
-                        tint = Color(0xFFC62828),
+                        imageVector = Icons.Filled.PersonAdd,
+                        contentDescription = "Подписаться в ответ",
+                        tint = Color(0xFF2E7D32),
                     )
                 }
             }
