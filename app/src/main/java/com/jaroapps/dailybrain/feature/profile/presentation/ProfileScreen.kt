@@ -350,9 +350,9 @@ fun ProfileScreen(
     if (showMyQrDialog && profile?.firebaseUid != null) {
         MyQrCodeDialog(
             profile = profile,
-            inviteCode = directoryState.inviteCode,
-            isLoading = directoryState.isLoadingInviteCode,
-            error = directoryState.inviteCodeError,
+            inviteCode = profile.inviteCode ?: directoryState.inviteCode,
+            isLoading = profile.inviteCode == null && directoryState.isLoadingInviteCode,
+            error = if (profile.inviteCode != null) null else directoryState.inviteCodeError,
             onDismiss = { showMyQrDialog = false },
         )
     }
