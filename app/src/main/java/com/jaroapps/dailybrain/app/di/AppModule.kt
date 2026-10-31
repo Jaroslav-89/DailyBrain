@@ -35,7 +35,7 @@ import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
 import com.jaroapps.dailybrain.feature.feed.data.FeedRepositoryImpl
 import com.jaroapps.dailybrain.feature.feed.data.FeedSyncManager
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
-import com.jaroapps.dailybrain.feature.feed.domain.FeedSyncTrigger
+import com.jaroapps.dailybrain.common.domain.service.FeedSyncTrigger
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedViewModel
 import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository as OnboardingProgressRepositoryImpl
 import com.jaroapps.dailybrain.feature.onboarding.domain.repository.OnboardingProgressRepository
