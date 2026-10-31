@@ -234,11 +234,6 @@ service cloud.firestore {
           && exists(/databases/$(database)/documents/publicFollowing/$(request.auth.uid)/users/$(authorUid));
       }
 
-      function isNotBlockedFromAuthor(authorUid) {
-        return !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(authorUid))
-          && !exists(/databases/$(database)/documents/blockedUsers/$(authorUid)/users/$(request.auth.uid));
-      }
-
       function validFeedEvent() {
         return request.resource.data.keys().hasOnly([
           'authorUid', 'authorName', 'authorUsername', 'eventType',
@@ -262,13 +257,17 @@ service cloud.firestore {
           && (!request.resource.data.keys().hasAny(['accuracyPercent']) || request.resource.data.accuracyPercent is number);
       }
 
-      allow get, list: if signedIn()
+      allow get: if signedIn()
         && (
           resource.data.authorUid == request.auth.uid
-          || (
-            isFollowingAuthor(resource.data.authorUid)
-            && isNotBlockedFromAuthor(resource.data.authorUid)
-          )
+          || isFollowingAuthor(resource.data.authorUid)
+        );
+
+      allow list: if signedIn()
+        && request.query.limit <= 20
+        && (
+          resource.data.authorUid == request.auth.uid
+          || isFollowingAuthor(resource.data.authorUid)
         );
 
       allow create: if signedIn() && validFeedEvent();
