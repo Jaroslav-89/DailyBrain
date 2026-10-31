@@ -451,4 +451,92 @@ object DatabaseMigrations {
             database.execSQL("ALTER TABLE user_profile ADD COLUMN inviteCode TEXT")
         }
     }
+
+    /** Add local rewards, badge inventory, gifts, and cached feed events. */
+    val MIGRATION_13_14 = object : Migration(13, 14) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN xpPoints INTEGER NOT NULL DEFAULT 0")
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN endorphinBalance INTEGER NOT NULL DEFAULT 0")
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN patchCount INTEGER NOT NULL DEFAULT 0")
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN rewardsInitialized INTEGER NOT NULL DEFAULT 0")
+
+            database.execSQL(
+                """
+                CREATE TABLE reward_ledger (
+                    userId TEXT NOT NULL,
+                    rewardKey TEXT NOT NULL,
+                    deltaXp INTEGER NOT NULL,
+                    deltaEndorphins INTEGER NOT NULL,
+                    category TEXT NOT NULL,
+                    reason TEXT NOT NULL,
+                    sourceId INTEGER,
+                    periodKey TEXT,
+                    occurredAtEpochMs INTEGER NOT NULL,
+                    isActive INTEGER NOT NULL,
+                    PRIMARY KEY(userId, rewardKey)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL("CREATE INDEX index_reward_ledger_userId_category ON reward_ledger(userId, category)")
+            database.execSQL("CREATE INDEX index_reward_ledger_userId_periodKey ON reward_ledger(userId, periodKey)")
+
+            database.execSQL(
+                """
+                CREATE TABLE user_badges (
+                    ownerUserId TEXT NOT NULL,
+                    badgeId TEXT NOT NULL,
+                    badgeType TEXT NOT NULL,
+                    periodKey TEXT NOT NULL,
+                    awardedAtEpochMs INTEGER NOT NULL,
+                    triggerWorkoutId INTEGER,
+                    isRevoked INTEGER NOT NULL,
+                    PRIMARY KEY(ownerUserId, badgeId)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL("CREATE INDEX index_user_badges_ownerUserId_badgeType ON user_badges(ownerUserId, badgeType)")
+            database.execSQL("CREATE INDEX index_user_badges_ownerUserId_periodKey ON user_badges(ownerUserId, periodKey)")
+
+            database.execSQL(
+                """
+                CREATE TABLE user_gifts (
+                    ownerUserId TEXT NOT NULL,
+                    giftId TEXT NOT NULL,
+                    giftType TEXT NOT NULL,
+                    senderUserId TEXT,
+                    receivedAtEpochMs INTEGER NOT NULL,
+                    isOpened INTEGER NOT NULL,
+                    PRIMARY KEY(ownerUserId, giftId)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL("CREATE INDEX index_user_gifts_ownerUserId_receivedAtEpochMs ON user_gifts(ownerUserId, receivedAtEpochMs)")
+
+            database.execSQL(
+                """
+                CREATE TABLE feed_events (
+                    localAccountId TEXT NOT NULL,
+                    eventId TEXT NOT NULL,
+                    authorFirebaseUid TEXT,
+                    authorName TEXT NOT NULL,
+                    authorUsername TEXT,
+                    eventType TEXT NOT NULL,
+                    occurredAtEpochMs INTEGER NOT NULL,
+                    periodKey TEXT,
+                    exerciseType TEXT,
+                    valueLong INTEGER,
+                    valueInt INTEGER,
+                    accuracyPercent REAL,
+                    isLocal INTEGER NOT NULL,
+                    isRevoked INTEGER NOT NULL,
+                    syncState TEXT NOT NULL,
+                    PRIMARY KEY(localAccountId, eventId)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL("CREATE INDEX index_feed_events_localAccountId_occurredAtEpochMs ON feed_events(localAccountId, occurredAtEpochMs)")
+            database.execSQL("CREATE INDEX index_feed_events_authorFirebaseUid ON feed_events(authorFirebaseUid)")
+        }
+    }
+
 }
