@@ -247,7 +247,7 @@ fun AddFriendsDialog(
     )
 }
 
-private fun firebaseDiagnosticDescription(code: String?): String = when (code) {
+internal fun firebaseDiagnosticDescription(code: String?): String = when (code) {
     "ERROR_OPERATION_NOT_ALLOWED" -> "В Firebase Authentication отключён вход через Google. Включите Google provider в Sign-in method."
     "ERROR_INVALID_CREDENTIAL", "GOOGLE_ID_TOKEN_SUBJECT_MISSING" -> "Firebase отклонил Google ID token. Проверьте Web OAuth Client ID и обновите google-services.json."
     "ERROR_APP_NOT_AUTHORIZED" -> "Firebase не авторизовал это Android-приложение. Проверьте package name и SHA-1 сертификата."
