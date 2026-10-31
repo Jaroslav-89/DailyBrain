@@ -17,6 +17,8 @@ object Route {
     const val PROFILE_SETTINGS = "profile_settings"
     const val PARAMETERS = "profile_parameters"
     const val FRIENDS = "friends"
+    const val USER_PROFILE = "user_profile/{userId}"
+    const val USER_PROFILE_CONNECTIONS = "user_profile_connections/{userId}/{connectionType}"
     const val EDIT_PROFILE = "edit_profile"
     const val AVATAR_EDITOR = "avatar_editor"
     const val STATISTICS = "statistics"
@@ -28,4 +30,7 @@ object Route {
     const val COUNTING_TRAINING = "counting_training"
 
     fun dayHistory(date: Int): String = "day_history/$date"
+    fun userProfile(userId: String): String = "user_profile/$userId"
+    fun userProfileConnections(userId: String, connectionType: String): String =
+        "user_profile_connections/$userId/$connectionType"
 }
