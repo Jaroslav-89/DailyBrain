@@ -211,7 +211,7 @@ fun AddFriendsDialog(
                                     style = MaterialTheme.typography.titleMedium,
                                 )
                                 if (user.username.isNotBlank()) {
-                                    Text("@$user.username", color = MaterialTheme.colorScheme.primary)
+                                    Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
                                 }
                                 when {
                                     user.firebaseUid == activeProfile?.firebaseUid -> Text("Это ваш профиль.")
