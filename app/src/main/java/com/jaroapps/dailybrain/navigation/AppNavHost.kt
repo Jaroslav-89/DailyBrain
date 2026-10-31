@@ -59,6 +59,9 @@ import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScree
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
+import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
+import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import org.koin.androidx.compose.koinViewModel
@@ -75,6 +78,8 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         Route.PROFILE,
     )
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
+    @Suppress("UNUSED_VARIABLE")
+    val publicProfileSyncViewModel: PublicProfileSyncViewModel = koinViewModel()
 
     Scaffold(
         bottomBar = {
@@ -220,6 +225,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
                     onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
+                    onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
                 )
             }
 
@@ -242,7 +248,41 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             }
 
             composable(Route.FRIENDS) {
-                FriendsScreen(onBack = { navController.popBackStack() })
+                FriendsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                )
+            }
+
+            composable(
+                route = Route.USER_PROFILE,
+                arguments = listOf(navArgument("userId") { type = NavType.StringType }),
+            ) { entry ->
+                val userId = entry.arguments?.getString("userId").orEmpty()
+                PublicUserProfileScreen(
+                    profileFirebaseUid = userId,
+                    onBack = { navController.popBackStack() },
+                    onOpenConnections = { profileUid, connectionType ->
+                        navController.navigate(Route.userProfileConnections(profileUid, connectionType))
+                    },
+                )
+            }
+
+            composable(
+                route = Route.USER_PROFILE_CONNECTIONS,
+                arguments = listOf(
+                    navArgument("userId") { type = NavType.StringType },
+                    navArgument("connectionType") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                val userId = entry.arguments?.getString("userId").orEmpty()
+                val connectionType = entry.arguments?.getString("connectionType").orEmpty()
+                PublicUserConnectionsScreen(
+                    profileFirebaseUid = userId,
+                    connectionType = connectionType,
+                    onBack = { navController.popBackStack() },
+                    onOpenUser = { nestedUserId -> navController.navigate(Route.userProfile(nestedUserId)) },
+                )
             }
 
             composable(Route.EDIT_PROFILE) {
