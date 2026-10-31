@@ -20,11 +20,18 @@ service cloud.firestore {
         && request.resource.data.usernameLower == request.resource.data.username.lower();
     }
 
-    // A profile may only claim a handle when the matching reservation belongs to it.
-    // getAfter() makes a new reservation in the same atomic transaction visible here.
+    function validInviteCode(value) {
+      return value is string && value.matches('^[A-HJ-NP-Z2-9]{8}$');
+    }
+
     function ownsUsernameReservation(uid) {
       return request.resource.data.username == ''
         || getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.userId == uid;
+    }
+
+    function ownsInviteCodeReservation(uid) {
+      return validInviteCode(request.resource.data.inviteCode)
+        && getAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode)).data.userId == uid;
     }
 
     match /users/{uid} {
@@ -34,13 +41,20 @@ service cloud.firestore {
         && request.resource.data.uid == uid
         && validUsernameFields()
         && ownsUsernameReservation(uid)
+        && ownsInviteCodeReservation(uid)
         && getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.usernameLower
-          == request.resource.data.usernameLower;
+          == request.resource.data.usernameLower
+        && getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.inviteCode
+          == request.resource.data.inviteCode;
       allow delete: if isOwner(uid)
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid))
         && (
           resource.data.get('usernameLower', '') == ''
           || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.get('usernameLower', '')))
+        )
+        && (
+          !resource.data.keys().hasAny(['inviteCode'])
+          || !existsAfter(/databases/$(database)/documents/inviteCodes/$(resource.data.get('inviteCode', '')))
         );
     }
 
@@ -49,18 +63,25 @@ service cloud.firestore {
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
-          'uid', 'displayName', 'avatarUrl', 'username', 'usernameLower', 'updatedAt'
+          'uid', 'displayName', 'avatarUrl', 'username', 'usernameLower', 'inviteCode', 'updatedAt'
         ])
         && request.resource.data.uid == uid
         && validUsernameFields()
         && ownsUsernameReservation(uid)
+        && ownsInviteCodeReservation(uid)
         && getAfter(/databases/$(database)/documents/users/$(uid)).data.usernameLower
-          == request.resource.data.usernameLower;
+          == request.resource.data.usernameLower
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.inviteCode
+          == request.resource.data.inviteCode;
       allow delete: if isOwner(uid)
         && !existsAfter(/databases/$(database)/documents/users/$(uid))
         && (
           resource.data.get('usernameLower', '') == ''
           || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.get('usernameLower', '')))
+        )
+        && (
+          !resource.data.keys().hasAny(['inviteCode'])
+          || !existsAfter(/databases/$(database)/documents/inviteCodes/$(resource.data.get('inviteCode', '')))
         );
     }
 
@@ -72,15 +93,47 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['userId'])
         && request.resource.data.userId == request.auth.uid
         && !exists(/databases/$(database)/documents/usernames/$(username))
-        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower
-          == username
-        && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower
-          == username;
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower == username
+        && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower == username;
       allow update: if false;
       allow delete: if signedIn()
         && resource.data.userId == request.auth.uid
         && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
+    }
+
+    match /inviteCodes/{inviteCode} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && validInviteCode(inviteCode)
+        && request.resource.data.keys().hasOnly(['userId'])
+        && request.resource.data.userId == request.auth.uid
+        && !exists(/databases/$(database)/documents/inviteCodes/$(inviteCode))
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.inviteCode == inviteCode
+        && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.inviteCode == inviteCode;
+      allow update: if false;
+      allow delete: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
+    }
+
+    match /follows/{followId} {
+      allow get, list: if signedIn()
+        && (
+          resource.data.followerUid == request.auth.uid
+          || resource.data.followingUid == request.auth.uid
+        );
+      allow create: if signedIn()
+        && request.resource.data.keys().hasOnly(['followerUid', 'followingUid', 'createdAt'])
+        && request.resource.data.followerUid == request.auth.uid
+        && request.resource.data.followingUid is string
+        && request.resource.data.followingUid != request.auth.uid
+        && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid
+        && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid));
+      allow update: if false;
+      allow delete: if signedIn() && resource.data.followerUid == request.auth.uid;
     }
   }
 }
