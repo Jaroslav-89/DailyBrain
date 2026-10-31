@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.core.database.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -35,4 +36,8 @@ data class UserProfileEntity(
     val username: String? = null,
     /** Cached cloud invite code; null until fetched or after Google account unlink. */
     val inviteCode: String? = null,
+    @ColumnInfo(defaultValue = "0") val xpPoints: Int = 0,
+    @ColumnInfo(defaultValue = "0") val endorphinBalance: Int = 0,
+    @ColumnInfo(defaultValue = "0") val patchCount: Int = 0,
+    @ColumnInfo(defaultValue = "0") val rewardsInitialized: Boolean = false,
 )
