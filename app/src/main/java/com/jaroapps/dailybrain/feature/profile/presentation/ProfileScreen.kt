@@ -159,9 +159,6 @@ fun ProfileScreen(
                                 )
                             }
                             profile?.let { user ->
-                                user.googleEmail?.takeIf(String::isNotBlank)?.let {
-                                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
                                 user.country?.takeIf(String::isNotBlank)?.let {
                                     Text(it, style = MaterialTheme.typography.bodyMedium)
                                 }
