@@ -423,6 +423,35 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         profileFirebaseUid: String,
     ): List<PublicUserProfile> = loadPublicConnections(viewerFirebaseUid, profileFirebaseUid, PUBLIC_FOLLOWERS)
 
+    override suspend fun isBlockedByProfile(profileFirebaseUid: String, viewerFirebaseUid: String): Boolean {
+        val app = configuredApp()
+        requireCurrentUser(app, viewerFirebaseUid)
+        return FirebaseFirestore.getInstance(app).collection(BLOCKED_USERS).document(profileFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(viewerFirebaseUid).get().awaitResult().exists()
+    }
+
+    override suspend fun getBlockedUsers(blockerFirebaseUid: String): List<PublicUserProfile> {
+        val app = configuredApp()
+        requireCurrentUser(app, blockerFirebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val blocked = firestore.collection(BLOCKED_USERS).document(blockerFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).get().awaitResult()
+        val profiles = mutableListOf<PublicUserProfile>()
+        for (entry in blocked.documents) {
+            firestore.collection(PUBLIC_PROFILE_CARDS).document(entry.id).get().awaitResult()
+                .toPublicProfile(entry.id)?.let(profiles::add)
+        }
+        return profiles
+    }
+
+    override suspend fun unblockUser(blockerFirebaseUid: String, blockedFirebaseUid: String) {
+        require(blockerFirebaseUid != blockedFirebaseUid) { "Cannot unblock yourself." }
+        val app = configuredApp()
+        requireCurrentUser(app, blockerFirebaseUid)
+        FirebaseFirestore.getInstance(app).collection(BLOCKED_USERS).document(blockerFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockedFirebaseUid).delete().awaitResult()
+    }
+
     private suspend fun loadPublicConnections(
         viewerFirebaseUid: String,
         profileFirebaseUid: String,
