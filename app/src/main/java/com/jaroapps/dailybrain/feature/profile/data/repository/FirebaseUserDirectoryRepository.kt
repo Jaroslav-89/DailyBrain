@@ -492,6 +492,13 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             .collection(PUBLIC_CONNECTIONS).document(viewerFirebaseUid).get().awaitResult().exists()
     }
 
+    override suspend fun isUserBlocked(blockerFirebaseUid: String, blockedFirebaseUid: String): Boolean {
+        val app = configuredApp()
+        requireCurrentUser(app, blockerFirebaseUid)
+        return FirebaseFirestore.getInstance(app).collection(BLOCKED_USERS).document(blockerFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockedFirebaseUid).get().awaitResult().exists()
+    }
+
     override suspend fun getBlockedUsers(blockerFirebaseUid: String): List<PublicUserProfile> {
         val app = configuredApp()
         requireCurrentUser(app, blockerFirebaseUid)
