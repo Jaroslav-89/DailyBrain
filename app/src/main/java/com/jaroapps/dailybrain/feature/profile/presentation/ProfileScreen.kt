@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -33,10 +32,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -54,12 +53,9 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
-import org.koin.androidx.compose.koinInject
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -71,20 +67,22 @@ fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onEditAvatar: () -> Unit,
     onOpenFriends: () -> Unit,
-    onExitProfile: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
+    directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
-    val exitActiveProfile: ExitActiveProfileUseCase = koinInject()
-    val coroutineScope = rememberCoroutineScope()
     val profile = state.profile
     val stats = state.statistics
+    LaunchedEffect(profile?.firebaseUid) {
+        directoryViewModel.refreshRelationships()
+        if (profile?.firebaseUid != null) directoryViewModel.loadInviteCode()
+    }
     var showMyQrDialog by remember { mutableStateOf(false) }
-    var isExitingProfile by remember { mutableStateOf(false) }
-    var exitProfileError by remember { mutableStateOf(false) }
+    var showAddFriendsDialog by remember { mutableStateOf(false) }
+    val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     val today = LocalDate.now()
     val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
     val accountPeriod = profile?.let {
@@ -223,11 +221,11 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("0", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(directoryState.followingUsers.size.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Подписок", style = MaterialTheme.typography.bodyMedium)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text("0", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(directoryState.followerUsers.size.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Подписчиков", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -239,9 +237,13 @@ fun ProfileScreen(
                 horizontalArrangement = Arrangement.spacedBy(10.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                OutlinedButton(
-                    onClick = onOpenFriends,
+                Button(
+                    onClick = { showAddFriendsDialog = true },
                     modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Color(0xFF2E7D32),
+                        contentColor = Color.White,
+                    ),
                 ) {
                     Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(8.dp))
@@ -342,44 +344,29 @@ fun ProfileScreen(
                 BestKind.DURATION,
             )
 
-            Spacer(Modifier.height(22.dp))
-            Button(
-                onClick = {
-                    coroutineScope.launch {
-                        isExitingProfile = true
-                        exitProfileError = false
-                        try {
-                            exitActiveProfile()
-                            onExitProfile()
-                        } catch (_: Exception) {
-                            exitProfileError = true
-                        } finally {
-                            isExitingProfile = false
-                        }
-                    }
-                },
-                enabled = !isExitingProfile,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFC62828),
-                    contentColor = Color.White,
-                ),
-            ) {
-                Text(if (isExitingProfile) "Выходим..." else "Выйти из профиля")
-            }
-            if (exitProfileError || state.saveError) {
-                Spacer(Modifier.height(8.dp))
-                Text(
-                    "Не удалось выполнить действие с профилем.",
-                    color = MaterialTheme.colorScheme.error,
-                )
-            }
-            Spacer(Modifier.height(16.dp))
         }
     }
 
     if (showMyQrDialog) {
-        MyQrCodeDialog(profile = profile, onDismiss = { showMyQrDialog = false })
+        MyQrCodeDialog(
+            profile = profile,
+            inviteCode = directoryState.inviteCode,
+            isLoading = directoryState.isLoadingInviteCode,
+            error = directoryState.inviteCodeError,
+            onDismiss = { showMyQrDialog = false },
+        )
+    }
+    if (showAddFriendsDialog) {
+        AddFriendsDialog(
+            profileState = state,
+            directoryState = directoryState,
+            profileViewModel = viewModel,
+            directoryViewModel = directoryViewModel,
+            onDismiss = {
+                showAddFriendsDialog = false
+                directoryViewModel.refreshRelationships()
+            },
+        )
     }
 }
 
