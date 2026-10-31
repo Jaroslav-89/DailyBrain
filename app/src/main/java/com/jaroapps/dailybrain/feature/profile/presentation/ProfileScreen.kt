@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PersonAdd
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.QrCode2
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Icon
@@ -33,10 +34,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -49,9 +52,13 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
+import org.koin.androidx.compose.koinInject
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -70,10 +77,14 @@ fun ProfileScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
+    val googleSignInClient: GoogleSignInClient = koinInject()
+    val coroutineScope = rememberCoroutineScope()
     val profile = state.profile
     val stats = state.statistics
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     var showMyQrDialog by remember { mutableStateOf(false) }
+    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
+    var googleSignInError by remember { mutableStateOf<String?>(null) }
     val today = LocalDate.now()
     val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
     val accountPeriod = profile?.let {
@@ -130,13 +141,29 @@ fun ProfileScreen(
                             modifier = Modifier.weight(1f),
                             verticalArrangement = Arrangement.spacedBy(6.dp),
                         ) {
-                            Text(
-                                text = profile?.let { profileNameWithAge(it, today) }
-                                    ?: stringResource(R.string.profile_loading),
-                                style = MaterialTheme.typography.headlineSmall,
-                                fontWeight = FontWeight.Bold,
-                            )
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                if (profile?.firebaseUid != null) {
+                                    Icon(
+                                        imageVector = Icons.Filled.CheckCircle,
+                                        contentDescription = "Google аккаунт подтверждён",
+                                        tint = Color(0xFF2E7D32),
+                                        modifier = Modifier.size(20.dp),
+                                    )
+                                }
+                                Text(
+                                    text = profile?.let { profileNameWithAge(it, today) }
+                                        ?: stringResource(R.string.profile_loading),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                            }
                             profile?.let { user ->
+                                user.googleEmail?.takeIf(String::isNotBlank)?.let {
+                                    Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                }
                                 user.country?.takeIf(String::isNotBlank)?.let {
                                     Text(it, style = MaterialTheme.typography.bodyMedium)
                                 }
@@ -339,7 +366,38 @@ fun ProfileScreen(
     }
 
     if (showAddFriendsDialog) {
-        AddFriendsDialog(onDismiss = { showAddFriendsDialog = false })
+        AddFriendsDialog(
+            googleLinked = profile?.firebaseUid != null,
+            googleEmail = profile?.googleEmail,
+            isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
+            googleLinkError = state.googleLinkError,
+            googleLinkDiagnostic = state.googleLinkDiagnostic,
+            googleSignInError = googleSignInError,
+            onContinueWithGoogle = {
+                coroutineScope.launch {
+                    isGoogleSignInInProgress = true
+                    googleSignInError = null
+                    viewModel.clearGoogleLinkError()
+                    try {
+                        val signInResult = googleSignInClient.signIn()
+                        viewModel.linkGoogleAccount(signInResult)
+                    } catch (error: Exception) {
+                        googleSignInError = if (error is GoogleSignInConfigurationException) {
+                            error.message
+                        } else {
+                            "Не удалось выполнить вход с Google. Попробуйте ещё раз."
+                        }
+                    } finally {
+                        isGoogleSignInInProgress = false
+                    }
+                }
+            },
+            onDismiss = {
+                showAddFriendsDialog = false
+                googleSignInError = null
+                viewModel.clearGoogleLinkError()
+            },
+        )
     }
     if (showMyQrDialog) {
         MyQrCodeDialog(profile = profile, onDismiss = { showMyQrDialog = false })

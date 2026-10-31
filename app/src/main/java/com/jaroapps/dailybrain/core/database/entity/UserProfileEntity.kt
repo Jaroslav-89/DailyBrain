@@ -6,7 +6,10 @@ import androidx.room.PrimaryKey
 
 @Entity(
     tableName = "user_profile",
-    indices = [Index(value = ["localAccountId"], unique = true)],
+    indices = [
+        Index(value = ["localAccountId"], unique = true),
+        Index(value = ["googleSubject"], unique = true),
+    ],
 )
 data class UserProfileEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
@@ -23,4 +26,9 @@ data class UserProfileEntity(
     val updatedAtEpochMs: Long,
     /** Versioned, local-only avatar configuration JSON. */
     val avatarJson: String? = null,
+    /** Stable Google account subject (OIDC sub), unique across local profiles on this device. */
+    val googleSubject: String? = null,
+    val googleEmail: String? = null,
+    val googleDisplayName: String? = null,
+    val googlePhotoUrl: String? = null,
 )

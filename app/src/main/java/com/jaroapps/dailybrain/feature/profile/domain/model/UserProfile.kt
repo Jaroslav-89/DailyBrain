@@ -18,6 +18,10 @@ data class UserProfile(
     val city: String? = null,
     val createdAtEpochMs: Long,
     val updatedAtEpochMs: Long,
+    val googleSubject: String? = null,
+    val googleEmail: String? = null,
+    val googleDisplayName: String? = null,
+    val googlePhotoUrl: String? = null,
 ) {
     val effectiveDisplayName: String
         get() = displayName?.trim()?.takeIf(String::isNotEmpty) ?: generatedAlias
