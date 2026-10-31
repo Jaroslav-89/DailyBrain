@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -48,6 +49,8 @@ class FeedViewModel(
             errorMessage.value = null
             try {
                 repository.refresh()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
                 errorMessage.value = "Не удалось обновить ленту. Показываем сохранённые новости."
             } finally {
