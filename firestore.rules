@@ -180,14 +180,14 @@ service cloud.firestore {
     match /publicFollowers/{profileUid}/users/{followerUid} {
       allow get, list: if signedIn();
       allow create: if signedIn()
-        && request.auth.uid == followerUid
+        && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == followerUid
         && existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid))
         && getAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid)).data.followingUid == profileUid;
       allow update: if false;
       allow delete: if signedIn()
-        && request.auth.uid == followerUid
+        && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
   }
