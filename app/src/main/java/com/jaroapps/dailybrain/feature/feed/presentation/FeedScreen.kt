@@ -144,7 +144,7 @@ private fun FeedEvent.message(): String = when (eventType) {
     "PERSONAL_RECORD" -> {
         val accuracy = accuracyPercent?.let { " · точность " + String.format(Locale.getDefault(), "%.1f%%", it) }.orEmpty()
         val time = valueLong?.let { " · " + formatDuration(it) }.orEmpty()
-        "Установил личный рекорд в арифметике" + time + accuracy
+        "Установил личный рекорд в арифметике и получил бейджик" + time + accuracy
     }
     "WEEKLY_XP_MILESTONE" -> "Набрал " + (valueInt ?: 0) + " очков за текущую неделю"
     else -> "Получил новое достижение"
