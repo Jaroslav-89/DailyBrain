@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.core.database
 import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.filterNotNull
@@ -19,10 +20,16 @@ class ActiveUserProvider(
     private val initializationMutex = Mutex()
 
     suspend fun currentUserId(): String {
-        database.appSettingsDao().getActiveLocalAccountId()?.let { return it }
+        val settingsDao = database.appSettingsDao()
+        if (settingsDao.isProfileSelectionRequired() == true) {
+            throw ProfileSelectionRequiredException()
+        }
+        settingsDao.getActiveLocalAccountId()?.let { return it }
 
         return initializationMutex.withLock {
-            val settingsDao = database.appSettingsDao()
+            if (settingsDao.isProfileSelectionRequired() == true) {
+                throw ProfileSelectionRequiredException()
+            }
             settingsDao.getActiveLocalAccountId()?.let { return@withLock it }
 
             val profileDao = database.userProfileDao()
@@ -42,7 +49,24 @@ class ActiveUserProvider(
     }
 
     fun observeUserId(): Flow<String> = flow {
-        emit(currentUserId())
-        emitAll(database.appSettingsDao().observeActiveLocalAccountId().filterNotNull())
+        val initialId = try {
+            currentUserId()
+        } catch (_: ProfileSelectionRequiredException) {
+            null
+        }
+        if (initialId != null) emit(initialId)
+
+        emitAll(
+            combine(
+                database.appSettingsDao().observeActiveLocalAccountId(),
+                database.appSettingsDao().observeProfileSelectionRequired(),
+            ) { localAccountId, selectionRequired ->
+                if (selectionRequired == true) null else localAccountId
+            }.filterNotNull(),
+        )
     }.distinctUntilChanged()
 }
+
+class ProfileSelectionRequiredException : IllegalStateException(
+    "A local profile must be selected before accessing profile data.",
+)
