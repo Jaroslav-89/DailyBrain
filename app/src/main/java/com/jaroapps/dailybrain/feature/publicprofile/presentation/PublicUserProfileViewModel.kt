@@ -51,6 +51,16 @@ class PublicUserProfileViewModel(
             val user = userDirectoryRepository.getPublicUserProfile(viewerUid, profileFirebaseUid)
                 ?: throw IllegalStateException("Профиль пользователя не найден.")
             val self = viewerUid == profileFirebaseUid
+            if (user.isRestricted) {
+                _uiState.value = PublicUserProfileUiState(
+                    viewerFirebaseUid = viewerUid,
+                    user = user,
+                    isSelf = false,
+                    isFollowing = false,
+                    isLoading = false,
+                )
+                return
+            }
             val result = coroutineScope {
                 val following = async { userDirectoryRepository.getPublicFollowing(viewerUid, profileFirebaseUid) }
                 val followers = async { userDirectoryRepository.getPublicFollowers(viewerUid, profileFirebaseUid) }
