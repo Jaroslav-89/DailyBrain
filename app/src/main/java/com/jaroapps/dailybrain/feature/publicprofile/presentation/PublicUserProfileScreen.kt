@@ -128,29 +128,42 @@ fun PublicUserProfileScreen(
                                     if (user.username.isNotBlank()) {
                                         Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
                                     }
-                                    user.country?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                                    user.city?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                                    user.gender?.let { gender ->
-                                        val label = when (gender) {
-                                            "FEMALE" -> "Женский"
-                                            "MALE" -> "Мужской"
-                                            else -> null
+                                    if (!user.isRestricted) {
+                                        user.country?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                                        user.city?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                                        user.gender?.let { gender ->
+                                            val label = when (gender) {
+                                                "FEMALE" -> "Женский"
+                                                "MALE" -> "Мужской"
+                                                else -> null
+                                            }
+                                            label?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                                         }
-                                        label?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                                     }
                                 }
                             }
-                            memberPeriod?.let { period ->
-                                Spacer(Modifier.height(12.dp))
-                                Text(
-                                    "В DailyBrain: ${formatPublicPeriod(period)}",
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                            if (!user.isRestricted) {
+                                memberPeriod?.let { period ->
+                                    Spacer(Modifier.height(12.dp))
+                                    Text(
+                                        "В DailyBrain: ${formatPublicPeriod(period)}",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     }
 
+                    if (user.isRestricted) {
+                        Spacer(Modifier.height(12.dp))
+                        Text(
+                            "Доступ ограничен",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                    } else {
                     Spacer(Modifier.height(12.dp))
                     Surface(
                         modifier = Modifier.fillMaxWidth().clip(MaterialTheme.shapes.large),
@@ -236,6 +249,7 @@ fun PublicUserProfileScreen(
                         PublicBestResultCard("Счёт", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }, PublicBestKind.DURATION)
                         Spacer(Modifier.height(8.dp))
                         PublicBestResultCard("Тест Струпа", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }, PublicBestKind.DURATION)
+                    }
                     }
                 }
             }
