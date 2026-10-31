@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.feed.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,10 +9,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
@@ -22,14 +25,24 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.painter.BitmapPainter
+import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
+import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -37,10 +50,27 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val FeedTimeFormatter = DateTimeFormatter.ofPattern("d MMM · HH:mm", Locale.getDefault())
+private const val BADGE_CELL_WIDTH = 128
+private const val BADGE_CELL_HEIGHT = 150
 
 @Composable
 fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val badgeSheet = remember { ImageBitmap.imageResource(R.drawable.badge_sheet) }
+
+    LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isRefreshing, state.events.size) {
+        snapshotFlow {
+            val layout = listState.layoutInfo
+            val lastVisible = layout.visibleItemsInfo.lastOrNull()?.index ?: -1
+            lastVisible >= layout.totalItemsCount - 4
+        }.distinctUntilChanged().collect { nearEnd ->
+            if (nearEnd && state.hasMore && !state.isLoadingMore && !state.isRefreshing) {
+                viewModel.loadMore()
+            }
+        }
+    }
+
     Column(
         modifier = Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 12.dp),
     ) {
@@ -80,24 +110,41 @@ fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
             }
         } else {
             LazyColumn(
+                state = listState,
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                items(state.events, key = { it.eventId }) { event -> FeedEventCard(event) }
+                items(state.events, key = { it.eventId }) { event ->
+                    FeedEventCard(event = event, badgeSheet = badgeSheet)
+                }
+                if (state.hasMore) {
+                    item(key = "feed-loading-more") {
+                        Box(
+                            modifier = Modifier.fillMaxWidth().height(44.dp),
+                            contentAlignment = Alignment.Center,
+                        ) {
+                            if (state.isLoadingMore) {
+                                CircularProgressIndicator(modifier = Modifier.size(22.dp), strokeWidth = 2.dp)
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun FeedEventCard(event: FeedEvent) {
+private fun FeedEventCard(event: FeedEvent, badgeSheet: ImageBitmap) {
     val author = if (event.isOwn) "Вы" else event.authorName
     val username = event.authorUsername?.takeIf(String::isNotBlank)?.let { "@$it" }
+    val badgeIndex = event.badgeSpriteIndex()
+
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.Top,
+            verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
                 modifier = Modifier.size(42.dp).clip(CircleShape)
@@ -133,8 +180,36 @@ private fun FeedEventCard(event: FeedEvent) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            if (badgeIndex != null) {
+                val column = badgeIndex % 4
+                val row = badgeIndex / 4
+                Image(
+                    painter = BitmapPainter(
+                        image = badgeSheet,
+                        srcOffset = IntOffset(column * BADGE_CELL_WIDTH, row * BADGE_CELL_HEIGHT),
+                        srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
+                    ),
+                    contentDescription = event.badgeDescription(),
+                    modifier = Modifier.size(width = 68.dp, height = 80.dp),
+                )
+            }
         }
     }
+}
+
+private fun FeedEvent.badgeSpriteIndex(): Int? = when (eventType) {
+    "WEEKLY_STREAK" -> 0
+    "WEEKLY_CHALLENGE" -> 1
+    "MONTHLY_STREAK" -> 2 + ((valueInt ?: periodKey?.substringAfterLast("-")?.toIntOrNull() ?: 1) - 1)
+        .coerceIn(0, 11)
+    else -> null
+}
+
+private fun FeedEvent.badgeDescription(): String = when (eventType) {
+    "WEEKLY_STREAK" -> "Бейджик: недельная серия"
+    "WEEKLY_CHALLENGE" -> "Бейджик: задание недели"
+    "MONTHLY_STREAK" -> "Месячный бейджик"
+    else -> "Достижение"
 }
 
 private fun FeedEvent.message(): String = when (eventType) {
@@ -142,9 +217,11 @@ private fun FeedEvent.message(): String = when (eventType) {
     "WEEKLY_CHALLENGE" -> "Выполнил недельное задание и получил бейджик"
     "MONTHLY_STREAK" -> "Завершил месяц ежедневных тренировок и получил месячный бейджик"
     "PERSONAL_RECORD" -> {
-        val accuracy = accuracyPercent?.let { " · точность " + String.format(Locale.getDefault(), "%.1f%%", it) }.orEmpty()
+        val accuracy = accuracyPercent?.let {
+            " · точность " + String.format(Locale.getDefault(), "%.1f%%", it)
+        }.orEmpty()
         val time = valueLong?.let { " · " + formatDuration(it) }.orEmpty()
-        "Установил личный рекорд в арифметике и получил бейджик" + time + accuracy
+        "Установил новый личный рекорд в арифметике" + time + accuracy
     }
     "WEEKLY_XP_MILESTONE" -> "Набрал " + (valueInt ?: 0) + " очков за текущую неделю"
     else -> "Получил новое достижение"
