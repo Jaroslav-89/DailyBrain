@@ -24,6 +24,9 @@ data class UserProfile(
     val googlePhotoUrl: String? = null,
     val username: String? = null,
     val inviteCode: String? = null,
+    val xpPoints: Int = 0,
+    val endorphinBalance: Int = 0,
+    val patchCount: Int = 0,
 ) {
     val effectiveDisplayName: String
         get() = displayName?.trim()?.takeIf(String::isNotEmpty) ?: generatedAlias
