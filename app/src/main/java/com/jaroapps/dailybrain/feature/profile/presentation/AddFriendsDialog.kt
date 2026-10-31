@@ -44,6 +44,7 @@ fun AddFriendsDialog(
     directoryState: UserDirectoryUiState,
     profileViewModel: ProfileViewModel,
     directoryViewModel: UserDirectoryViewModel,
+    onOpenUserProfile: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -212,6 +213,16 @@ fun AddFriendsDialog(
                                 )
                                 if (user.username.isNotBlank()) {
                                     Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
+                                }
+                                OutlinedButton(
+                                    onClick = {
+                                        directoryViewModel.resetSearch()
+                                        onDismiss()
+                                        onOpenUserProfile(user.firebaseUid)
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                ) {
+                                    Text("Открыть профиль")
                                 }
                                 when {
                                     user.firebaseUid == activeProfile?.firebaseUid -> Text("Это ваш профиль.")
