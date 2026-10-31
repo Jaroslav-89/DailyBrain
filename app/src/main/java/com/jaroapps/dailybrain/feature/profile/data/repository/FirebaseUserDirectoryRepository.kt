@@ -44,7 +44,7 @@ class FirebaseUserDirectoryRepository(
 
         return firestore.runTransaction { transaction: Transaction ->
             val privateSnapshot = transaction.get(privateRef)
-            transaction.get(publicRef)
+            val publicSnapshot = transaction.get(publicRef)
 
             val username = UsernamePolicy.normalize(
                 privateSnapshot.getString("usernameLower")
@@ -166,6 +166,40 @@ class FirebaseUserDirectoryRepository(
                 previousReservation.getString("userId") == firebaseUid
             ) {
                 transaction.delete(previousReservationRef)
+            }
+            true
+        }.awaitResult()
+    }
+
+    override suspend fun unlinkProfile(firebaseUid: String) {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val privateRef = firestore.collection(USERS).document(firebaseUid)
+        val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+
+        firestore.runTransaction { transaction: Transaction ->
+            // Complete all reads before writes, as required by Firestore transactions.
+            val privateSnapshot = transaction.get(privateRef)
+            val publicSnapshot = transaction.get(publicRef)
+            val username = UsernamePolicy.normalize(
+                privateSnapshot.getString("usernameLower")
+                    ?: privateSnapshot.getString("username")
+                    ?: publicSnapshot.getString("usernameLower")
+                    ?: publicSnapshot.getString("username").orEmpty(),
+            )
+            val reservationRef = username.takeIf(String::isNotBlank)
+                ?.let { firestore.collection(USERNAMES).document(it) }
+            val reservation = reservationRef?.let { transaction.get(it) }
+
+            if (reservation?.exists() == true && reservation.getString("userId") != firebaseUid) {
+                throw IllegalStateException("Username reservation ownership mismatch.")
+            }
+
+            if (privateSnapshot.exists()) transaction.delete(privateRef)
+            if (publicSnapshot.exists()) transaction.delete(publicRef)
+            if (reservation?.exists() == true) {
+                transaction.delete(requireNotNull(reservationRef))
             }
             true
         }.awaitResult()

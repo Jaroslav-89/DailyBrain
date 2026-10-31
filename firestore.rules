@@ -39,9 +39,8 @@ service cloud.firestore {
       allow delete: if isOwner(uid)
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid))
         && (
-          resource.data.usernameLower == null
-          || resource.data.usernameLower == ''
-          || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.usernameLower))
+          resource.data.get('usernameLower', '') == ''
+          || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.get('usernameLower', '')))
         );
     }
 
@@ -60,9 +59,8 @@ service cloud.firestore {
       allow delete: if isOwner(uid)
         && !existsAfter(/databases/$(database)/documents/users/$(uid))
         && (
-          resource.data.usernameLower == null
-          || resource.data.usernameLower == ''
-          || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.usernameLower))
+          resource.data.get('usernameLower', '') == ''
+          || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.get('usernameLower', '')))
         );
     }
 
