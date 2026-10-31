@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.profile.domain.repository
 
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
 
 class UserDirectoryNotConfiguredException : IllegalStateException("Firebase is not configured.")
 class FirebaseSessionMismatchException : IllegalStateException("The active Firebase account does not match the selected local profile.")
@@ -20,4 +21,17 @@ interface UserDirectoryRepository {
     suspend fun unfollowUser(firebaseUid: String, targetFirebaseUid: String)
     suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile>
     suspend fun getFollowers(firebaseUid: String): List<PublicUserProfile>
+    suspend fun updatePublicProfile(
+        firebaseUid: String,
+        displayName: String?,
+        country: String?,
+        city: String?,
+        gender: String?,
+        memberSinceEpochMs: Long,
+        avatarConfigurationJson: String,
+        statistics: ProfileStatistics,
+    )
+    suspend fun getPublicUserProfile(viewerFirebaseUid: String, profileFirebaseUid: String): PublicUserProfile?
+    suspend fun getPublicFollowing(viewerFirebaseUid: String, profileFirebaseUid: String): List<PublicUserProfile>
+    suspend fun getPublicFollowers(viewerFirebaseUid: String, profileFirebaseUid: String): List<PublicUserProfile>
 }
