@@ -414,4 +414,18 @@ object DatabaseMigrations {
             )
         }
     }
+
+    /** Add a per-device unique Google account binding to each local profile. */
+    val MIGRATION_9_10 = object : Migration(9, 10) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN googleSubject TEXT")
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN googleEmail TEXT")
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN googleDisplayName TEXT")
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN googlePhotoUrl TEXT")
+            database.execSQL(
+                "CREATE UNIQUE INDEX IF NOT EXISTS index_user_profile_googleSubject ON user_profile(googleSubject)",
+            )
+        }
+    }
+
 }
