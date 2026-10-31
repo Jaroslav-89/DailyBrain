@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.feed.domain
 
 data class FeedEvent(
     val eventId: String,
+    val isOwn: Boolean,
     val authorFirebaseUid: String?,
     val authorName: String,
     val authorUsername: String?,
