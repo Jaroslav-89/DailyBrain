@@ -57,7 +57,12 @@ private const val BADGE_CELL_HEIGHT = 228
 fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val badgeSheet = remember { ImageBitmap.imageResource(R.drawable.badge_sheet) }
+    val badgeSheets = listOf(
+        ImageBitmap.imageResource(R.drawable.badge_weekly),
+        ImageBitmap.imageResource(R.drawable.badge_months_01_04),
+        ImageBitmap.imageResource(R.drawable.badge_months_05_08),
+        ImageBitmap.imageResource(R.drawable.badge_months_09_12),
+    )
 
     LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isRefreshing, state.events.size) {
         snapshotFlow {
@@ -115,7 +120,7 @@ fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(state.events, key = { it.eventId }) { event ->
-                    FeedEventCard(event = event, badgeSheet = badgeSheet)
+                    FeedEventCard(event = event, badgeSheets = badgeSheets)
                 }
                 if (state.hasMore) {
                     item(key = "feed-loading-more") {
@@ -135,10 +140,10 @@ fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
 }
 
 @Composable
-private fun FeedEventCard(event: FeedEvent, badgeSheet: ImageBitmap) {
+private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap>) {
     val author = if (event.isOwn) "Вы" else event.authorName
     val username = event.authorUsername?.takeIf(String::isNotBlank)?.let { "@$it" }
-    val badgeIndex = event.badgeSpriteIndex()
+    val badgeLocation = event.badgeSpriteLocation()
 
     Card(modifier = Modifier.fillMaxWidth()) {
         Row(
@@ -180,13 +185,12 @@ private fun FeedEventCard(event: FeedEvent, badgeSheet: ImageBitmap) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (badgeIndex != null) {
-                val column = badgeIndex % 4
-                val row = badgeIndex / 4
+            if (badgeLocation != null) {
+                val (sheetIndex, cellIndex) = badgeLocation
                 Image(
                     painter = BitmapPainter(
-                        image = badgeSheet,
-                        srcOffset = IntOffset(column * BADGE_CELL_WIDTH, row * BADGE_CELL_HEIGHT),
+                        image = badgeSheets[sheetIndex],
+                        srcOffset = IntOffset(cellIndex * BADGE_CELL_WIDTH, 0),
                         srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
                     ),
                     contentDescription = event.badgeDescription(),
@@ -197,11 +201,13 @@ private fun FeedEventCard(event: FeedEvent, badgeSheet: ImageBitmap) {
     }
 }
 
-private fun FeedEvent.badgeSpriteIndex(): Int? = when (eventType) {
-    "WEEKLY_STREAK" -> 0
-    "WEEKLY_CHALLENGE" -> 1
-    "MONTHLY_STREAK" -> 2 + ((valueInt ?: periodKey?.substringAfterLast("-")?.toIntOrNull() ?: 1) - 1)
-        .coerceIn(0, 11)
+private fun FeedEvent.badgeSpriteLocation(): Pair<Int, Int>? = when (eventType) {
+    "WEEKLY_STREAK" -> 0 to 0
+    "WEEKLY_CHALLENGE" -> 0 to 1
+    "MONTHLY_STREAK" -> {
+        val month = (valueInt ?: periodKey?.substringAfterLast("-")?.toIntOrNull() ?: 1).coerceIn(1, 12)
+        (1 + (month - 1) / 4) to ((month - 1) % 4)
+    }
     else -> null
 }
 
