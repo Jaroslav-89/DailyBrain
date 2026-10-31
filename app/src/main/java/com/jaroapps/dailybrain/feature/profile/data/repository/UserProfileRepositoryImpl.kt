@@ -116,6 +116,10 @@ class UserProfileRepositoryImpl(
             database.rewardLedgerDao().deleteForUser(localAccountId)
             database.userBadgeDao().deleteForUser(localAccountId)
             database.userGiftDao().deleteForUser(localAccountId)
+            profile.firebaseUid?.let { firebaseUid ->
+                database.userBadgeDao().deleteForUser(firebaseUid)
+                database.userGiftDao().deleteForUser(firebaseUid)
+            }
             database.feedEventDao().deleteForLocalAccount(localAccountId)
             val deleted = profileDao.deleteByLocalAccountId(profile.localAccountId)
             check(deleted == 1) { "Failed to delete local profile" }
