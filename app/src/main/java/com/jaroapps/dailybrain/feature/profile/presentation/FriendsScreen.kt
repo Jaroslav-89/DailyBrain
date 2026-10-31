@@ -7,28 +7,23 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
-import org.koin.androidx.compose.koinInject
-import org.koin.androidx.compose.koinViewModel
-import kotlinx.coroutines.launch
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -38,10 +33,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
-import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
+import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun FriendsScreen(
     onBack: () -> Unit,
@@ -50,36 +47,13 @@ fun FriendsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
-    val googleSignInClient: GoogleSignInClient = koinInject()
-    val coroutineScope = rememberCoroutineScope()
-    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
-    var googleSignInError by remember { mutableStateOf<String?>(null) }
-    var selectedTab by remember { mutableIntStateOf(2) }
-    var usernameQuery by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableIntStateOf(0) }
+    var showAddFriendsDialog by remember { mutableStateOf(false) }
+    val firebaseUid = state.profile?.firebaseUid ?: directoryState.profile?.firebaseUid
 
-    val connectGoogle: () -> Unit = {
-        coroutineScope.launch {
-            isGoogleSignInInProgress = true
-            googleSignInError = null
-            viewModel.clearGoogleLinkError()
-            try {
-                val signInResult = googleSignInClient.signIn()
-                val expectedSubject = state.profile?.googleSubject ?: directoryState.profile?.googleSubject
-                if (expectedSubject != null && signInResult.account.subject != expectedSubject) {
-                    googleSignInError = "Выберите тот Google-аккаунт, который уже привязан к этому профилю."
-                } else {
-                    viewModel.linkGoogleAccount(signInResult)
-                }
-            } catch (error: Exception) {
-                googleSignInError = if (error is GoogleSignInConfigurationException) {
-                    error.message
-                } else {
-                    "Не удалось выполнить вход с Google. Попробуйте ещё раз."
-                }
-            } finally {
-                isGoogleSignInInProgress = false
-            }
-        }
+    LaunchedEffect(firebaseUid) {
+        directoryViewModel.refreshRelationships()
+        if (firebaseUid != null) directoryViewModel.loadInviteCode()
     }
 
     Scaffold(
@@ -95,120 +69,83 @@ fun FriendsScreen(
         },
     ) { padding ->
         Column(
-            modifier = Modifier.fillMaxSize().padding(padding).padding(20.dp),
+            modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 20.dp, vertical = 12.dp)
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Top,
         ) {
             TabRow(selectedTabIndex = selectedTab) {
-                Tab(selected = selectedTab == 0, onClick = { selectedTab = 0 }, text = { Text("Подписки 0") })
-                Tab(selected = selectedTab == 1, onClick = { selectedTab = 1 }, text = { Text("Подписчики 0") })
-                Tab(selected = selectedTab == 2, onClick = { selectedTab = 2 }, text = { Text("Поиск") })
+                Tab(
+                    selected = selectedTab == 0,
+                    onClick = { selectedTab = 0 },
+                    text = { Text("Подписки ${directoryState.followingUsers.size}") },
+                )
+                Tab(
+                    selected = selectedTab == 1,
+                    onClick = { selectedTab = 1 },
+                    text = { Text("Подписчики ${directoryState.followerUsers.size}") },
+                )
             }
-            Spacer(Modifier.height(24.dp))
-
-            when (selectedTab) {
-                0, 1 -> {
+            Spacer(Modifier.height(20.dp))
+            if (directoryState.isLoadingRelationships) {
+                CircularProgressIndicator()
+            } else if (directoryState.relationshipError != null) {
+                Text(directoryState.relationshipError.orEmpty(), color = MaterialTheme.colorScheme.error)
+            } else {
+                val users = if (selectedTab == 0) directoryState.followingUsers else directoryState.followerUsers
+                if (users.isEmpty()) {
                     Text(
-                        text = if (selectedTab == 0) "Вы пока ни на кого не подписаны" else "У вас пока нет подписчиков",
+                        if (selectedTab == 0) "Вы пока ни на кого не подписаны."
+                        else "У вас пока нет подписчиков.",
                         style = MaterialTheme.typography.bodyLarge,
                     )
-                    Spacer(Modifier.height(20.dp))
-                    Button(onClick = { selectedTab = 2 }, modifier = Modifier.fillMaxWidth()) {
-                        Text("Найти пользователя")
+                } else {
+                    users.forEach {
+                        FriendUserCard(it)
+                        Spacer(Modifier.height(8.dp))
                     }
                 }
-                else -> {
-                    if ((state.profile?.firebaseUid ?: directoryState.profile?.firebaseUid) == null) {
-                        Text(
-                            "Чтобы искать пользователей по уникальному нику, сначала подключите Google-аккаунт.",
-                            style = MaterialTheme.typography.bodyLarge,
-                        )
-                        Spacer(Modifier.height(16.dp))
-                        Button(
-                            onClick = { connectGoogle() },
-                            enabled = !isGoogleSignInInProgress && !state.isGoogleLinking,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (isGoogleSignInInProgress || state.isGoogleLinking) "Подключаем Google..." else "Подключить Google")
-                        }
-                        googleSignInError?.let { error ->
-                            Spacer(Modifier.height(8.dp))
-                            Text(error, color = MaterialTheme.colorScheme.error)
-                        }
-                        state.googleLinkError?.let {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                when (it) {
-                                    GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> "Этот Google-аккаунт уже привязан к другому локальному профилю."
-                                    GoogleLinkError.FIREBASE_NOT_CONFIGURED -> "Firebase не настроен в приложении."
-                                    GoogleLinkError.FIREBASE_AUTH_FAILED -> "Ошибка Google/Firebase: ${state.googleLinkDiagnostic.orEmpty()}"
-                                    GoogleLinkError.SAVE_FAILED -> "Не удалось сохранить привязку Google-аккаунта."
-                                },
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
-                    } else {
-                        Text(
-                            "Найдите пользователя по точному нику DailyBrain.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Spacer(Modifier.height(12.dp))
-                        OutlinedTextField(
-                            value = usernameQuery,
-                            onValueChange = {
-                                usernameQuery = UsernamePolicy.sanitizeInput(it)
-                                directoryViewModel.resetSearch()
-                            },
-                            modifier = Modifier.fillMaxWidth(),
-                            label = { Text("Ник пользователя") },
-                            leadingIcon = { Text("@") },
-                            singleLine = true,
-                        )
-                        Spacer(Modifier.height(10.dp))
-                        Button(
-                            onClick = { directoryViewModel.searchUserByUsername(usernameQuery) },
-                            enabled = !directoryState.isSearching && UsernamePolicy.isValid(usernameQuery),
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (directoryState.isSearching) "Ищем..." else "Найти")
-                        }
-                        directoryState.searchError?.let { error ->
-                            Spacer(Modifier.height(12.dp))
-                            Text(error, color = MaterialTheme.colorScheme.error)
-                        }
-                        if (directoryState.searchHasRun && directoryState.searchResult == null) {
-                            Spacer(Modifier.height(16.dp))
-                            Text("Пользователь с таким ником не найден.")
-                        }
-                        directoryState.searchResult?.let { user ->
-                            Spacer(Modifier.height(16.dp))
-                            Card(modifier = Modifier.fillMaxWidth()) {
-                                Column(
-                                    modifier = Modifier.fillMaxWidth().padding(16.dp),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                                ) {
-                                    Text(
-                                        user.displayName?.takeIf(String::isNotBlank) ?: ("@" + user.username),
-                                        style = MaterialTheme.typography.titleMedium,
-                                    )
-                                    Text(
-                                        "@" + user.username,
-                                        color = MaterialTheme.colorScheme.primary,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                    Text(
-                                        "Пользователь DailyBrain",
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                        style = MaterialTheme.typography.bodySmall,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
+            }
+            if (selectedTab == 0) {
+                Spacer(Modifier.height(16.dp))
+                Button(
+                    onClick = { showAddFriendsDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Добавить друзей") }
             }
         }
     }
 
+    if (showAddFriendsDialog) {
+        AddFriendsDialog(
+            profileState = state,
+            directoryState = directoryState,
+            profileViewModel = viewModel,
+            directoryViewModel = directoryViewModel,
+            onDismiss = {
+                showAddFriendsDialog = false
+                directoryViewModel.refreshRelationships()
+            },
+        )
+    }
+}
+
+@Composable
+private fun FriendUserCard(user: PublicUserProfile) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            Text(
+                user.displayName?.takeIf(String::isNotBlank)
+                    ?: user.username.takeIf(String::isNotBlank)?.let { "@$it" }
+                    ?: "Пользователь DailyBrain",
+                style = MaterialTheme.typography.titleMedium,
+            )
+            if (user.username.isNotBlank()) {
+                Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
+            }
+        }
+    }
 }
