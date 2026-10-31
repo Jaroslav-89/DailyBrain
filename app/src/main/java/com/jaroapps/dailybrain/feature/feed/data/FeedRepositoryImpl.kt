@@ -130,13 +130,11 @@ class FeedRepositoryImpl(
         val dao = database.feedEventDao()
         val localEvents = dao.getLocalEvents(localAccountId)
 
-        var remoteCollectionChanged = false
         localEvents.filter {
             it.authorFirebaseUid == firebaseUid && it.isRevoked && it.syncState == PENDING_DELETE
         }.forEach { event ->
             firestore.collection(FEED_EVENTS).document(event.eventId).delete().awaitResult()
             dao.markSynced(localAccountId, event.eventId)
-            remoteCollectionChanged = true
         }
 
         val latestPublicEvents = localEvents
@@ -146,6 +144,18 @@ class FeedRepositoryImpl(
         val publishableIds = latestPublicEvents.map { it.eventId }.toSet()
 
         // Events older than the public retention window remain in the local history only.
+        // Events that were previously published but fell outside the local retention window
+        // can be deleted by their stable document IDs without an extra Firestore query.
+        localEvents.filter {
+            it.authorFirebaseUid == firebaseUid &&
+                !it.isRevoked &&
+                it.syncState == SYNCED &&
+                it.eventId !in publishableIds
+        }.forEach { event ->
+            firestore.collection(FEED_EVENTS).document(event.eventId).delete().awaitResult()
+            dao.updateSyncState(localAccountId, event.eventId, LOCAL_ONLY)
+        }
+
         localEvents.filter {
             it.authorFirebaseUid == firebaseUid &&
                 !it.isRevoked &&
@@ -159,19 +169,6 @@ class FeedRepositoryImpl(
                 .set(event.toCloudMap(firebaseUid))
                 .awaitResult()
             dao.markSynced(localAccountId, event.eventId)
-            remoteCollectionChanged = true
-        }
-
-        if (remoteCollectionChanged) {
-            val retained = firestore.collection(FEED_EVENTS)
-                .whereEqualTo("authorUid", firebaseUid)
-                .orderBy("occurredAtEpochMs", Query.Direction.DESCENDING)
-                .limit((MAX_PUBLIC_EVENTS + 1).toLong())
-                .get()
-                .awaitResult()
-            retained.documents.drop(MAX_PUBLIC_EVENTS).forEach { oldDocument ->
-                oldDocument.reference.delete().awaitResult()
-            }
         }
     }
 
