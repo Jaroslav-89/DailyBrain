@@ -2,12 +2,14 @@ package com.jaroapps.dailybrain.feature.profile.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryNotConfiguredException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryProfileMissingException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UsernameTakenException
@@ -32,6 +34,16 @@ data class UserDirectoryUiState(
     val searchHasRun: Boolean = false,
     val searchResult: PublicUserProfile? = null,
     val searchError: String? = null,
+    val isFollowingSearchResult: Boolean = false,
+    val isFollowingAction: Boolean = false,
+    val followError: String? = null,
+    val followingUsers: List<PublicUserProfile> = emptyList(),
+    val followerUsers: List<PublicUserProfile> = emptyList(),
+    val isLoadingRelationships: Boolean = false,
+    val relationshipError: String? = null,
+    val inviteCode: String? = null,
+    val isLoadingInviteCode: Boolean = false,
+    val inviteCodeError: String? = null,
 )
 
 private data class UserDirectoryActionState(
@@ -44,6 +56,16 @@ private data class UserDirectoryActionState(
     val searchHasRun: Boolean = false,
     val searchResult: PublicUserProfile? = null,
     val searchError: String? = null,
+    val isFollowingSearchResult: Boolean = false,
+    val isFollowingAction: Boolean = false,
+    val followError: String? = null,
+    val followingUsers: List<PublicUserProfile> = emptyList(),
+    val followerUsers: List<PublicUserProfile> = emptyList(),
+    val isLoadingRelationships: Boolean = false,
+    val relationshipError: String? = null,
+    val inviteCode: String? = null,
+    val isLoadingInviteCode: Boolean = false,
+    val inviteCodeError: String? = null,
 )
 
 class UserDirectoryViewModel(
@@ -55,7 +77,6 @@ class UserDirectoryViewModel(
     private val profile: StateFlow<UserProfile?> = observeUserProfile()
         .map<UserProfile, UserProfile?> { it }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
     private val actions = MutableStateFlow(UserDirectoryActionState())
 
     val uiState: StateFlow<UserDirectoryUiState> = combine(profile, actions) { activeProfile, action ->
@@ -70,6 +91,16 @@ class UserDirectoryViewModel(
             searchHasRun = action.searchHasRun,
             searchResult = action.searchResult,
             searchError = action.searchError,
+            isFollowingSearchResult = action.isFollowingSearchResult,
+            isFollowingAction = action.isFollowingAction,
+            followError = action.followError,
+            followingUsers = action.followingUsers,
+            followerUsers = action.followerUsers,
+            isLoadingRelationships = action.isLoadingRelationships,
+            relationshipError = action.relationshipError,
+            inviteCode = action.inviteCode,
+            isLoadingInviteCode = action.isLoadingInviteCode,
+            inviteCodeError = action.inviteCodeError,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserDirectoryUiState())
 
@@ -77,22 +108,14 @@ class UserDirectoryViewModel(
         actions.value = actions.value.copy(usernameMessage = null, usernameError = false)
     }
 
-    /**
-     * Called by the main Save button. A changed non-empty username is checked first,
-     * then claimed by a Firestore transaction that repeats the uniqueness check.
-     */
     fun saveUsername(input: String, onResult: (Boolean) -> Unit) {
         val activeProfile = profile.value
-        val firebaseUid = activeProfile?.firebaseUid
-        if (activeProfile == null || firebaseUid == null) {
-            actions.value = actions.value.copy(
-                usernameMessage = "Сначала подключите Google-аккаунт.",
-                usernameError = true,
-            )
+        val uid = activeProfile?.firebaseUid
+        if (activeProfile == null || uid == null) {
+            actions.value = actions.value.copy(usernameMessage = "Сначала подключите Google-аккаунт.", usernameError = true)
             onResult(false)
             return
         }
-
         val normalized = UsernamePolicy.normalize(input)
         if (normalized.isNotEmpty() && !UsernamePolicy.isValid(normalized)) {
             actions.value = actions.value.copy(
@@ -102,23 +125,16 @@ class UserDirectoryViewModel(
             onResult(false)
             return
         }
-
         if (normalized == activeProfile.username.orEmpty()) {
             resetUsernameError()
             onResult(true)
             return
         }
 
-        actions.value = actions.value.copy(
-            isSavingUsername = true,
-            usernameMessage = null,
-            usernameError = false,
-        )
+        actions.value = actions.value.copy(isSavingUsername = true, usernameMessage = null, usernameError = false)
         viewModelScope.launch {
             try {
-                if (normalized.isNotEmpty() &&
-                    !userDirectoryRepository.isUsernameAvailable(firebaseUid, normalized)
-                ) {
+                if (normalized.isNotEmpty() && !userDirectoryRepository.isUsernameAvailable(uid, normalized)) {
                     actions.value = actions.value.copy(
                         isSavingUsername = false,
                         usernameMessage = "Этот ник уже занят.",
@@ -127,17 +143,13 @@ class UserDirectoryViewModel(
                     onResult(false)
                     return@launch
                 }
-
-                // Transactional write repeats ownership/uniqueness checks to prevent races.
-                userDirectoryRepository.updateUsername(firebaseUid, normalized)
+                userDirectoryRepository.updateUsername(uid, normalized)
                 userProfileRepository.updateUsername(
                     localAccountId = activeProfile.localAccountId,
                     username = normalized.takeIf(String::isNotBlank),
                 )
                 actions.value = actions.value.copy(
-                    isSavingUsername = false,
-                    usernameMessage = null,
-                    usernameError = false,
+                    isSavingUsername = false, usernameMessage = null, usernameError = false,
                 )
                 onResult(true)
             } catch (cancelled: CancellationException) {
@@ -145,45 +157,37 @@ class UserDirectoryViewModel(
                 throw cancelled
             } catch (error: Exception) {
                 actions.value = actions.value.copy(
-                    isSavingUsername = false,
-                    usernameMessage = errorMessage(error),
-                    usernameError = true,
+                    isSavingUsername = false, usernameMessage = errorMessage(error), usernameError = true,
                 )
                 onResult(false)
             }
         }
     }
 
-    /** Deletes the cloud directory and releases the handle before clearing this local binding. */
     fun unlinkGoogleAccount(onUnlinked: () -> Unit) {
         val activeProfile = profile.value ?: return
-        val firebaseUid = activeProfile.firebaseUid ?: return
-
+        val uid = activeProfile.firebaseUid ?: return
         actions.value = actions.value.copy(isUnlinkingGoogle = true, unlinkError = null)
         viewModelScope.launch {
             var cloudProfileDeleted = false
             try {
-                userDirectoryRepository.unlinkProfile(firebaseUid)
+                userDirectoryRepository.unlinkProfile(uid)
                 cloudProfileDeleted = true
                 userProfileRepository.unlinkGoogleAccount(activeProfile.localAccountId)
                 firebaseAuthenticationRepository.signOut()
-                actions.value = actions.value.copy(isUnlinkingGoogle = false, unlinkError = null)
+                actions.value = UserDirectoryActionState()
                 onUnlinked()
             } catch (cancelled: CancellationException) {
                 if (cloudProfileDeleted) firebaseAuthenticationRepository.signOut()
                 actions.value = actions.value.copy(isUnlinkingGoogle = false)
                 throw cancelled
             } catch (error: Exception) {
-                if (cloudProfileDeleted) {
-                    firebaseAuthenticationRepository.signOut()
-                }
+                if (cloudProfileDeleted) firebaseAuthenticationRepository.signOut()
                 actions.value = actions.value.copy(
                     isUnlinkingGoogle = false,
                     unlinkError = if (cloudProfileDeleted) {
                         "Облачный профиль удалён, но локальную привязку не удалось очистить. Перезапустите приложение."
-                    } else {
-                        errorMessage(error)
-                    },
+                    } else errorMessage(error),
                 )
             }
         }
@@ -191,56 +195,155 @@ class UserDirectoryViewModel(
 
     fun resetSearch() {
         actions.value = actions.value.copy(
+            isSearching = false,
             searchHasRun = false,
             searchResult = null,
             searchError = null,
+            isFollowingSearchResult = false,
+            isFollowingAction = false,
+            followError = null,
         )
     }
 
     fun searchUserByUsername(input: String) {
-        val firebaseUid = profile.value?.firebaseUid
-        if (firebaseUid == null) {
-            actions.value = actions.value.copy(
-                searchHasRun = false,
-                searchResult = null,
-                searchError = "Для поиска пользователей подключите Google-аккаунт.",
-            )
-            return
-        }
         val normalized = UsernamePolicy.normalize(input)
         if (!UsernamePolicy.isValid(normalized)) {
             actions.value = actions.value.copy(
-                searchHasRun = false,
-                searchResult = null,
+                searchHasRun = false, searchResult = null,
                 searchError = "Введите ник длиной 3–20 символов: латинские буквы, цифры или _.",
             )
             return
         }
+        searchUser { uid -> userDirectoryRepository.findUserByUsername(uid, normalized) }
+    }
 
+    fun searchUserByInviteCode(input: String) {
+        val normalized = InviteCodePolicy.normalize(input)
+        if (!InviteCodePolicy.isValid(normalized)) {
+            actions.value = actions.value.copy(
+                searchHasRun = false, searchResult = null,
+                searchError = "Введите корректный код приглашения из 8 символов.",
+            )
+            return
+        }
+        searchUser { uid -> userDirectoryRepository.findUserByInviteCode(uid, normalized) }
+    }
+
+    private fun searchUser(lookup: suspend (String) -> PublicUserProfile?) {
+        val uid = profile.value?.firebaseUid
+        if (uid == null) {
+            actions.value = actions.value.copy(
+                isSearching = false, searchHasRun = false, searchResult = null,
+                searchError = "Для поиска пользователей подключите Google-аккаунт.",
+            )
+            return
+        }
         actions.value = actions.value.copy(
-            isSearching = true,
-            searchHasRun = false,
-            searchResult = null,
-            searchError = null,
+            isSearching = true, searchHasRun = false, searchResult = null, searchError = null,
+            isFollowingSearchResult = false, followError = null,
         )
         viewModelScope.launch {
             try {
-                val result = userDirectoryRepository.findUserByUsername(firebaseUid, normalized)
+                val result = lookup(uid)
+                val following = when {
+                    result == null -> false
+                    result.firebaseUid == uid -> true
+                    else -> userDirectoryRepository.isFollowing(uid, result.firebaseUid)
+                }
                 actions.value = actions.value.copy(
-                    isSearching = false,
-                    searchHasRun = true,
-                    searchResult = result,
-                    searchError = null,
+                    isSearching = false, searchHasRun = true, searchResult = result,
+                    searchError = null, isFollowingSearchResult = following,
                 )
             } catch (cancelled: CancellationException) {
                 actions.value = actions.value.copy(isSearching = false)
                 throw cancelled
             } catch (error: Exception) {
                 actions.value = actions.value.copy(
-                    isSearching = false,
-                    searchHasRun = false,
-                    searchResult = null,
+                    isSearching = false, searchHasRun = false, searchResult = null,
                     searchError = errorMessage(error),
+                )
+            }
+        }
+    }
+
+    fun followSearchResult() {
+        val uid = profile.value?.firebaseUid
+        val target = actions.value.searchResult
+        if (uid == null || target == null || actions.value.isFollowingAction ||
+            actions.value.isFollowingSearchResult
+        ) return
+        if (target.firebaseUid == uid) {
+            actions.value = actions.value.copy(
+                isFollowingSearchResult = true, followError = "Нельзя подписаться на собственный профиль.",
+            )
+            return
+        }
+        actions.value = actions.value.copy(isFollowingAction = true, followError = null)
+        viewModelScope.launch {
+            try {
+                userDirectoryRepository.followUser(uid, target.firebaseUid)
+                actions.value = actions.value.copy(
+                    isFollowingAction = false, isFollowingSearchResult = true, followError = null,
+                )
+                refreshRelationshipsNow(uid)
+            } catch (cancelled: CancellationException) {
+                actions.value = actions.value.copy(isFollowingAction = false)
+                throw cancelled
+            } catch (error: Exception) {
+                actions.value = actions.value.copy(isFollowingAction = false, followError = errorMessage(error))
+            }
+        }
+    }
+
+    fun refreshRelationships() {
+        val uid = profile.value?.firebaseUid
+        if (uid == null) {
+            actions.value = actions.value.copy(
+                followingUsers = emptyList(), followerUsers = emptyList(),
+                isLoadingRelationships = false, relationshipError = null,
+            )
+            return
+        }
+        actions.value = actions.value.copy(isLoadingRelationships = true, relationshipError = null)
+        viewModelScope.launch {
+            try {
+                refreshRelationshipsNow(uid)
+            } catch (cancelled: CancellationException) {
+                actions.value = actions.value.copy(isLoadingRelationships = false)
+                throw cancelled
+            } catch (error: Exception) {
+                actions.value = actions.value.copy(isLoadingRelationships = false, relationshipError = errorMessage(error))
+            }
+        }
+    }
+
+    private suspend fun refreshRelationshipsNow(uid: String) {
+        val following = userDirectoryRepository.getFollowing(uid)
+        val followers = userDirectoryRepository.getFollowers(uid)
+        actions.value = actions.value.copy(
+            followingUsers = following, followerUsers = followers,
+            isLoadingRelationships = false, relationshipError = null,
+        )
+    }
+
+    fun loadInviteCode() {
+        val uid = profile.value?.firebaseUid
+        if (uid == null) {
+            actions.value = actions.value.copy(inviteCode = null, isLoadingInviteCode = false)
+            return
+        }
+        if (actions.value.inviteCode != null || actions.value.isLoadingInviteCode) return
+        actions.value = actions.value.copy(isLoadingInviteCode = true, inviteCodeError = null)
+        viewModelScope.launch {
+            try {
+                val code = userDirectoryRepository.getOrCreateInviteCode(uid)
+                actions.value = actions.value.copy(inviteCode = code, isLoadingInviteCode = false, inviteCodeError = null)
+            } catch (cancelled: CancellationException) {
+                actions.value = actions.value.copy(isLoadingInviteCode = false)
+                throw cancelled
+            } catch (error: Exception) {
+                actions.value = actions.value.copy(
+                    isLoadingInviteCode = false, inviteCodeError = errorMessage(error),
                 )
             }
         }
@@ -248,9 +351,9 @@ class UserDirectoryViewModel(
 
     private fun errorMessage(error: Exception): String = when (error) {
         is UsernameTakenException -> "Этот ник уже занят."
-        is FirebaseSessionMismatchException ->
-            "Активный Google-аккаунт не совпадает с выбранным локальным профилем."
+        is FirebaseSessionMismatchException -> "Активный Google-аккаунт не совпадает с выбранным локальным профилем."
         is UserDirectoryNotConfiguredException -> "Firebase не настроен в приложении."
+        is UserDirectoryProfileMissingException -> "Облачный профиль не найден. Переподключите Google-аккаунт."
         else -> "Не удалось связаться с сервером. Проверьте подключение и попробуйте ещё раз."
     }
 }
