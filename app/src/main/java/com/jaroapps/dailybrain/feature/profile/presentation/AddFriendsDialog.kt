@@ -36,7 +36,7 @@ import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurati
 import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import kotlinx.coroutines.launch
-import org.koin.androidx.compose.koinInject
+import org.koin.compose.koinInject
 
 @Composable
 fun AddFriendsDialog(
