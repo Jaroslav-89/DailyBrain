@@ -9,8 +9,30 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface FeedEventDao {
-    @Query("SELECT * FROM feed_events WHERE localAccountId = :localAccountId AND isRevoked = 0 ORDER BY occurredAtEpochMs DESC")
-    fun observeFeed(localAccountId: String): Flow<List<FeedEventEntity>>
+    @Query("""
+        SELECT * FROM feed_events
+        WHERE localAccountId = :localAccountId AND isRevoked = 0
+        ORDER BY occurredAtEpochMs DESC, eventId DESC
+        LIMIT :limit
+    """)
+    fun observeFeed(localAccountId: String, limit: Int): Flow<List<FeedEventEntity>>
+
+    @Query("""
+        SELECT * FROM feed_events
+        WHERE localAccountId = :localAccountId AND isRevoked = 0
+          AND (
+            occurredAtEpochMs < :beforeOccurredAtEpochMs
+            OR (occurredAtEpochMs = :beforeOccurredAtEpochMs AND eventId < :beforeEventId)
+          )
+        ORDER BY occurredAtEpochMs DESC, eventId DESC
+        LIMIT :limit
+    """)
+    suspend fun getOlderFeedEvents(
+        localAccountId: String,
+        beforeOccurredAtEpochMs: Long,
+        beforeEventId: String,
+        limit: Int,
+    ): List<FeedEventEntity>
 
     @Query("SELECT * FROM feed_events WHERE localAccountId = :localAccountId AND isLocal = 1")
     suspend fun getLocalEvents(localAccountId: String): List<FeedEventEntity>
