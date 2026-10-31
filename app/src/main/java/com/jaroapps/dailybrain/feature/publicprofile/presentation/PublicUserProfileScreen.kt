@@ -222,11 +222,6 @@ fun PublicUserProfileScreen(
                             )
                         }
                     }
-                    state.error?.let {
-                        Spacer(Modifier.height(8.dp))
-                        Text(it, color = MaterialTheme.colorScheme.error)
-                    }
-
                     if (stats != null) {
                         Spacer(Modifier.height(22.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -256,6 +251,11 @@ fun PublicUserProfileScreen(
                         Spacer(Modifier.height(8.dp))
                         PublicBestResultCard("Тест Струпа", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }, PublicBestKind.DURATION)
                     }
+                    }
+
+                    state.error?.let {
+                        Spacer(Modifier.height(8.dp))
+                        Text(it, color = MaterialTheme.colorScheme.error)
                     }
 
                     if (!state.isSelf) {
