@@ -67,6 +67,7 @@ fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onEditAvatar: () -> Unit,
     onOpenFriends: () -> Unit,
+    onOpenUserProfile: (String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
@@ -359,6 +360,7 @@ fun ProfileScreen(
             directoryState = directoryState,
             profileViewModel = viewModel,
             directoryViewModel = directoryViewModel,
+            onOpenUserProfile = onOpenUserProfile,
             onDismiss = {
                 showAddFriendsDialog = false
                 directoryViewModel.refreshRelationships()
