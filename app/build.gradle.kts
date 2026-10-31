@@ -76,6 +76,8 @@ dependencies {
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.auth)
     implementation(libs.firebase.firestore)
+    implementation("com.google.android.gms:play-services-code-scanner:16.1.0")
+    implementation("com.google.zxing:core:3.5.4")
 
     // Google identity through the modern Android Credential Manager API.
     implementation("androidx.credentials:credentials:1.6.0")
