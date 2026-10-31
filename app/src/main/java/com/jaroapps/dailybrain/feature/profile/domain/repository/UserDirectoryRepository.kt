@@ -17,6 +17,7 @@ interface UserDirectoryRepository {
     suspend fun findUserByInviteCode(firebaseUid: String, inviteCode: String): PublicUserProfile?
     suspend fun followUser(firebaseUid: String, targetFirebaseUid: String)
     suspend fun isFollowing(firebaseUid: String, targetFirebaseUid: String): Boolean
+    suspend fun unfollowUser(firebaseUid: String, targetFirebaseUid: String)
     suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile>
     suspend fun getFollowers(firebaseUid: String): List<PublicUserProfile>
 }
