@@ -8,22 +8,15 @@ class UsernameTakenException : IllegalStateException("The username is already re
 class UserDirectoryProfileMissingException : IllegalStateException("The cloud user profile does not exist.")
 
 interface UserDirectoryRepository {
-    /** Creates the remote profile on first sign-in or refreshes its public-safe fields. */
-    suspend fun ensureProfile(
-        firebaseUid: String,
-        email: String?,
-        displayName: String?,
-        avatarUrl: String?,
-    ): String
-
+    suspend fun ensureProfile(firebaseUid: String, email: String?, displayName: String?, avatarUrl: String?): String
     suspend fun isUsernameAvailable(firebaseUid: String, username: String): Boolean
-
-    /** Atomically updates profile documents and acquires/releases username reservations. */
     suspend fun updateUsername(firebaseUid: String, username: String)
-
-    /** Deletes the cloud profile and releases its username reservation for this Firebase UID. */
     suspend fun unlinkProfile(firebaseUid: String)
-
-    /** Exact username lookup. The repository never lists the public directory. */
     suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile?
+    suspend fun getOrCreateInviteCode(firebaseUid: String): String
+    suspend fun findUserByInviteCode(firebaseUid: String, inviteCode: String): PublicUserProfile?
+    suspend fun followUser(firebaseUid: String, targetFirebaseUid: String)
+    suspend fun isFollowing(firebaseUid: String, targetFirebaseUid: String): Boolean
+    suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile>
+    suspend fun getFollowers(firebaseUid: String): List<PublicUserProfile>
 }
