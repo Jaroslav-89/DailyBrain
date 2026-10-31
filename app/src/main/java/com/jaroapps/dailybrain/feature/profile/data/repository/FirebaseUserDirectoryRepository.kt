@@ -247,7 +247,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val firestore = FirebaseFirestore.getInstance(app)
         val reservation = firestore.collection(INVITE_CODES).document(normalized).get().awaitResult()
         val uid = reservation.getString("userId") ?: return null
-        return firestore.collection(PUBLIC_PROFILES).document(uid).get().awaitResult().toPublicProfile(uid)
+        return firestore.collection(PUBLIC_PROFILE_CARDS).document(uid).get().awaitResult().toPublicProfile(uid)
     }
 
     override suspend fun followUser(firebaseUid: String, targetFirebaseUid: String) {
@@ -339,7 +339,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                     relatedUid,
                 )
             }
-            firestore.collection(PUBLIC_PROFILES).document(relatedUid).get().awaitResult()
+            firestore.collection(PUBLIC_PROFILE_CARDS).document(relatedUid).get().awaitResult()
                 .toPublicProfile(relatedUid)?.let(profiles::add)
         }
         return profiles
@@ -435,7 +435,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             .collection(PUBLIC_CONNECTIONS).get().awaitResult()
         val profiles = mutableListOf<PublicUserProfile>()
         for (connection in connections.documents) {
-            firestore.collection(PUBLIC_PROFILES).document(connection.id).get().awaitResult()
+            firestore.collection(PUBLIC_PROFILE_CARDS).document(connection.id).get().awaitResult()
                 .toPublicProfile(connection.id)?.let(profiles::add)
         }
         return profiles
