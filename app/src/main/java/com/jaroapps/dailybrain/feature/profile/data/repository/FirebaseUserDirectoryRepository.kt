@@ -69,7 +69,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             ), SetOptions.merge())
             transaction.set(publicRef, mapOf(
                 "uid" to firebaseUid,
-                "displayName" to normalizedDisplayName,
+                "displayName" to "",
                 "avatarUrl" to avatarUrl.orEmpty(),
                 "username" to username,
                 "usernameLower" to username,
