@@ -56,6 +56,7 @@ import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
@@ -74,13 +75,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         Route.PROFILE,
     )
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
-
-    val restartStartup: () -> Unit = {
-        navController.navigate(Route.STARTUP) {
-            popUpTo(Route.HOME) { inclusive = true }
-            launchSingleTop = true
-        }
-    }
 
     Scaffold(
         bottomBar = {
@@ -204,12 +198,34 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 ArithmeticScreen(onExit = { navController.popBackStack() })
             }
 
+            composable(Route.PROFILE_SELECTION) {
+                ProfileSelectionScreen(
+                    onProfileSelected = {
+                        navController.navigate(Route.HOME) {
+                            popUpTo(Route.PROFILE_SELECTION) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                    onProfileCreated = {
+                        navController.navigate(Route.APP_ONBOARDING) {
+                            popUpTo(Route.PROFILE_SELECTION) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
+                )
+            }
+
             composable(Route.PROFILE) {
                 ProfileScreen(
                     onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
                     onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
-                    onActiveProfileChanged = restartStartup,
+                    onExitProfile = {
+                        navController.navigate(Route.PROFILE_SELECTION) {
+                            popUpTo(Route.HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
 
