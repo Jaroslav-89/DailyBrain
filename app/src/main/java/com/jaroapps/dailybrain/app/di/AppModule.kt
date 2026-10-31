@@ -55,6 +55,8 @@ import com.jaroapps.dailybrain.feature.profile.data.repository.FirebaseUserDirec
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
+import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileViewModel
+import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsViewModel
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.profile.data.auth.FirebaseAuthenticationRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
@@ -156,6 +158,8 @@ val appModule = module {
     viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteLocalProfile = get()) }
     viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get(), firebaseAuthenticationRepository = get()) }
     viewModel { PublicProfileSyncViewModel(observeUserProfile = get(), observeProfileStatistics = get(), observeAvatar = get(), userDirectoryRepository = get()) }
+    viewModel { PublicUserProfileViewModel(observeUserProfile = get(), userDirectoryRepository = get()) }
+    viewModel { PublicUserConnectionsViewModel(observeUserProfile = get(), userDirectoryRepository = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
     single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }
