@@ -10,7 +10,6 @@ enum class UserGender {
 data class UserProfile(
     val localAccountId: String,
     val firebaseUid: String? = null,
-    val username: String? = null,
     val displayName: String? = null,
     val generatedAlias: String,
     val gender: UserGender? = null,
@@ -23,6 +22,7 @@ data class UserProfile(
     val googleEmail: String? = null,
     val googleDisplayName: String? = null,
     val googlePhotoUrl: String? = null,
+    val username: String? = null,
 ) {
     val effectiveDisplayName: String
         get() = displayName?.trim()?.takeIf(String::isNotEmpty) ?: generatedAlias

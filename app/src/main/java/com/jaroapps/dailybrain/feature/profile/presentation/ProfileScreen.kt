@@ -54,8 +54,6 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
@@ -80,15 +78,11 @@ fun ProfileScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
-    val googleSignInClient: GoogleSignInClient = koinInject()
     val exitActiveProfile: ExitActiveProfileUseCase = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val profile = state.profile
     val stats = state.statistics
-    var showAddFriendsDialog by remember { mutableStateOf(false) }
     var showMyQrDialog by remember { mutableStateOf(false) }
-    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
-    var googleSignInError by remember { mutableStateOf<String?>(null) }
     var isExitingProfile by remember { mutableStateOf(false) }
     var exitProfileError by remember { mutableStateOf(false) }
     val today = LocalDate.now()
@@ -246,7 +240,7 @@ fun ProfileScreen(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 OutlinedButton(
-                    onClick = { showAddFriendsDialog = true },
+                    onClick = onOpenFriends,
                     modifier = Modifier.weight(1f),
                 ) {
                     Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -384,40 +378,6 @@ fun ProfileScreen(
         }
     }
 
-    if (showAddFriendsDialog) {
-        AddFriendsDialog(
-            googleLinked = profile?.firebaseUid != null,
-            googleEmail = profile?.googleEmail,
-            isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
-            googleLinkError = state.googleLinkError,
-            googleLinkDiagnostic = state.googleLinkDiagnostic,
-            googleSignInError = googleSignInError,
-            onContinueWithGoogle = {
-                coroutineScope.launch {
-                    isGoogleSignInInProgress = true
-                    googleSignInError = null
-                    viewModel.clearGoogleLinkError()
-                    try {
-                        val signInResult = googleSignInClient.signIn()
-                        viewModel.linkGoogleAccount(signInResult)
-                    } catch (error: Exception) {
-                        googleSignInError = if (error is GoogleSignInConfigurationException) {
-                            error.message
-                        } else {
-                            "Не удалось выполнить вход с Google. Попробуйте ещё раз."
-                        }
-                    } finally {
-                        isGoogleSignInInProgress = false
-                    }
-                }
-            },
-            onDismiss = {
-                showAddFriendsDialog = false
-                googleSignInError = null
-                viewModel.clearGoogleLinkError()
-            },
-        )
-    }
     if (showMyQrDialog) {
         MyQrCodeDialog(profile = profile, onDismiss = { showMyQrDialog = false })
     }
