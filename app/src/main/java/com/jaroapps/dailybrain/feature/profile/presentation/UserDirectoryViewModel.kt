@@ -320,6 +320,48 @@ class UserDirectoryViewModel(
         }
     }
 
+    fun followUser(user: PublicUserProfile) {
+        val uid = profile.value?.firebaseUid ?: return
+        if (dataOwnerUid != uid || user.firebaseUid == uid ||
+            actions.value.followingUsers.any { it.firebaseUid == user.firebaseUid }
+        ) return
+        actions.value = actions.value.copy(relationshipError = null)
+        viewModelScope.launch {
+            try {
+                userDirectoryRepository.followUser(uid, user.firebaseUid)
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    refreshRelationshipsNow(uid)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    actions.value = actions.value.copy(relationshipError = errorMessage(error))
+                }
+            }
+        }
+    }
+
+    fun blockUser(user: PublicUserProfile) {
+        val uid = profile.value?.firebaseUid ?: return
+        if (dataOwnerUid != uid || user.firebaseUid == uid) return
+        actions.value = actions.value.copy(relationshipError = null)
+        viewModelScope.launch {
+            try {
+                userDirectoryRepository.blockUser(uid, user.firebaseUid)
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    refreshRelationshipsNow(uid)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    actions.value = actions.value.copy(relationshipError = errorMessage(error))
+                }
+            }
+        }
+    }
+
     fun refreshRelationships() {
         val uid = profile.value?.firebaseUid
         if (uid == null) {
@@ -393,18 +435,25 @@ class UserDirectoryViewModel(
     }
 
     fun loadInviteCode() {
-        val uid = profile.value?.firebaseUid
-        if (uid == null) {
+        val activeProfile = profile.value
+        val uid = activeProfile?.firebaseUid
+        if (activeProfile == null || uid == null) {
             dataOwnerUid = null
-            actions.value = actions.value.copy(inviteCode = null, isLoadingInviteCode = false, inviteCodeError = null)
+            actions.value = actions.value.copy(
+                inviteCode = null,
+                isLoadingInviteCode = false,
+                inviteCodeError = null,
+            )
             return
         }
+
+        val cachedCode = activeProfile.inviteCode?.takeIf(String::isNotBlank)
         if (dataOwnerUid != uid) {
             dataOwnerUid = uid
             actions.value = actions.value.copy(
                 followingUsers = emptyList(),
                 followerUsers = emptyList(),
-                inviteCode = null,
+                inviteCode = cachedCode,
                 isLoadingInviteCode = false,
                 inviteCodeError = null,
                 isSearching = false,
@@ -416,12 +465,39 @@ class UserDirectoryViewModel(
                 followError = null,
             )
         }
+
+        if (cachedCode != null) {
+            actions.value = actions.value.copy(
+                inviteCode = cachedCode,
+                isLoadingInviteCode = false,
+                inviteCodeError = null,
+            )
+            return
+        }
         if (actions.value.inviteCode != null || actions.value.isLoadingInviteCode) return
+
         actions.value = actions.value.copy(isLoadingInviteCode = true, inviteCodeError = null)
         viewModelScope.launch {
             try {
                 val code = userDirectoryRepository.getOrCreateInviteCode(uid)
-                if (dataOwnerUid != uid || profile.value?.firebaseUid != uid) return@launch
+                val currentProfile = profile.value ?: return@launch
+                if (
+                    dataOwnerUid != uid ||
+                    currentProfile.firebaseUid != uid ||
+                    currentProfile.localAccountId != activeProfile.localAccountId
+                ) return@launch
+
+                userProfileRepository.cacheInviteCode(
+                    localAccountId = activeProfile.localAccountId,
+                    firebaseUid = uid,
+                    inviteCode = code,
+                )
+                if (
+                    dataOwnerUid != uid ||
+                    profile.value?.firebaseUid != uid ||
+                    profile.value?.localAccountId != activeProfile.localAccountId
+                ) return@launch
+
                 actions.value = actions.value.copy(
                     inviteCode = code,
                     isLoadingInviteCode = false,

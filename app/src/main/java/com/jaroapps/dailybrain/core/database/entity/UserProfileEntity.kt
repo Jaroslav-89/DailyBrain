@@ -33,4 +33,6 @@ data class UserProfileEntity(
     val googlePhotoUrl: String? = null,
     /** Cached handle owned by firebaseUid; null for profiles without Google authentication. */
     val username: String? = null,
+    /** Cached cloud invite code; null until fetched or after Google account unlink. */
+    val inviteCode: String? = null,
 )

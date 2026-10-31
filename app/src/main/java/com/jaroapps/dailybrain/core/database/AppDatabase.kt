@@ -28,7 +28,7 @@ import com.jaroapps.dailybrain.core.database.entity.OnboardingProgressEntity
         AppSettingsEntity::class,
         OnboardingProgressEntity::class,
     ],
-    version = 12,
+    version = 13,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

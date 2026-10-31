@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -44,6 +45,7 @@ fun AddFriendsDialog(
     directoryState: UserDirectoryUiState,
     profileViewModel: ProfileViewModel,
     directoryViewModel: UserDirectoryViewModel,
+    onOpenUserProfile: (String) -> Unit,
     onDismiss: () -> Unit,
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -199,14 +201,19 @@ fun AddFriendsDialog(
                         Text("Пользователь не найден.", style = MaterialTheme.typography.bodyMedium)
                     }
                     directoryState.searchResult?.let { user ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().clickable {
+                                directoryViewModel.resetSearch()
+                                onDismiss()
+                                onOpenUserProfile(user.firebaseUid)
+                            },
+                        ) {
                             Column(
                                 modifier = Modifier.fillMaxWidth().padding(14.dp),
                                 verticalArrangement = Arrangement.spacedBy(6.dp),
                             ) {
                                 Text(
                                     user.displayName?.takeIf(String::isNotBlank)
-                                        ?: user.username.takeIf(String::isNotBlank)?.let { "@$it" }
                                         ?: "Пользователь DailyBrain",
                                     style = MaterialTheme.typography.titleMedium,
                                 )
@@ -240,7 +247,7 @@ fun AddFriendsDialog(
     )
 }
 
-private fun firebaseDiagnosticDescription(code: String?): String = when (code) {
+internal fun firebaseDiagnosticDescription(code: String?): String = when (code) {
     "ERROR_OPERATION_NOT_ALLOWED" -> "В Firebase Authentication отключён вход через Google. Включите Google provider в Sign-in method."
     "ERROR_INVALID_CREDENTIAL", "GOOGLE_ID_TOKEN_SUBJECT_MISSING" -> "Firebase отклонил Google ID token. Проверьте Web OAuth Client ID и обновите google-services.json."
     "ERROR_APP_NOT_AUTHORIZED" -> "Firebase не авторизовал это Android-приложение. Проверьте package name и SHA-1 сертификата."

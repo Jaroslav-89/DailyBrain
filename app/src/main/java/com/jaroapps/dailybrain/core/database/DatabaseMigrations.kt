@@ -444,4 +444,11 @@ object DatabaseMigrations {
             database.execSQL("ALTER TABLE user_profile ADD COLUMN username TEXT")
         }
     }
+
+    /** Cache the stable Firebase invite code on the matching linked local profile. */
+    val MIGRATION_12_13 = object : Migration(12, 13) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN inviteCode TEXT")
+        }
+    }
 }

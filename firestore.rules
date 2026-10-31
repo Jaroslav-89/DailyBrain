@@ -34,6 +34,23 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/inviteCodes/$(request.resource.data.inviteCode)).data.userId == uid;
     }
 
+    function validPublicProfileFields() {
+      return (!request.resource.data.keys().hasAny(['displayName']) || request.resource.data.displayName is string)
+        && (!request.resource.data.keys().hasAny(['avatarConfigurationJson']) || request.resource.data.avatarConfigurationJson is string)
+        && (!request.resource.data.keys().hasAny(['country']) || request.resource.data.country is string)
+        && (!request.resource.data.keys().hasAny(['city']) || request.resource.data.city is string)
+        && (!request.resource.data.keys().hasAny(['gender']) || request.resource.data.gender in ['', 'MALE', 'FEMALE'])
+        && (!request.resource.data.keys().hasAny(['memberSinceEpochMs']) || request.resource.data.memberSinceEpochMs is int)
+        && (!request.resource.data.keys().hasAny(['statistics']) || (
+          request.resource.data.statistics is map
+          && request.resource.data.statistics.keys().hasOnly([
+            'currentStreakDays', 'bestStreakDays', 'totalExerciseCount',
+            'lastSevenDaysExerciseCount', 'totalDurationMs', 'firstTrainingDate',
+            'bestExerciseStats'
+          ])
+        ));
+    }
+
     match /users/{uid} {
       allow get: if isOwner(uid);
       allow list: if false;
@@ -59,12 +76,14 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{uid} {
-      allow get: if signedIn();
+      allow get: if isOwner(uid) || (signedIn() && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid)));
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
-          'uid', 'displayName', 'avatarUrl', 'username', 'usernameLower', 'inviteCode', 'updatedAt'
+          'uid', 'displayName', 'avatarUrl', 'avatarConfigurationJson', 'country', 'city',
+          'gender', 'memberSinceEpochMs', 'statistics', 'username', 'usernameLower', 'inviteCode', 'updatedAt'
         ])
+        && validPublicProfileFields()
         && request.resource.data.uid == uid
         && validUsernameFields()
         && ownsUsernameReservation(uid)
@@ -85,6 +104,33 @@ service cloud.firestore {
         );
     }
 
+    match /publicProfileCards/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'username', 'usernameLower', 'avatarConfigurationJson', 'updatedAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.displayName is string
+        && request.resource.data.username is string
+        && request.resource.data.usernameLower == request.resource.data.username.lower()
+        && request.resource.data.avatarConfigurationJson is string
+        && existsAfter(/databases/$(database)/documents/users/$(uid))
+        && existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
+      allow delete: if isOwner(uid)
+        && !existsAfter(/databases/$(database)/documents/users/$(uid))
+        && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
+    }
+
+    match /blockedUsers/{blockerUid}/users/{blockedUid} {
+      allow get: if signedIn() && (request.auth.uid == blockerUid || request.auth.uid == blockedUid);
+      allow list: if signedIn() && request.auth.uid == blockerUid;
+      allow create: if isOwner(blockerUid)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == blockedUid
+        && blockedUid != blockerUid;
+      allow update: if false;
+      allow delete: if isOwner(blockerUid);
+    }
     match /usernames/{username} {
       allow get: if signedIn();
       allow list: if false;
@@ -137,9 +183,50 @@ service cloud.firestore {
         && request.resource.data.followingUid is string
         && request.resource.data.followingUid != request.auth.uid
         && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid
-        && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid));
+        && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(request.resource.data.followingUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.resource.data.followingUid)/users/$(request.auth.uid));
       allow update: if false;
-      allow delete: if signedIn() && resource.data.followerUid == request.auth.uid;
+      allow delete: if signedIn()
+        && (
+          resource.data.followerUid == request.auth.uid
+          || (
+            resource.data.followingUid == request.auth.uid
+            && existsAfter(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(resource.data.followerUid))
+          )
+        );
+    }
+
+    // Public relationship projections let signed-in users inspect another profile's lists
+    // without granting access to arbitrary documents in the internal follows collection.
+    match /publicFollowing/{profileUid}/users/{followingUid} {
+      allow get, list: if signedIn()
+        && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
+      allow create: if signedIn()
+        && request.auth.uid == profileUid
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == followingUid
+        && existsAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid))
+        && getAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid)).data.followingUid == followingUid;
+      allow update: if false;
+      allow delete: if signedIn()
+        && (request.auth.uid == profileUid || request.auth.uid == followingUid)
+        && !existsAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid));
+    }
+
+    match /publicFollowers/{profileUid}/users/{followerUid} {
+      allow get, list: if signedIn()
+        && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
+      allow create: if signedIn()
+        && (request.auth.uid == followerUid || request.auth.uid == profileUid)
+        && request.resource.data.keys().hasOnly(['uid'])
+        && request.resource.data.uid == followerUid
+        && existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid))
+        && getAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid)).data.followingUid == profileUid;
+      allow update: if false;
+      allow delete: if signedIn()
+        && (request.auth.uid == followerUid || request.auth.uid == profileUid)
+        && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
   }
 }
