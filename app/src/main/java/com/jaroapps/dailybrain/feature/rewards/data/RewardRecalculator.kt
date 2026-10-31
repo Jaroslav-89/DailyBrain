@@ -23,6 +23,7 @@ object RewardRecalculator {
     private const val SYNC_PENDING = "PENDING_UPSERT"
     private const val SYNC_DELETE = "PENDING_DELETE"
     private const val SYNCED = "SYNCED"
+    private const val ENDORPHIN_REWARDS_ENABLED = false
 
     private val weekFields = WeekFields.ISO
     private val knownNonArithmeticTypes = setOf(
@@ -62,7 +63,7 @@ object RewardRecalculator {
                     userId = localAccountId,
                     rewardKey = key,
                     deltaXp = xp,
-                    deltaEndorphins = endorphins,
+                    deltaEndorphins = if (ENDORPHIN_REWARDS_ENABLED) endorphins else 0,
                     category = CATEGORY_EARNED,
                     reason = reason,
                     sourceId = trigger.id,
