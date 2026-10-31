@@ -10,6 +10,7 @@ interface CompletedTrainingRepository {
     suspend fun saveCompletedTraining(session: TrainingSession)
     suspend fun deleteCompletedTraining(id: Long): Boolean
     suspend fun recalculateDailyExerciseResult(date: Int)
+    suspend fun initializeRewardState()
     fun observeAllCompletedTrainings(): Flow<List<TrainingSession>>
     fun observeCompletedTrainingsByDate(date: Int): Flow<List<TrainingSession>>
     fun observeActiveTrainingDates(): Flow<Set<Int>>
