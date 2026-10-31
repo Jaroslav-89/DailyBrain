@@ -320,6 +320,28 @@ class UserDirectoryViewModel(
         }
     }
 
+    fun followUser(user: PublicUserProfile) {
+        val uid = profile.value?.firebaseUid ?: return
+        if (dataOwnerUid != uid || user.firebaseUid == uid ||
+            actions.value.followingUsers.any { it.firebaseUid == user.firebaseUid }
+        ) return
+        actions.value = actions.value.copy(relationshipError = null)
+        viewModelScope.launch {
+            try {
+                userDirectoryRepository.followUser(uid, user.firebaseUid)
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    refreshRelationshipsNow(uid)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                if (dataOwnerUid == uid && profile.value?.firebaseUid == uid) {
+                    actions.value = actions.value.copy(relationshipError = errorMessage(error))
+                }
+            }
+        }
+    }
+
     fun blockUser(user: PublicUserProfile) {
         val uid = profile.value?.firebaseUid ?: return
         if (dataOwnerUid != uid || user.firebaseUid == uid) return
