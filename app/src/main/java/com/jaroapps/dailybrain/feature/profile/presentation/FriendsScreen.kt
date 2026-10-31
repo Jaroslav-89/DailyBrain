@@ -27,6 +27,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -38,6 +39,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
@@ -57,9 +61,19 @@ fun FriendsScreen(
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     var pendingUnfollowUser by remember { mutableStateOf<PublicUserProfile?>(null) }
     val firebaseUid = directoryState.profile?.firebaseUid
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, firebaseUid) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME && firebaseUid != null) {
+                directoryViewModel.refreshRelationships()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(firebaseUid) {
-        directoryViewModel.refreshRelationships()
         if (firebaseUid != null) directoryViewModel.loadInviteCode()
     }
 
