@@ -22,6 +22,7 @@ object Route {
     const val EDIT_PROFILE = "edit_profile"
     const val AVATAR_EDITOR = "avatar_editor"
     const val STATISTICS = "statistics"
+    const val FEED = "feed"
     const val ARITHMETIC = "arithmetic"
     const val CALENDAR = "calendar"
     const val DAY_HISTORY = "day_history/{date}"
