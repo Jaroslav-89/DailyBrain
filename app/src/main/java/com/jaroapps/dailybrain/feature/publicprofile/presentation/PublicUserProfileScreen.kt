@@ -258,7 +258,7 @@ fun PublicUserProfileScreen(
                         Text(it, color = MaterialTheme.colorScheme.error)
                     }
 
-                    if (!state.isSelf) {
+                    if (!state.isSelf && (!user.isRestricted || state.isBlockedByViewer)) {
                         Spacer(Modifier.height(24.dp))
                         Button(
                             onClick = { showBlockConfirmation = true },
