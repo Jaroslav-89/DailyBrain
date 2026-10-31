@@ -256,6 +256,12 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val app = configuredApp()
         requireCurrentUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
+        val blockedByTarget = isBlockedByProfile(targetFirebaseUid, firebaseUid)
+        val blockedByViewer = firestore.collection(BLOCKED_USERS).document(firebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(targetFirebaseUid).get().awaitResult().exists()
+        if (blockedByTarget || blockedByViewer) {
+            throw IllegalStateException("Подписка недоступна для этого пользователя.")
+        }
         val target = firestore.collection(PUBLIC_PROFILES).document(targetFirebaseUid).get().awaitResult()
         if (!target.exists()) throw UserDirectoryProfileMissingException()
         val followRef = firestore.collection(FOLLOWS).document("${firebaseUid}_${targetFirebaseUid}")
