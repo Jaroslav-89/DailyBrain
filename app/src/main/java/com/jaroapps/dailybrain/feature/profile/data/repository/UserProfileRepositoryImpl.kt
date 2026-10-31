@@ -98,7 +98,12 @@ class UserProfileRepositoryImpl(
                         ),
                     )
                 } else {
-                    settingsDao.setProfileSelectionRequired(true)
+                    settingsDao.setActiveAccount(
+                        AppSettingsEntity(
+                            activeLocalAccountId = "",
+                            profileSelectionRequired = true,
+                        ),
+                    )
                 }
             }
 
