@@ -69,13 +69,13 @@ class FeedRepositoryImpl(
             return
         }
 
-        // A query returns the newest 20 events across each group of up to 30 followed authors.
-        // This is enough to build the first global page of 20 events without querying every author.
+        // Retention is 20 documents per author. A chunk query can therefore retrieve every
+        // retained event for all authors in that chunk without issuing one request per author.
         val friendEvents = followingUids.chunked(MAX_AUTHORS_PER_QUERY).flatMap { authorIds ->
             firestore.collection(FEED_EVENTS)
                 .whereIn("authorUid", authorIds)
                 .orderBy("occurredAtEpochMs", Query.Direction.DESCENDING)
-                .limit(FEED_PAGE_SIZE.toLong())
+                .limit((MAX_PUBLIC_EVENTS * authorIds.size).toLong())
                 .get()
                 .awaitResult()
                 .documents
@@ -231,7 +231,6 @@ class FeedRepositoryImpl(
         const val CONNECTIONS = "users"
         const val FEED_EVENTS = "feedEvents"
         const val MAX_AUTHORS_PER_QUERY = 9
-        const val FEED_PAGE_SIZE = 20
         const val MAX_PUBLIC_EVENTS = 20
         const val PENDING_UPSERT = "PENDING_UPSERT"
         const val PENDING_DELETE = "PENDING_DELETE"
