@@ -35,6 +35,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -44,6 +45,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Instant
@@ -74,6 +79,36 @@ fun EditProfileScreen(
     var datePickerVisible by remember { mutableStateOf(false) }
     var deleteDialogVisible by remember { mutableStateOf(false) }
     var unlinkConfirmationVisible by remember { mutableStateOf(false) }
+    var googleSignInError by remember { mutableStateOf<String?>(null) }
+    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
+    val googleSignInClient: GoogleSignInClient = koinInject()
+    val coroutineScope = rememberCoroutineScope()
+
+    fun connectGoogle() {
+        coroutineScope.launch {
+            isGoogleSignInInProgress = true
+            googleSignInError = null
+            viewModel.clearGoogleLinkError()
+            try {
+                val result = googleSignInClient.signIn()
+                val expectedSubject = profile?.googleSubject
+                if (expectedSubject != null && result.account.subject != expectedSubject) {
+                    googleSignInError = "Выберите Google-аккаунт, который ранее был привязан к этому профилю."
+                } else {
+                    viewModel.linkGoogleAccount(result)
+                }
+            } catch (error: Exception) {
+                googleSignInError = if (error is GoogleSignInConfigurationException) {
+                    error.message
+                } else {
+                    "Не удалось выполнить вход с Google. Попробуйте ещё раз."
+                }
+            } finally {
+                isGoogleSignInInProgress = false
+            }
+        }
+    }
+
     val initialDateMillis = remember(birthDate) {
         runCatching { LocalDate.parse(birthDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
     }
@@ -365,8 +400,8 @@ fun EditProfileScreen(
             )
         }
 
+        Spacer(Modifier.height(12.dp))
         if (profile?.firebaseUid != null) {
-            Spacer(Modifier.height(12.dp))
             Button(
                 onClick = {
                     unlinkConfirmationVisible = true
@@ -385,6 +420,48 @@ fun EditProfileScreen(
             directoryState.unlinkError?.let { error ->
                 Spacer(Modifier.height(8.dp))
                 Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        } else {
+            Button(
+                onClick = ::connectGoogle,
+                enabled = !state.isSaving && !isGoogleSignInInProgress && !state.isGoogleLinking,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (isGoogleSignInInProgress || state.isGoogleLinking) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Войти через Google аккаунт")
+                }
+            }
+            googleSignInError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            when (state.googleLinkError) {
+                GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> Text(
+                    "Этот Google-аккаунт уже привязан к другому профилю на устройстве.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GoogleLinkError.FIREBASE_NOT_CONFIGURED -> Text(
+                    "Firebase не настроен. Проверьте app/google-services.json и Google provider в Firebase Authentication.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GoogleLinkError.FIREBASE_AUTH_FAILED -> Text(
+                    firebaseDiagnosticDescription(state.googleLinkDiagnostic),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GoogleLinkError.SAVE_FAILED -> Text(
+                    "Не удалось сохранить привязку Google-аккаунта. Попробуйте ещё раз.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                null -> Unit
             }
         }
     }
