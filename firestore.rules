@@ -20,12 +20,20 @@ service cloud.firestore {
         && request.resource.data.usernameLower == request.resource.data.username.lower();
     }
 
+    // A profile may only claim a handle when the matching reservation belongs to it.
+    // getAfter() makes a new reservation in the same atomic transaction visible here.
+    function ownsUsernameReservation(uid) {
+      return request.resource.data.username == ''
+        || getAfter(/databases/$(database)/documents/usernames/$(request.resource.data.username)).data.userId == uid;
+    }
+
     match /users/{uid} {
       allow get: if isOwner(uid);
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.uid == uid
         && validUsernameFields()
+        && ownsUsernameReservation(uid)
         && getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.usernameLower
           == request.resource.data.usernameLower;
       // Local profile deletion must not delete a global Firebase identity.
@@ -41,6 +49,7 @@ service cloud.firestore {
         ])
         && request.resource.data.uid == uid
         && validUsernameFields()
+        && ownsUsernameReservation(uid)
         && getAfter(/databases/$(database)/documents/users/$(uid)).data.usernameLower
           == request.resource.data.usernameLower;
       allow delete: if false;
