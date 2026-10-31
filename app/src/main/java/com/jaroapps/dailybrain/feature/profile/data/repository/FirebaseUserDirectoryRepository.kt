@@ -61,7 +61,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                 "email" to "",
                 "emailLower" to "",
                 "displayName" to "",
-                "avatarUrl" to avatarUrl.orEmpty(),
+                "avatarUrl" to "",
                 "username" to username,
                 "usernameLower" to username,
                 "inviteCode" to inviteCode,
@@ -236,8 +236,14 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val target = firestore.collection(PUBLIC_PROFILES).document(targetFirebaseUid).get().awaitResult()
         if (!target.exists()) throw UserDirectoryProfileMissingException()
         val followRef = firestore.collection(FOLLOWS).document("${firebaseUid}_${targetFirebaseUid}")
+        val followingRef = firestore.collection(PUBLIC_FOLLOWING).document(firebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(targetFirebaseUid)
+        val followerRef = firestore.collection(PUBLIC_FOLLOWERS).document(targetFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(firebaseUid)
         firestore.runTransaction { transaction ->
             val current = transaction.get(followRef)
+            val followingProjection = transaction.get(followingRef)
+            val followerProjection = transaction.get(followerRef)
             if (!current.exists()) {
                 transaction.set(followRef, mapOf(
                     "followerUid" to firebaseUid,
@@ -245,6 +251,8 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                     "createdAt" to FieldValue.serverTimestamp(),
                 ))
             }
+            if (!followingProjection.exists()) transaction.set(followingRef, mapOf("uid" to targetFirebaseUid))
+            if (!followerProjection.exists()) transaction.set(followerRef, mapOf("uid" to firebaseUid))
             true
         }.awaitResult()
     }
@@ -260,8 +268,21 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         require(firebaseUid != targetFirebaseUid) { "Cannot unfollow yourself." }
         val app = configuredApp()
         requireCurrentUser(app, firebaseUid)
-        FirebaseFirestore.getInstance(app).collection(FOLLOWS)
-            .document("${firebaseUid}_${targetFirebaseUid}").delete().awaitResult()
+        val firestore = FirebaseFirestore.getInstance(app)
+        val followRef = firestore.collection(FOLLOWS).document("${firebaseUid}_${targetFirebaseUid}")
+        val followingRef = firestore.collection(PUBLIC_FOLLOWING).document(firebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(targetFirebaseUid)
+        val followerRef = firestore.collection(PUBLIC_FOLLOWERS).document(targetFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(firebaseUid)
+        firestore.runTransaction { transaction ->
+            val current = transaction.get(followRef)
+            val followingProjection = transaction.get(followingRef)
+            val followerProjection = transaction.get(followerRef)
+            if (current.exists()) transaction.delete(followRef)
+            if (followingProjection.exists()) transaction.delete(followingRef)
+            if (followerProjection.exists()) transaction.delete(followerRef)
+            true
+        }.awaitResult()
     }
 
     override suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile> =
@@ -284,13 +305,127 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         return profiles
     }
 
+    override suspend fun updatePublicProfile(
+        firebaseUid: String,
+        displayName: String?,
+        country: String?,
+        city: String?,
+        gender: String?,
+        memberSinceEpochMs: Long,
+        avatarConfigurationJson: String,
+        statistics: com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics,
+    ) {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val privateRef = firestore.collection(USERS).document(firebaseUid)
+        val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        firestore.runTransaction { transaction ->
+            val privateProfile = transaction.get(privateRef)
+            val publicProfile = transaction.get(publicRef)
+            if (!privateProfile.exists() || !publicProfile.exists()) throw UserDirectoryProfileMissingException()
+            val bestResults = statistics.bestExerciseStats.map { result ->
+                mapOf(
+                    "exerciseType" to result.exerciseType,
+                    "bestDurationMs" to result.bestDurationMs,
+                    "bestCorrectCount" to result.bestCorrectCount,
+                )
+            }
+            transaction.set(publicRef, mapOf(
+                "displayName" to displayName?.trim().orEmpty(),
+                "country" to country?.trim().orEmpty(),
+                "city" to city?.trim().orEmpty(),
+                "gender" to gender.orEmpty(),
+                "memberSinceEpochMs" to memberSinceEpochMs,
+                "avatarConfigurationJson" to avatarConfigurationJson,
+                "statistics" to mapOf(
+                    "currentStreakDays" to statistics.currentStreakDays,
+                    "bestStreakDays" to statistics.bestStreakDays,
+                    "totalExerciseCount" to statistics.totalExerciseCount,
+                    "lastSevenDaysExerciseCount" to statistics.lastSevenDaysExerciseCount,
+                    "totalDurationMs" to statistics.totalDurationMs,
+                    "firstTrainingDate" to statistics.firstTrainingDate?.toString().orEmpty(),
+                    "bestExerciseStats" to bestResults,
+                ),
+                "updatedAt" to FieldValue.serverTimestamp(),
+            ), SetOptions.merge())
+            true
+        }.awaitResult()
+    }
+
+    override suspend fun getPublicUserProfile(
+        viewerFirebaseUid: String,
+        profileFirebaseUid: String,
+    ): PublicUserProfile? {
+        val app = configuredApp()
+        requireCurrentUser(app, viewerFirebaseUid)
+        return FirebaseFirestore.getInstance(app).collection(PUBLIC_PROFILES)
+            .document(profileFirebaseUid).get().awaitResult().toPublicProfile(profileFirebaseUid)
+    }
+
+    override suspend fun getPublicFollowing(
+        viewerFirebaseUid: String,
+        profileFirebaseUid: String,
+    ): List<PublicUserProfile> = loadPublicConnections(viewerFirebaseUid, profileFirebaseUid, PUBLIC_FOLLOWING)
+
+    override suspend fun getPublicFollowers(
+        viewerFirebaseUid: String,
+        profileFirebaseUid: String,
+    ): List<PublicUserProfile> = loadPublicConnections(viewerFirebaseUid, profileFirebaseUid, PUBLIC_FOLLOWERS)
+
+    private suspend fun loadPublicConnections(
+        viewerFirebaseUid: String,
+        profileFirebaseUid: String,
+        collectionName: String,
+    ): List<PublicUserProfile> {
+        val app = configuredApp()
+        requireCurrentUser(app, viewerFirebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val connections = firestore.collection(collectionName).document(profileFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).get().awaitResult()
+        val profiles = mutableListOf<PublicUserProfile>()
+        for (connection in connections.documents) {
+            firestore.collection(PUBLIC_PROFILES).document(connection.id).get().awaitResult()
+                .toPublicProfile(connection.id)?.let(profiles::add)
+        }
+        return profiles
+    }
+
     private fun DocumentSnapshot.toPublicProfile(uid: String): PublicUserProfile? {
         if (!exists()) return null
         return PublicUserProfile(
             firebaseUid = uid,
             username = getString("username") ?: getString("usernameLower") ?: "",
-            displayName = null,
+            displayName = getString("displayName")?.takeIf(String::isNotBlank),
             avatarUrl = getString("avatarUrl")?.takeIf(String::isNotBlank),
+            avatarConfigurationJson = getString("avatarConfigurationJson")?.takeIf(String::isNotBlank),
+            country = getString("country")?.takeIf(String::isNotBlank),
+            city = getString("city")?.takeIf(String::isNotBlank),
+            gender = getString("gender")?.takeIf(String::isNotBlank),
+            memberSinceEpochMs = getLong("memberSinceEpochMs"),
+            statistics = getPublicStatistics(get("statistics") as? Map<*, *>),
+        )
+    }
+
+    private fun getPublicStatistics(data: Map<*, *>?): com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserStatistics {
+        if (data == null) return com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserStatistics()
+        val bestResults = (data["bestExerciseStats"] as? List<*>)?.mapNotNull { item ->
+            val result = item as? Map<*, *> ?: return@mapNotNull null
+            val exerciseType = result["exerciseType"] as? String ?: return@mapNotNull null
+            com.jaroapps.dailybrain.feature.profile.domain.model.PublicBestExerciseResult(
+                exerciseType = exerciseType,
+                bestDurationMs = (result["bestDurationMs"] as? Number)?.toLong(),
+                bestCorrectCount = (result["bestCorrectCount"] as? Number)?.toInt(),
+            )
+        }.orEmpty()
+        return com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserStatistics(
+            currentStreakDays = (data["currentStreakDays"] as? Number)?.toInt() ?: 0,
+            bestStreakDays = (data["bestStreakDays"] as? Number)?.toInt() ?: 0,
+            totalExerciseCount = (data["totalExerciseCount"] as? Number)?.toInt() ?: 0,
+            lastSevenDaysExerciseCount = (data["lastSevenDaysExerciseCount"] as? Number)?.toInt() ?: 0,
+            totalDurationMs = (data["totalDurationMs"] as? Number)?.toLong() ?: 0L,
+            firstTrainingDate = (data["firstTrainingDate"] as? String)?.takeIf(String::isNotBlank),
+            bestExerciseStats = bestResults,
         )
     }
 
@@ -316,5 +451,8 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         const val USERNAMES = "usernames"
         const val INVITE_CODES = "inviteCodes"
         const val FOLLOWS = "follows"
+        const val PUBLIC_FOLLOWING = "publicFollowing"
+        const val PUBLIC_FOLLOWERS = "publicFollowers"
+        const val PUBLIC_CONNECTIONS = "users"
     }
 }
