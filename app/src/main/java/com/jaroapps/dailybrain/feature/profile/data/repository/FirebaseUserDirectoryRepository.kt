@@ -413,6 +413,42 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             .document(profileFirebaseUid).get().awaitResult().toPublicProfile(profileFirebaseUid)
     }
 
+    override suspend fun blockUser(blockerFirebaseUid: String, blockedFirebaseUid: String) {
+        require(blockerFirebaseUid != blockedFirebaseUid) { "Cannot block yourself." }
+        val app = configuredApp()
+        requireCurrentUser(app, blockerFirebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val blockRef = firestore.collection(BLOCKED_USERS).document(blockerFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockedFirebaseUid)
+        val blockerFollowsBlocked = firestore.collection(FOLLOWS).document("${blockerFirebaseUid}_${blockedFirebaseUid}")
+        val blockedFollowsBlocker = firestore.collection(FOLLOWS).document("${blockedFirebaseUid}_${blockerFirebaseUid}")
+        val blockerFollowing = firestore.collection(PUBLIC_FOLLOWING).document(blockerFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockedFirebaseUid)
+        val blockerFollowers = firestore.collection(PUBLIC_FOLLOWERS).document(blockerFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockedFirebaseUid)
+        val blockedFollowing = firestore.collection(PUBLIC_FOLLOWING).document(blockedFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockerFirebaseUid)
+        val blockedFollowers = firestore.collection(PUBLIC_FOLLOWERS).document(blockedFirebaseUid)
+            .collection(PUBLIC_CONNECTIONS).document(blockerFirebaseUid)
+        firestore.runTransaction { transaction ->
+            val block = transaction.get(blockRef)
+            val firstFollow = transaction.get(blockerFollowsBlocked)
+            val secondFollow = transaction.get(blockedFollowsBlocker)
+            val projection1 = transaction.get(blockerFollowing)
+            val projection2 = transaction.get(blockerFollowers)
+            val projection3 = transaction.get(blockedFollowing)
+            val projection4 = transaction.get(blockedFollowers)
+            if (!block.exists()) transaction.set(blockRef, mapOf("uid" to blockedFirebaseUid, "createdAt" to FieldValue.serverTimestamp()))
+            if (firstFollow.exists()) transaction.delete(blockerFollowsBlocked)
+            if (secondFollow.exists()) transaction.delete(blockedFollowsBlocker)
+            if (projection1.exists()) transaction.delete(blockerFollowing)
+            if (projection2.exists()) transaction.delete(blockerFollowers)
+            if (projection3.exists()) transaction.delete(blockedFollowing)
+            if (projection4.exists()) transaction.delete(blockedFollowers)
+            true
+        }.awaitResult()
+    }
+
     override suspend fun getPublicFollowing(
         viewerFirebaseUid: String,
         profileFirebaseUid: String,
