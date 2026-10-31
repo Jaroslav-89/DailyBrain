@@ -19,6 +19,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -27,9 +28,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -58,6 +63,7 @@ fun PublicUserProfileScreen(
     viewModel: PublicUserProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showBlockConfirmation by remember { mutableStateOf(false) }
     LaunchedEffect(profileFirebaseUid) { viewModel.load(profileFirebaseUid) }
 
     val user = state.user
@@ -251,9 +257,65 @@ fun PublicUserProfileScreen(
                         PublicBestResultCard("Тест Струпа", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }, PublicBestKind.DURATION)
                     }
                     }
+
+                    if (!state.isSelf) {
+                        Spacer(Modifier.height(24.dp))
+                        Button(
+                            onClick = { showBlockConfirmation = true },
+                            enabled = !state.isUpdatingBlock,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (state.isBlockedByViewer) Color(0xFF2E7D32) else Color(0xFFC62828),
+                                contentColor = Color.White,
+                            ),
+                        ) {
+                            Text(
+                                when {
+                                    state.isUpdatingBlock -> "Обновляем блокировку..."
+                                    state.isBlockedByViewer -> "Разблокировать пользователя"
+                                    else -> "Заблокировать пользователя"
+                                },
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+
+    if (showBlockConfirmation && user != null) {
+        val isUnblocking = state.isBlockedByViewer
+        AlertDialog(
+            onDismissRequest = { showBlockConfirmation = false },
+            title = {
+                Text(if (isUnblocking) "Разблокировать пользователя?" else "Заблокировать пользователя?")
+            },
+            text = {
+                Text(
+                    if (isUnblocking) {
+                        "Пользователь снова сможет просматривать ваш полный профиль, если не заблокировал вас в ответ."
+                    } else {
+                        "Пользователь не сможет просматривать ваш полный профиль. Взаимные подписки будут удалены."
+                    },
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showBlockConfirmation = false
+                        viewModel.toggleBlock()
+                    },
+                ) {
+                    Text(
+                        if (isUnblocking) "Разблокировать" else "Заблокировать",
+                        color = if (isUnblocking) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error,
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showBlockConfirmation = false }) { Text("Отмена") }
+            },
+        )
     }
 }
 
