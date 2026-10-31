@@ -25,7 +25,7 @@ fun InviteQrCode(payload: String, modifier: Modifier = Modifier) {
                 BarcodeFormat.QR_CODE,
                 480,
                 480,
-                mapOf(EncodeHintType.MARGIN to 1),
+                mapOf(EncodeHintType.MARGIN to 4),
             )
         }.getOrNull()
     }
