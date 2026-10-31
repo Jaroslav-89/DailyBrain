@@ -247,17 +247,19 @@ fun ProfileScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Добавить друзей")
                 }
-                Surface(
-                    modifier = Modifier.size(48.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.surfaceVariant,
-                    contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ) {
-                    IconButton(
-                        onClick = { showMyQrDialog = true },
-                        modifier = Modifier.semantics { contentDescription = "Мой QR-код" },
+                if (profile?.firebaseUid != null) {
+                    Surface(
+                        modifier = Modifier.size(48.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
                     ) {
-                        Icon(Icons.Filled.QrCode2, contentDescription = "Мой QR-код")
+                        IconButton(
+                            onClick = { showMyQrDialog = true },
+                            modifier = Modifier.semantics { contentDescription = "Мой QR-код" },
+                        ) {
+                            Icon(Icons.Filled.QrCode2, contentDescription = "Мой QR-код")
+                        }
                     }
                 }
             }
@@ -345,7 +347,7 @@ fun ProfileScreen(
         }
     }
 
-    if (showMyQrDialog) {
+    if (showMyQrDialog && profile?.firebaseUid != null) {
         MyQrCodeDialog(
             profile = profile,
             inviteCode = directoryState.inviteCode,
