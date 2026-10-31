@@ -121,7 +121,6 @@ fun PublicUserProfileScreen(
                                 ) {
                                     Text(
                                         text = user.displayName?.takeIf(String::isNotBlank)
-                                            ?: user.username.takeIf(String::isNotBlank)?.let { "@$it" }
                                             ?: "Пользователь DailyBrain",
                                         style = MaterialTheme.typography.headlineSmall,
                                         fontWeight = FontWeight.Bold,
