@@ -1,5 +1,7 @@
 package com.jaroapps.dailybrain.feature.feed.presentation
 
+import android.graphics.BitmapFactory
+
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -27,14 +29,16 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.graphics.painter.BitmapPainter
-import androidx.compose.ui.res.imageResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.IntSize
 import androidx.compose.ui.unit.dp
@@ -56,12 +60,21 @@ private const val BADGE_CELL_HEIGHT = 228
 fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
-    val badgeSheets = listOf(
-        ImageBitmap.imageResource(R.drawable.badge_weekly),
-        ImageBitmap.imageResource(R.drawable.badge_months_01_04),
-        ImageBitmap.imageResource(R.drawable.badge_months_05_08),
-        ImageBitmap.imageResource(R.drawable.badge_months_09_12),
-    )
+    val context = LocalContext.current
+    // Decode bitmap resources without Compose's BitmapDrawable cast. A missing or malformed
+    // optional badge must never prevent the feed itself from opening.
+    val badgeSheets: List<ImageBitmap?> = remember(context) {
+        listOf(
+            R.drawable.badge_weekly,
+            R.drawable.badge_months_01_04,
+            R.drawable.badge_months_05_08,
+            R.drawable.badge_months_09_12,
+        ).map { resourceId ->
+            runCatching {
+                BitmapFactory.decodeResource(context.resources, resourceId)?.asImageBitmap()
+            }.getOrNull()
+        }
+    }
 
     LaunchedEffect(listState, state.hasMore, state.isLoadingMore, state.isRefreshing, state.events.size) {
         snapshotFlow {
@@ -139,7 +152,7 @@ fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
 }
 
 @Composable
-private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap>) {
+private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap?>) {
     val author = if (event.isOwn) "Вы" else event.authorName
     val username = event.authorUsername?.takeIf(String::isNotBlank)?.let { "@$it" }
     val badgeLocation = event.badgeSpriteLocation()
@@ -184,11 +197,14 @@ private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap>) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (badgeLocation != null) {
-                val (sheetIndex, cellIndex) = badgeLocation
+            val badgeBitmap = badgeLocation?.let { (sheetIndex, _) ->
+                badgeSheets.getOrNull(sheetIndex)
+            }
+            if (badgeLocation != null && badgeBitmap != null) {
+                val (_, cellIndex) = badgeLocation
                 Image(
                     painter = BitmapPainter(
-                        image = badgeSheets[sheetIndex],
+                        image = badgeBitmap,
                         srcOffset = IntOffset(cellIndex * BADGE_CELL_WIDTH, 0),
                         srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
                     ),
