@@ -30,10 +30,24 @@ class FeedRepositoryImpl(
 
     override fun observeFeed(): Flow<List<FeedEvent>> =
         activeUserProvider.observeUserId().flatMapLatest { localAccountId ->
-            database.feedEventDao().observeFeed(localAccountId).map { events ->
+            database.feedEventDao().observeFeed(localAccountId, FEED_PAGE_SIZE + 1).map { events ->
                 events.map { it.toDomain() }
             }
         }
+
+    override suspend fun loadOlderEvents(
+        beforeOccurredAtEpochMs: Long,
+        beforeEventId: String,
+        pageSize: Int,
+    ): List<FeedEvent> {
+        val localAccountId = activeUserProvider.currentUserId()
+        return database.feedEventDao().getOlderFeedEvents(
+            localAccountId = localAccountId,
+            beforeOccurredAtEpochMs = beforeOccurredAtEpochMs,
+            beforeEventId = beforeEventId,
+            limit = pageSize + 1,
+        ).map { it.toDomain() }
+    }
 
     override suspend fun refresh() {
         val localAccountId = activeUserProvider.currentUserId()
@@ -69,8 +83,8 @@ class FeedRepositoryImpl(
             return
         }
 
-        // Retention is 20 documents per author. A chunk query can therefore retrieve every
-        // retained event for all authors in that chunk without issuing one request per author.
+        // Retention is ten documents per author. A chunk query retrieves the full retained
+        // history for all authors in that chunk without issuing one request per author.
         val friendEvents = followingUids.chunked(MAX_AUTHORS_PER_QUERY).flatMap { authorIds ->
             firestore.collection(FEED_EVENTS)
                 .whereIn("authorUid", authorIds)
@@ -228,7 +242,8 @@ class FeedRepositoryImpl(
         const val CONNECTIONS = "users"
         const val FEED_EVENTS = "feedEvents"
         const val MAX_AUTHORS_PER_QUERY = 9
-        const val MAX_PUBLIC_EVENTS = 20
+        const val MAX_PUBLIC_EVENTS = 10
+        const val FEED_PAGE_SIZE = 30
         const val PENDING_UPSERT = "PENDING_UPSERT"
         const val PENDING_DELETE = "PENDING_DELETE"
         const val LOCAL_ONLY = "LOCAL_ONLY"
