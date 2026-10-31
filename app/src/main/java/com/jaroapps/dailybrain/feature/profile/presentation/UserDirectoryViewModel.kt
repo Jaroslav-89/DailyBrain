@@ -480,10 +480,10 @@ class UserDirectoryViewModel(
         viewModelScope.launch {
             try {
                 val code = userDirectoryRepository.getOrCreateInviteCode(uid)
-                val currentProfile = profile.value
+                val currentProfile = profile.value ?: return@launch
                 if (
                     dataOwnerUid != uid ||
-                    currentProfile?.firebaseUid != uid ||
+                    currentProfile.firebaseUid != uid ||
                     currentProfile.localAccountId != activeProfile.localAccountId
                 ) return@launch
 
