@@ -285,6 +285,9 @@ fun PublicUserProfileScreen(
 
     if (showBlockConfirmation && user != null) {
         val isUnblocking = state.isBlockedByViewer
+        val userLabel = user.displayName?.takeIf(String::isNotBlank)
+            ?: user.username.takeIf(String::isNotBlank)?.let { "@$it" }
+            ?: "этого пользователя"
         AlertDialog(
             onDismissRequest = { showBlockConfirmation = false },
             title = {
@@ -293,9 +296,9 @@ fun PublicUserProfileScreen(
             text = {
                 Text(
                     if (isUnblocking) {
-                        "Пользователь снова сможет просматривать ваш полный профиль, если не заблокировал вас в ответ."
+                        "Пользователь $userLabel снова сможет просматривать ваш полный профиль, если не заблокировал вас в ответ."
                     } else {
-                        "Пользователь не сможет просматривать ваш полный профиль. Взаимные подписки будут удалены."
+                        "Пользователь $userLabel больше не сможет просматривать ваш полный профиль. Взаимные подписки будут удалены."
                     },
                 )
             },
