@@ -38,7 +38,7 @@ class PublicProfileSyncViewModel(
                 try {
                     userDirectoryRepository.updatePublicProfile(
                         firebaseUid = firebaseUid,
-                        displayName = profile.displayName,
+                        displayName = profile.effectiveDisplayName,
                         country = profile.country,
                         city = profile.city,
                         gender = profile.gender?.name,
