@@ -58,15 +58,15 @@ fun FriendsScreen(
     var selectedTab by remember { mutableIntStateOf(2) }
     var usernameQuery by remember { mutableStateOf("") }
 
-    val connectGoogle: (Boolean) -> Unit = { requireExistingIdentity ->
+    val connectGoogle: () -> Unit = {
         coroutineScope.launch {
             isGoogleSignInInProgress = true
             googleSignInError = null
             viewModel.clearGoogleLinkError()
             try {
                 val signInResult = googleSignInClient.signIn()
-                val expectedSubject = directoryState.profile?.googleSubject
-                if (requireExistingIdentity && signInResult.account.subject != expectedSubject) {
+                val expectedSubject = state.profile?.googleSubject ?: directoryState.profile?.googleSubject
+                if (expectedSubject != null && signInResult.account.subject != expectedSubject) {
                     googleSignInError = "Выберите тот Google-аккаунт, который уже привязан к этому профилю."
                 } else {
                     viewModel.linkGoogleAccount(signInResult)
@@ -119,14 +119,14 @@ fun FriendsScreen(
                     }
                 }
                 else -> {
-                    if (directoryState.profile?.firebaseUid == null) {
+                    if ((state.profile?.firebaseUid ?: directoryState.profile?.firebaseUid) == null) {
                         Text(
                             "Чтобы искать пользователей по уникальному нику, сначала подключите Google-аккаунт.",
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Spacer(Modifier.height(16.dp))
                         Button(
-                            onClick = { connectGoogle(false) },
+                            onClick = { connectGoogle() },
                             enabled = !isGoogleSignInInProgress && !state.isGoogleLinking,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
@@ -156,7 +156,7 @@ fun FriendsScreen(
                         )
                         Spacer(Modifier.height(8.dp))
                         OutlinedButton(
-                            onClick = { connectGoogle(true) },
+                            onClick = { connectGoogle() },
                             enabled = !isGoogleSignInInProgress && !state.isGoogleLinking,
                             modifier = Modifier.fillMaxWidth(),
                         ) {
