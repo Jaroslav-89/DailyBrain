@@ -232,7 +232,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         // explicitly remove the author's bounded public history as well.
         firestore.collection("feedEvents")
             .whereEqualTo("authorUid", firebaseUid)
-            .limit(20)
+            .limit(10)
             .get()
             .awaitResult()
             .documents
