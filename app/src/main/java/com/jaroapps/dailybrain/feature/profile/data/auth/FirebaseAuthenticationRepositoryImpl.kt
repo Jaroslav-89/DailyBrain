@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.profile.data.auth
 
 import android.content.Context
+import android.util.Base64
+import org.json.JSONObject
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
@@ -31,6 +33,11 @@ class FirebaseAuthenticationRepositoryImpl(
         if (idToken.isBlank() || expectedGoogleSubject.isBlank()) {
             return FirebaseGoogleSignInResult.Failed
         }
+        // Confirm that the profile metadata and the token came from the same Google identity.
+        // This is a consistency check only; Firebase still performs the trusted token validation.
+        if (subjectFromIdToken(idToken) != expectedGoogleSubject) {
+            return FirebaseGoogleSignInResult.Failed
+        }
 
         val auth = firebaseAuthOrNull() ?: return FirebaseGoogleSignInResult.NotConfigured
         return try {
@@ -49,6 +56,17 @@ class FirebaseAuthenticationRepositoryImpl(
     override fun signOut() {
         runCatching { firebaseAuthOrNull()?.signOut() }
     }
+
+    private fun subjectFromIdToken(idToken: String): String? = runCatching {
+        val payload = idToken.split('.').getOrNull(1) ?: return null
+        val decoded = Base64.decode(
+            payload,
+            Base64.URL_SAFE or Base64.NO_WRAP or Base64.NO_PADDING,
+        )
+        JSONObject(String(decoded, Charsets.UTF_8))
+            .optString("sub")
+            .takeIf { it.isNotBlank() }
+    }.getOrNull()
 
     private fun firebaseAuthOrNull(): FirebaseAuth? = runCatching {
         val firebaseApp = FirebaseApp.getApps(applicationContext).firstOrNull()
