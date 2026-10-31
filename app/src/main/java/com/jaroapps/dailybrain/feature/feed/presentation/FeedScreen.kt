@@ -50,8 +50,8 @@ import java.time.format.DateTimeFormatter
 import java.util.Locale
 
 private val FeedTimeFormatter = DateTimeFormatter.ofPattern("d MMM · HH:mm", Locale.getDefault())
-private const val BADGE_CELL_WIDTH = 128
-private const val BADGE_CELL_HEIGHT = 150
+private const val BADGE_CELL_WIDTH = 192
+private const val BADGE_CELL_HEIGHT = 228
 
 @Composable
 fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
