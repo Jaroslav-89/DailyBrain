@@ -15,6 +15,9 @@ interface UserProfileDao {
     @Query("SELECT * FROM user_profile WHERE localAccountId = :localAccountId")
     suspend fun getProfile(localAccountId: String): UserProfileEntity?
 
+    @Query("SELECT * FROM user_profile WHERE googleSubject = :googleSubject LIMIT 1")
+    suspend fun getProfileByGoogleSubject(googleSubject: String): UserProfileEntity?
+
     @Query("SELECT * FROM user_profile WHERE id = 1")
     suspend fun getLegacyDefaultProfile(): UserProfileEntity?
 

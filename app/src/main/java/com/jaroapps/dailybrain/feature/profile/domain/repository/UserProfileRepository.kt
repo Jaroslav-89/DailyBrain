@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.profile.domain.repository
 
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import kotlinx.coroutines.flow.Flow
 
 interface UserProfileRepository {
@@ -9,6 +11,15 @@ interface UserProfileRepository {
     suspend fun createLocalProfile(): UserProfile
     suspend fun switchActiveProfile(localAccountId: String)
     suspend fun deleteActiveProfile()
+    suspend fun isGoogleSubjectLinkedToAnotherProfile(
+        localAccountId: String,
+        googleSubject: String,
+    ): Boolean
+    suspend fun linkGoogleAccount(
+        localAccountId: String,
+        googleAccount: GoogleAccountProfile,
+        firebaseUid: String,
+    ): LinkGoogleAccountResult
     suspend fun saveProfile(
         displayName: String?,
         gender: String?,
