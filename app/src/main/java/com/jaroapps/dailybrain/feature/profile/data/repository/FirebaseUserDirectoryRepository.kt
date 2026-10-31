@@ -31,11 +31,13 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val firestore = FirebaseFirestore.getInstance(app)
         val privateRef = firestore.collection(USERS).document(firebaseUid)
         val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        val publicCardRef = firestore.collection(PUBLIC_PROFILE_CARDS).document(firebaseUid)
         val generatedInviteCode = InviteCodePolicy.generate()
 
         return firestore.runTransaction { transaction: Transaction ->
             val privateSnapshot = transaction.get(privateRef)
             val publicSnapshot = transaction.get(publicRef)
+            val publicCardSnapshot = transaction.get(publicCardRef)
             val username = UsernamePolicy.normalize(
                 privateSnapshot.getString("usernameLower") ?: privateSnapshot.getString("username")
                     ?: publicSnapshot.getString("usernameLower") ?: publicSnapshot.getString("username").orEmpty(),
@@ -74,6 +76,13 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                 "username" to username,
                 "usernameLower" to username,
                 "inviteCode" to inviteCode,
+                "updatedAt" to now,
+            ), SetOptions.merge())            transaction.set(publicCardRef, mapOf(
+                "uid" to firebaseUid,
+                "displayName" to publicCardSnapshot.getString("displayName").orEmpty(),
+                "username" to username,
+                "usernameLower" to username,
+                "avatarConfigurationJson" to publicCardSnapshot.getString("avatarConfigurationJson").orEmpty(),
                 "updatedAt" to now,
             ), SetOptions.merge())
             if (usernameRef != null && usernameReservation?.exists() != true) {
