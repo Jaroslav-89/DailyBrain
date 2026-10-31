@@ -2,24 +2,24 @@ package com.jaroapps.dailybrain.feature.profile.data.auth
 
 import android.content.Context
 import android.util.Base64
-import org.json.JSONObject
 import android.util.Log
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.auth.FirebaseAuthException
+import com.google.firebase.auth.FirebaseNetworkException
 import com.google.firebase.auth.GoogleAuthProvider
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import org.json.JSONObject
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
 /**
  * Firebase Auth adapter based on the Google ID-token exchange used by FunnyMail.
- *
- * Firebase configuration is resolved lazily so an unconfigured checkout still builds
- * and launches; authentication reports NotConfigured until google-services.json exists.
+ * Diagnostic codes are safe to show in the UI: no token, email or UID is included.
  */
 class FirebaseAuthenticationRepositoryImpl(
     context: Context,
@@ -31,12 +31,15 @@ class FirebaseAuthenticationRepositoryImpl(
         expectedGoogleSubject: String,
     ): FirebaseGoogleSignInResult {
         if (idToken.isBlank() || expectedGoogleSubject.isBlank()) {
-            return FirebaseGoogleSignInResult.Failed
+            return FirebaseGoogleSignInResult.Failed("GOOGLE_TOKEN_OR_SUBJECT_EMPTY")
         }
-        // Confirm that the profile metadata and the token came from the same Google identity.
-        // This is a consistency check only; Firebase still performs the trusted token validation.
-        if (subjectFromIdToken(idToken) != expectedGoogleSubject) {
-            return FirebaseGoogleSignInResult.Failed
+
+        // This comparison is only a consistency check; Firebase performs trusted token validation.
+        val tokenSubject = subjectFromIdToken(idToken)
+            ?: return FirebaseGoogleSignInResult.Failed("GOOGLE_ID_TOKEN_SUBJECT_MISSING")
+        if (tokenSubject != expectedGoogleSubject) {
+            Log.e(LOG_TAG, "Google subject mismatch between Credential Manager identity and ID token.")
+            return FirebaseGoogleSignInResult.Failed("GOOGLE_SUBJECT_MISMATCH")
         }
 
         val auth = firebaseAuthOrNull() ?: return FirebaseGoogleSignInResult.NotConfigured
@@ -48,13 +51,20 @@ class FirebaseAuthenticationRepositoryImpl(
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
-            Log.e(LOG_TAG, "Firebase Google authentication failed.", error)
-            FirebaseGoogleSignInResult.Failed
+            val diagnosticCode = diagnosticCode(error)
+            Log.e(LOG_TAG, "Firebase Google authentication failed: $diagnosticCode", error)
+            FirebaseGoogleSignInResult.Failed(diagnosticCode)
         }
     }
 
     override fun signOut() {
         runCatching { firebaseAuthOrNull()?.signOut() }
+    }
+
+    private fun diagnosticCode(error: Exception): String = when (error) {
+        is FirebaseNetworkException -> "ERROR_NETWORK_REQUEST_FAILED"
+        is FirebaseAuthException -> error.errorCode
+        else -> error.javaClass.simpleName.takeIf { it.isNotBlank() } ?: "UNKNOWN_FIREBASE_ERROR"
     }
 
     private fun subjectFromIdToken(idToken: String): String? = runCatching {

@@ -33,6 +33,7 @@ private data class ProfileActionState(
     val deleteError: Boolean,
     val isGoogleLinking: Boolean,
     val googleLinkError: GoogleLinkError?,
+    val googleLinkDiagnostic: String?,
 )
 
 data class ProfileUiState(
@@ -44,6 +45,7 @@ data class ProfileUiState(
     val deleteError: Boolean = false,
     val isGoogleLinking: Boolean = false,
     val googleLinkError: GoogleLinkError? = null,
+    val googleLinkDiagnostic: String? = null,
 )
 
 class ProfileViewModel(
@@ -61,14 +63,16 @@ class ProfileViewModel(
     private val deleteError = MutableStateFlow(false)
     private val googleLinking = MutableStateFlow(false)
     private val googleLinkError = MutableStateFlow<GoogleLinkError?>(null)
+    private val googleLinkDiagnostic = MutableStateFlow<String?>(null)
 
     private val actionState = combine(
         saveError,
         deleteError,
         googleLinking,
         googleLinkError,
-    ) { hasSaveError, hasDeleteError, isLinking, linkError ->
-        ProfileActionState(hasSaveError, hasDeleteError, isLinking, linkError)
+        googleLinkDiagnostic,
+    ) { hasSaveError, hasDeleteError, isLinking, linkError, diagnostic ->
+        ProfileActionState(hasSaveError, hasDeleteError, isLinking, linkError, diagnostic)
     }
 
     val uiState: StateFlow<ProfileUiState> = combine(
@@ -87,6 +91,7 @@ class ProfileViewModel(
             deleteError = actions.deleteError,
             isGoogleLinking = actions.isGoogleLinking,
             googleLinkError = actions.googleLinkError,
+            googleLinkDiagnostic = actions.googleLinkDiagnostic,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
@@ -133,6 +138,7 @@ class ProfileViewModel(
 
     fun clearGoogleLinkError() {
         googleLinkError.value = null
+        googleLinkDiagnostic.value = null
     }
 
     fun linkGoogleAccount(signInResult: GoogleSignInResult) {
@@ -140,8 +146,9 @@ class ProfileViewModel(
         viewModelScope.launch {
             googleLinking.value = true
             googleLinkError.value = null
+            googleLinkDiagnostic.value = null
             try {
-                when (linkGoogleAccountUseCase(localAccountId, signInResult.account, signInResult.idToken)) {
+                when (val result = linkGoogleAccountUseCase(localAccountId, signInResult.account, signInResult.idToken)) {
                     LinkGoogleAccountResult.LINKED -> Unit
                     LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE -> {
                         googleLinkError.value = GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE
@@ -149,15 +156,18 @@ class ProfileViewModel(
                     LinkGoogleAccountResult.FIREBASE_NOT_CONFIGURED -> {
                         googleLinkError.value = GoogleLinkError.FIREBASE_NOT_CONFIGURED
                     }
-                    LinkGoogleAccountResult.FIREBASE_AUTH_FAILED -> {
+                    is LinkGoogleAccountResult.FIREBASE_AUTH_FAILED -> {
                         googleLinkError.value = GoogleLinkError.FIREBASE_AUTH_FAILED
+                        googleLinkDiagnostic.value = result.diagnosticCode
                     }
                     LinkGoogleAccountResult.SAVE_FAILED -> {
                         googleLinkError.value = GoogleLinkError.SAVE_FAILED
+                        googleLinkDiagnostic.value = "LOCAL_PROFILE_SAVE_FAILED"
                     }
                 }
             } catch (_: Exception) {
                 googleLinkError.value = GoogleLinkError.SAVE_FAILED
+                googleLinkDiagnostic.value = "LOCAL_PROFILE_LINK_FAILED"
             } finally {
                 googleLinking.value = false
             }

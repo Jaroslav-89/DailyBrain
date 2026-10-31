@@ -22,6 +22,7 @@ fun AddFriendsDialog(
     googleEmail: String?,
     isGoogleSignInInProgress: Boolean,
     googleLinkError: GoogleLinkError?,
+    googleLinkDiagnostic: String?,
     googleSignInError: String?,
     onContinueWithGoogle: () -> Unit,
     onDismiss: () -> Unit,
@@ -47,10 +48,20 @@ fun AddFriendsDialog(
                             "Firebase не настроен. Добавьте app/google-services.json и включите Google в Firebase Authentication.",
                             color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                         )
-                        GoogleLinkError.FIREBASE_AUTH_FAILED -> Text(
-                            "Firebase не подтвердил вход через Google. Проверьте настройки Google provider и повторите попытку.",
-                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
-                        )
+                        GoogleLinkError.FIREBASE_AUTH_FAILED -> Column(
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text(
+                                firebaseDiagnosticDescription(googleLinkDiagnostic),
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                            )
+                            googleLinkDiagnostic?.let {
+                                Text(
+                                    "Код ошибки: $it",
+                                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                )
+                            }
+                        }
                         GoogleLinkError.SAVE_FAILED -> Text(
                             "Не удалось сохранить привязку. Попробуйте ещё раз.",
                             color = androidx.compose.material3.MaterialTheme.colorScheme.error,
@@ -106,4 +117,28 @@ fun AddFriendsDialog(
             },
         )
     }
+}
+
+
+private fun firebaseDiagnosticDescription(code: String?): String = when (code) {
+    "ERROR_OPERATION_NOT_ALLOWED" ->
+        "В Firebase Authentication отключён вход через Google. Включите Google provider в Sign-in method."
+    "ERROR_INVALID_CREDENTIAL", "GOOGLE_ID_TOKEN_SUBJECT_MISSING" ->
+        "Firebase отклонил Google ID token. Проверьте Web OAuth Client ID и обновите google-services.json."
+    "ERROR_APP_NOT_AUTHORIZED" ->
+        "Firebase не авторизовал это Android-приложение. Проверьте package name и SHA-1 сертификата."
+    "ERROR_INVALID_API_KEY", "CONFIGURATION_NOT_FOUND" ->
+        "Похоже, приложение подключено к неверному Firebase-проекту или использует устаревший google-services.json."
+    "ERROR_NETWORK_REQUEST_FAILED" ->
+        "Не удалось связаться с Firebase. Проверьте интернет-соединение и повторите попытку."
+    "ERROR_ACCOUNT_EXISTS_WITH_DIFFERENT_CREDENTIAL" ->
+        "В Firebase уже существует аккаунт с этим email и другим способом входа. Проверьте способы входа в Authentication."
+    "GOOGLE_SUBJECT_MISMATCH" ->
+        "Google ID token и выбранный Google-аккаунт не совпали. Проверьте Web OAuth Client ID и повторите вход."
+    "GOOGLE_TOKEN_OR_SUBJECT_EMPTY" ->
+        "Google не вернул обязательные данные для проверки аккаунта. Повторите вход."
+    "LOCAL_PROFILE_LINK_FAILED" ->
+        "Firebase авторизовал аккаунт, но не удалось сохранить привязку к локальному профилю."
+    else ->
+        "Firebase вернул ошибку авторизации. Код поможет определить, какую настройку нужно исправить."
 }

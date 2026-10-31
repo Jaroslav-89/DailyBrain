@@ -9,10 +9,10 @@ data class GoogleAccountProfile(
     val photoUrl: String?,
 )
 
-enum class LinkGoogleAccountResult {
-    LINKED,
-    ALREADY_LINKED_TO_ANOTHER_PROFILE,
-    FIREBASE_NOT_CONFIGURED,
-    FIREBASE_AUTH_FAILED,
-    SAVE_FAILED,
+sealed interface LinkGoogleAccountResult {
+    data object LINKED : LinkGoogleAccountResult
+    data object ALREADY_LINKED_TO_ANOTHER_PROFILE : LinkGoogleAccountResult
+    data object FIREBASE_NOT_CONFIGURED : LinkGoogleAccountResult
+    data class FIREBASE_AUTH_FAILED(val diagnosticCode: String) : LinkGoogleAccountResult
+    data object SAVE_FAILED : LinkGoogleAccountResult
 }

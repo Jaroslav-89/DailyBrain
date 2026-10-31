@@ -3,7 +3,7 @@ package com.jaroapps.dailybrain.feature.profile.domain.repository
 sealed interface FirebaseGoogleSignInResult {
     data class Success(val firebaseUid: String) : FirebaseGoogleSignInResult
     data object NotConfigured : FirebaseGoogleSignInResult
-    data object Failed : FirebaseGoogleSignInResult
+    data class Failed(val diagnosticCode: String) : FirebaseGoogleSignInResult
 }
 
 /**

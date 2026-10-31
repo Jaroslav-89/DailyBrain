@@ -367,10 +367,11 @@ fun ProfileScreen(
 
     if (showAddFriendsDialog) {
         AddFriendsDialog(
-            googleLinked = profile?.googleSubject != null,
+            googleLinked = profile?.firebaseUid != null,
             googleEmail = profile?.googleEmail,
             isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
             googleLinkError = state.googleLinkError,
+            googleLinkDiagnostic = state.googleLinkDiagnostic,
             googleSignInError = googleSignInError,
             onContinueWithGoogle = {
                 coroutineScope.launch {

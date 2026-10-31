@@ -99,6 +99,7 @@ fun FriendsScreen(
             googleEmail = state.profile?.googleEmail,
             isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
             googleLinkError = state.googleLinkError,
+            googleLinkDiagnostic = state.googleLinkDiagnostic,
             googleSignInError = googleSignInError,
             onContinueWithGoogle = {
                 coroutineScope.launch {

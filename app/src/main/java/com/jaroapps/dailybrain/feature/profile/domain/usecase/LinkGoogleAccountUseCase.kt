@@ -29,8 +29,8 @@ class LinkGoogleAccountUseCase(
         ) {
             FirebaseGoogleSignInResult.NotConfigured ->
                 return LinkGoogleAccountResult.FIREBASE_NOT_CONFIGURED
-            FirebaseGoogleSignInResult.Failed ->
-                return LinkGoogleAccountResult.FIREBASE_AUTH_FAILED
+            is FirebaseGoogleSignInResult.Failed ->
+                return LinkGoogleAccountResult.FIREBASE_AUTH_FAILED(result.diagnosticCode)
             is FirebaseGoogleSignInResult.Success -> result
         }
 
