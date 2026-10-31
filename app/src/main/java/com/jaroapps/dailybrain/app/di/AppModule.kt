@@ -123,7 +123,7 @@ val appModule = module {
 
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
-    single { GoogleSignInClient(context = androidContext()) }
+    single { GoogleSignInClient() }
     single<FirebaseAuthenticationRepository> {
         FirebaseAuthenticationRepositoryImpl(context = androidContext())
     }
