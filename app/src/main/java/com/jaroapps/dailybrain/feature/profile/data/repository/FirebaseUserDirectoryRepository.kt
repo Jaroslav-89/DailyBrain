@@ -369,9 +369,11 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val firestore = FirebaseFirestore.getInstance(app)
         val privateRef = firestore.collection(USERS).document(firebaseUid)
         val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        val publicCardRef = firestore.collection(PUBLIC_PROFILE_CARDS).document(firebaseUid)
         firestore.runTransaction { transaction ->
             val privateProfile = transaction.get(privateRef)
             val publicProfile = transaction.get(publicRef)
+            val publicCard = transaction.get(publicCardRef)
             if (!privateProfile.exists() || !publicProfile.exists()) throw UserDirectoryProfileMissingException()
             val bestResults = statistics.bestExerciseStats.map { result ->
                 mapOf(
@@ -399,6 +401,17 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                 ),
                 "updatedAt" to FieldValue.serverTimestamp(),
             ), SetOptions.merge())
+            val username = UsernamePolicy.normalize(
+                privateProfile.getString("usernameLower") ?: privateProfile.getString("username").orEmpty(),
+            )
+            transaction.set(publicCardRef, mapOf(
+                "uid" to firebaseUid,
+                "displayName" to displayName?.trim().orEmpty(),
+                "username" to username,
+                "usernameLower" to username,
+                "avatarConfigurationJson" to avatarConfigurationJson,
+                "updatedAt" to FieldValue.serverTimestamp(),
+            ), SetOptions.merge())
             true
         }.awaitResult()
     }
@@ -409,8 +422,13 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
     ): PublicUserProfile? {
         val app = configuredApp()
         requireCurrentUser(app, viewerFirebaseUid)
-        return FirebaseFirestore.getInstance(app).collection(PUBLIC_PROFILES)
-            .document(profileFirebaseUid).get().awaitResult().toPublicProfile(profileFirebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        if (isBlockedByProfile(profileFirebaseUid, viewerFirebaseUid)) {
+            return firestore.collection(PUBLIC_PROFILE_CARDS).document(profileFirebaseUid)
+                .get().awaitResult().toPublicProfile(profileFirebaseUid)?.copy(isRestricted = true)
+        }
+        return firestore.collection(PUBLIC_PROFILES).document(profileFirebaseUid)
+            .get().awaitResult().toPublicProfile(profileFirebaseUid)
     }
 
     override suspend fun blockUser(blockerFirebaseUid: String, blockedFirebaseUid: String) {
