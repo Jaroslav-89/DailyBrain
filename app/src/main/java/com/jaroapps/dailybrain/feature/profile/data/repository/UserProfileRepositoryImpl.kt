@@ -171,12 +171,13 @@ class UserProfileRepositoryImpl(
         inviteCode: String,
     ) {
         require(inviteCode.isNotBlank()) { "Invite code must not be blank." }
-        database.userProfileDao().updateInviteCode(
+        val updatedRows = database.userProfileDao().updateInviteCode(
             localAccountId = localAccountId,
             firebaseUid = firebaseUid,
             inviteCode = inviteCode,
             updatedAtEpochMs = System.currentTimeMillis(),
         )
+        check(updatedRows == 1) { "The local profile is no longer linked to this Google account." }
     }
 
     override suspend fun unlinkGoogleAccount(localAccountId: String) {
