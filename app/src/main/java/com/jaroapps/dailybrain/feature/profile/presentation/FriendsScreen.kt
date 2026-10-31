@@ -49,7 +49,7 @@ fun FriendsScreen(
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
-    val firebaseUid = state.profile?.firebaseUid ?: directoryState.profile?.firebaseUid
+    val firebaseUid = directoryState.profile?.firebaseUid
 
     LaunchedEffect(firebaseUid) {
         directoryViewModel.refreshRelationships()
