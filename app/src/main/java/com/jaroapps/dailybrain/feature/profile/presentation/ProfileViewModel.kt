@@ -2,6 +2,8 @@ package com.jaroapps.dailybrain.feature.profile.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
@@ -11,12 +13,25 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfil
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteActiveProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+enum class GoogleLinkError {
+    ALREADY_LINKED_TO_ANOTHER_PROFILE,
+    SAVE_FAILED,
+}
+
+private data class ProfileActionState(
+    val saveError: Boolean,
+    val deleteError: Boolean,
+    val isGoogleLinking: Boolean,
+    val googleLinkError: GoogleLinkError?,
+)
 
 data class ProfileUiState(
     val profile: UserProfile? = null,
@@ -25,6 +40,8 @@ data class ProfileUiState(
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
     val deleteError: Boolean = false,
+    val isGoogleLinking: Boolean = false,
+    val googleLinkError: GoogleLinkError? = null,
 )
 
 class ProfileViewModel(
@@ -35,21 +52,40 @@ class ProfileViewModel(
     private val createLocalProfile: CreateLocalProfileUseCase,
     private val switchActiveProfile: SwitchActiveProfileUseCase,
     private val deleteActiveProfile: DeleteActiveProfileUseCase,
+    private val linkGoogleAccountUseCase: LinkGoogleAccountUseCase,
 ) : ViewModel() {
     private val saving = MutableStateFlow(false)
     private val saveError = MutableStateFlow(false)
     private val deleteError = MutableStateFlow(false)
+    private val googleLinking = MutableStateFlow(false)
+    private val googleLinkError = MutableStateFlow<GoogleLinkError?>(null)
+
+    private val actionState = combine(
+        saveError,
+        deleteError,
+        googleLinking,
+        googleLinkError,
+    ) { hasSaveError, hasDeleteError, isLinking, linkError ->
+        ProfileActionState(hasSaveError, hasDeleteError, isLinking, linkError)
+    }
 
     val uiState: StateFlow<ProfileUiState> = combine(
         observeUserProfile(),
         observeLocalProfiles(),
         observeProfileStatistics(),
         saving,
-        combine(saveError, deleteError) { hasSaveError, hasDeleteError ->
-            hasSaveError to hasDeleteError
-        },
-    ) { profile, profiles, statistics, isSaving, errors ->
-        ProfileUiState(profile, profiles, statistics, isSaving, errors.first, errors.second)
+        actionState,
+    ) { profile, profiles, statistics, isSaving, actions ->
+        ProfileUiState(
+            profile = profile,
+            profiles = profiles,
+            statistics = statistics,
+            isSaving = isSaving,
+            saveError = actions.saveError,
+            deleteError = actions.deleteError,
+            isGoogleLinking = actions.isGoogleLinking,
+            googleLinkError = actions.googleLinkError,
+        )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
     fun createProfile(onProfileChanged: () -> Unit = {}) {
@@ -91,6 +127,30 @@ class ProfileViewModel(
 
     fun clearDeleteError() {
         deleteError.value = false
+    }
+
+    fun clearGoogleLinkError() {
+        googleLinkError.value = null
+    }
+
+    fun linkGoogleAccount(googleAccount: GoogleAccountProfile) {
+        val localAccountId = uiState.value.profile?.localAccountId ?: return
+        viewModelScope.launch {
+            googleLinking.value = true
+            googleLinkError.value = null
+            try {
+                when (linkGoogleAccountUseCase(localAccountId, googleAccount)) {
+                    LinkGoogleAccountResult.LINKED -> Unit
+                    LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE -> {
+                        googleLinkError.value = GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE
+                    }
+                }
+            } catch (_: Exception) {
+                googleLinkError.value = GoogleLinkError.SAVE_FAILED
+            } finally {
+                googleLinking.value = false
+            }
+        }
     }
 
     fun saveProfile(
