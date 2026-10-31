@@ -6,6 +6,8 @@ import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
 import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
@@ -92,6 +94,32 @@ class UserProfileRepositoryImpl(
         }
     }
 
+    override suspend fun linkGoogleAccount(
+        localAccountId: String,
+        googleAccount: GoogleAccountProfile,
+    ): LinkGoogleAccountResult = database.withTransaction {
+        require(googleAccount.subject.isNotBlank()) { "Google account subject must not be blank" }
+        val dao = database.userProfileDao()
+        val currentProfile = requireNotNull(dao.getProfile(localAccountId)) {
+            "Local profile does not exist: $localAccountId"
+        }
+        val linkedProfile = dao.getProfileByGoogleSubject(googleAccount.subject)
+        if (linkedProfile != null && linkedProfile.localAccountId != localAccountId) {
+            return@withTransaction LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE
+        }
+
+        dao.save(
+            currentProfile.copy(
+                googleSubject = googleAccount.subject,
+                googleEmail = googleAccount.email,
+                googleDisplayName = googleAccount.displayName,
+                googlePhotoUrl = googleAccount.photoUrl,
+                updatedAtEpochMs = System.currentTimeMillis(),
+            ),
+        )
+        LinkGoogleAccountResult.LINKED
+    }
+
     override suspend fun saveProfile(
         displayName: String?,
         gender: String?,
@@ -141,5 +169,9 @@ class UserProfileRepositoryImpl(
         city = city,
         createdAtEpochMs = createdAtEpochMs,
         updatedAtEpochMs = updatedAtEpochMs,
+        googleSubject = googleSubject,
+        googleEmail = googleEmail,
+        googleDisplayName = googleDisplayName,
+        googlePhotoUrl = googlePhotoUrl,
     )
 }
