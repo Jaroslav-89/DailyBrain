@@ -15,6 +15,15 @@ interface AppSettingsDao {
     @Query("SELECT activeLocalAccountId FROM app_settings WHERE id = 1")
     suspend fun getActiveLocalAccountId(): String?
 
+    @Query("SELECT profileSelectionRequired FROM app_settings WHERE id = 1")
+    suspend fun isProfileSelectionRequired(): Boolean?
+
+    @Query("SELECT profileSelectionRequired FROM app_settings WHERE id = 1")
+    fun observeProfileSelectionRequired(): Flow<Boolean?>
+
+    @Query("UPDATE app_settings SET profileSelectionRequired = :required WHERE id = 1")
+    suspend fun setProfileSelectionRequired(required: Boolean)
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun setActiveAccount(settings: AppSettingsEntity)
 }
