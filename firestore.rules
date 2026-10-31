@@ -1,0 +1,67 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function validUsername(value) {
+      return value is string && value.matches('^[a-z0-9_]{3,20}$');
+    }
+
+    function validUsernameFields() {
+      return request.resource.data.username is string
+        && (request.resource.data.username == '' || validUsername(request.resource.data.username))
+        && request.resource.data.usernameLower == request.resource.data.username.lower();
+    }
+
+    match /users/{uid} {
+      allow get: if isOwner(uid);
+      allow list: if false;
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && validUsernameFields()
+        && getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.usernameLower
+          == request.resource.data.usernameLower;
+      // Local profile deletion must not delete a global Firebase identity.
+      allow delete: if false;
+    }
+
+    match /publicProfiles/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create, update: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && validUsernameFields()
+        && getAfter(/databases/$(database)/documents/users/$(uid)).data.usernameLower
+          == request.resource.data.usernameLower;
+      allow delete: if false;
+    }
+
+    match /usernames/{username} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if signedIn()
+        && validUsername(username)
+        && request.resource.data.keys().hasOnly(['userId'])
+        && request.resource.data.userId == request.auth.uid
+        && !exists(/databases/$(database)/documents/usernames/$(username))
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower
+          == username
+        && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower
+          == username;
+      allow update: if false;
+      allow delete: if signedIn()
+        && resource.data.userId == request.auth.uid
+        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower
+          != username
+        && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower
+          != username;
+    }
+  }
+}

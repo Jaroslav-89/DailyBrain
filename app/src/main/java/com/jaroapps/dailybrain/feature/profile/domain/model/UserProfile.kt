@@ -10,6 +10,7 @@ enum class UserGender {
 data class UserProfile(
     val localAccountId: String,
     val firebaseUid: String? = null,
+    val username: String? = null,
     val displayName: String? = null,
     val generatedAlias: String,
     val gender: UserGender? = null,

@@ -15,6 +15,8 @@ data class UserProfileEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val localAccountId: String,
     val firebaseUid: String? = null,
+    /** Cached handle owned by firebaseUid; null for profiles without Google authentication. */
+    val username: String? = null,
     val displayName: String? = null,
     val generatedAlias: String,
     val gender: String? = null,

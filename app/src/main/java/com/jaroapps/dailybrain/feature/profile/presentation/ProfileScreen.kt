@@ -193,6 +193,13 @@ fun ProfileScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     )
                                 }
+                                user.username?.takeIf(String::isNotBlank)?.let { username ->
+                                    Text(
+                                        text = "@$username",
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.primary,
+                                    )
+                                }
                             }
                         }
                     }

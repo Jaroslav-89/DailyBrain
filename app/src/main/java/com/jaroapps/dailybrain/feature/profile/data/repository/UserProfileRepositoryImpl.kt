@@ -130,6 +130,7 @@ class UserProfileRepositoryImpl(
         localAccountId: String,
         googleAccount: GoogleAccountProfile,
         firebaseUid: String,
+        username: String?,
     ): LinkGoogleAccountResult = database.withTransaction {
         require(googleAccount.subject.isNotBlank()) { "Google account subject must not be blank" }
         val dao = database.userProfileDao()
@@ -144,6 +145,7 @@ class UserProfileRepositoryImpl(
         dao.save(
             currentProfile.copy(
                 firebaseUid = firebaseUid,
+                username = username?.takeIf(String::isNotBlank),
                 googleSubject = googleAccount.subject,
                 googleEmail = googleAccount.email,
                 googleDisplayName = googleAccount.displayName,
@@ -152,6 +154,14 @@ class UserProfileRepositoryImpl(
             ),
         )
         LinkGoogleAccountResult.LINKED
+    }
+
+    override suspend fun updateUsername(localAccountId: String, username: String?) {
+        database.userProfileDao().updateUsername(
+            localAccountId = localAccountId,
+            username = username?.takeIf(String::isNotBlank),
+            updatedAtEpochMs = System.currentTimeMillis(),
+        )
     }
 
     override suspend fun saveProfile(
@@ -195,6 +205,7 @@ class UserProfileRepositoryImpl(
     private fun UserProfileEntity.toDomain() = UserProfile(
         localAccountId = localAccountId,
         firebaseUid = firebaseUid,
+        username = username,
         displayName = displayName,
         generatedAlias = generatedAlias,
         gender = gender?.let { value -> UserGender.entries.firstOrNull { it.name == value } },

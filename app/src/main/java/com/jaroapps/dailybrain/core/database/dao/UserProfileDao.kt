@@ -27,6 +27,9 @@ interface UserProfileDao {
     @Query("UPDATE user_profile SET avatarJson = :avatarJson, updatedAtEpochMs = :updatedAtEpochMs WHERE localAccountId = :localAccountId")
     suspend fun updateAvatarJson(localAccountId: String, avatarJson: String?, updatedAtEpochMs: Long)
 
+    @Query("UPDATE user_profile SET username = :username, updatedAtEpochMs = :updatedAtEpochMs WHERE localAccountId = :localAccountId")
+    suspend fun updateUsername(localAccountId: String, username: String?, updatedAtEpochMs: Long)
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(profile: UserProfileEntity): Long
 

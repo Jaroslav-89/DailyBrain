@@ -44,6 +44,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Instant
@@ -56,9 +57,14 @@ fun EditProfileScreen(
     onEditAvatar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
+    directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
+    var username by remember(profile?.localAccountId, profile?.username) {
+        mutableStateOf(profile?.username.orEmpty())
+    }
     var displayName by remember(profile?.displayName) { mutableStateOf(profile?.displayName.orEmpty()) }
     var gender by remember(profile?.gender) { mutableStateOf(profile?.gender?.name) }
     var birthDate by remember(profile?.birthDate) { mutableStateOf(profile?.birthDate?.toString().orEmpty()) }
@@ -106,6 +112,62 @@ fun EditProfileScreen(
             supportingText = { Text(stringResource(R.string.profile_name_optional)) },
             singleLine = true,
         )
+        if (profile?.firebaseUid != null) {
+            Spacer(Modifier.height(20.dp))
+            Text("Уникальный ник", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Ник будет виден другим пользователям. Он закрепляется за вашим Google-аккаунтом.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = username,
+                onValueChange = {
+                    username = UsernamePolicy.sanitizeInput(it)
+                    directoryViewModel.resetUsernameCheck()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Ваш ник") },
+                leadingIcon = { Text("@") },
+                placeholder = { Text("brain_user") },
+                singleLine = true,
+                supportingText = { Text("3–20 символов: латинские буквы, цифры и _") },
+            )
+            Spacer(Modifier.height(8.dp))
+            Button(
+                onClick = { directoryViewModel.checkUsernameAvailability(username) },
+                enabled = !directoryState.isCheckingUsername &&
+                    !directoryState.isSavingUsername &&
+                    UsernamePolicy.isValid(username),
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (directoryState.isCheckingUsername) "Проверяем..." else "Проверить ник")
+            }
+            directoryState.usernameMessage?.let { message ->
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    message,
+                    color = if (directoryState.usernameError) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.primary,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+            }
+            val normalizedUsername = UsernamePolicy.normalize(username)
+            val canSaveUsername = normalizedUsername == profile.username.orEmpty() ||
+                (normalizedUsername.isEmpty() && !profile.username.isNullOrBlank()) ||
+                (directoryState.usernameAvailability == UsernameAvailability.AVAILABLE &&
+                    directoryState.checkedUsername == normalizedUsername)
+            Button(
+                onClick = { directoryViewModel.saveUsername(username) },
+                enabled = canSaveUsername &&
+                    normalizedUsername != profile.username.orEmpty() &&
+                    !directoryState.isSavingUsername,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(if (directoryState.isSavingUsername) "Сохраняем..." else "Сохранить ник")
+            }
+        }
         Spacer(Modifier.height(8.dp))
         Column {
             OutlinedTextField(
