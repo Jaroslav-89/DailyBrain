@@ -334,14 +334,22 @@ object RewardRecalculator {
         }
         if (reconciledEvents.isNotEmpty()) feedDao.upsertAll(reconciledEvents)
 
-        database.userProfileDao().save(
-            profile.copy(
-                xpPoints = ledgerDao.getXpBalance(localAccountId).coerceAtLeast(0),
-                endorphinBalance = ledgerDao.getEndorphinBalance(localAccountId).coerceAtLeast(0),
-                rewardsInitialized = true,
-                updatedAtEpochMs = System.currentTimeMillis(),
-            ),
-        )
+        val xpBalance = ledgerDao.getXpBalance(localAccountId).coerceAtLeast(0)
+        val endorphinBalance = ledgerDao.getEndorphinBalance(localAccountId).coerceAtLeast(0)
+        if (
+            profile.xpPoints != xpBalance ||
+            profile.endorphinBalance != endorphinBalance ||
+            !profile.rewardsInitialized
+        ) {
+            database.userProfileDao().save(
+                profile.copy(
+                    xpPoints = xpBalance,
+                    endorphinBalance = endorphinBalance,
+                    rewardsInitialized = true,
+                    updatedAtEpochMs = System.currentTimeMillis(),
+                ),
+            )
+        }
     }
 
     private data class RewardDraft(
