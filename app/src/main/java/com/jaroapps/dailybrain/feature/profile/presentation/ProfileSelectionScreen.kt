@@ -219,7 +219,11 @@ private fun ProfileSelectionItem(
                     )
                 } else {
                     Text(
-                        text = "Google аккаунт не привязан",
+                        text = if (profile.firebaseUid != null) {
+                            "Google аккаунт привязан"
+                        } else {
+                            "Google аккаунт не привязан"
+                        },
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
