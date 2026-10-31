@@ -5,12 +5,14 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryNotConfiguredException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UsernameTakenException
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,16 +21,13 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-enum class UsernameAvailability { UNKNOWN, AVAILABLE, TAKEN }
-
 data class UserDirectoryUiState(
     val profile: UserProfile? = null,
-    val isCheckingUsername: Boolean = false,
-    val usernameAvailability: UsernameAvailability = UsernameAvailability.UNKNOWN,
-    val checkedUsername: String? = null,
+    val isSavingUsername: Boolean = false,
     val usernameMessage: String? = null,
     val usernameError: Boolean = false,
-    val isSavingUsername: Boolean = false,
+    val isUnlinkingGoogle: Boolean = false,
+    val unlinkError: String? = null,
     val isSearching: Boolean = false,
     val searchHasRun: Boolean = false,
     val searchResult: PublicUserProfile? = null,
@@ -36,12 +35,11 @@ data class UserDirectoryUiState(
 )
 
 private data class UserDirectoryActionState(
-    val isCheckingUsername: Boolean = false,
-    val usernameAvailability: UsernameAvailability = UsernameAvailability.UNKNOWN,
-    val checkedUsername: String? = null,
+    val isSavingUsername: Boolean = false,
     val usernameMessage: String? = null,
     val usernameError: Boolean = false,
-    val isSavingUsername: Boolean = false,
+    val isUnlinkingGoogle: Boolean = false,
+    val unlinkError: String? = null,
     val isSearching: Boolean = false,
     val searchHasRun: Boolean = false,
     val searchResult: PublicUserProfile? = null,
@@ -52,6 +50,7 @@ class UserDirectoryViewModel(
     observeUserProfile: ObserveUserProfileUseCase,
     private val userDirectoryRepository: UserDirectoryRepository,
     private val userProfileRepository: UserProfileRepository,
+    private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
 ) : ViewModel() {
     private val profile: StateFlow<UserProfile?> = observeUserProfile()
         .map<UserProfile, UserProfile?> { it }
@@ -62,12 +61,11 @@ class UserDirectoryViewModel(
     val uiState: StateFlow<UserDirectoryUiState> = combine(profile, actions) { activeProfile, action ->
         UserDirectoryUiState(
             profile = activeProfile,
-            isCheckingUsername = action.isCheckingUsername,
-            usernameAvailability = action.usernameAvailability,
-            checkedUsername = action.checkedUsername,
+            isSavingUsername = action.isSavingUsername,
             usernameMessage = action.usernameMessage,
             usernameError = action.usernameError,
-            isSavingUsername = action.isSavingUsername,
+            isUnlinkingGoogle = action.isUnlinkingGoogle,
+            unlinkError = action.unlinkError,
             isSearching = action.isSearching,
             searchHasRun = action.searchHasRun,
             searchResult = action.searchResult,
@@ -75,17 +73,15 @@ class UserDirectoryViewModel(
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UserDirectoryUiState())
 
-    fun resetUsernameCheck() {
-        actions.value = actions.value.copy(
-            isCheckingUsername = false,
-            usernameAvailability = UsernameAvailability.UNKNOWN,
-            checkedUsername = null,
-            usernameMessage = null,
-            usernameError = false,
-        )
+    fun resetUsernameError() {
+        actions.value = actions.value.copy(usernameMessage = null, usernameError = false)
     }
 
-    fun checkUsernameAvailability(input: String) {
+    /**
+     * Called by the main Save button. A changed non-empty username is checked first,
+     * then claimed by a Firestore transaction that repeats the uniqueness check.
+     */
+    fun saveUsername(input: String, onResult: (Boolean) -> Unit) {
         val activeProfile = profile.value
         val firebaseUid = activeProfile?.firebaseUid
         if (activeProfile == null || firebaseUid == null) {
@@ -93,67 +89,7 @@ class UserDirectoryViewModel(
                 usernameMessage = "Сначала подключите Google-аккаунт.",
                 usernameError = true,
             )
-            return
-        }
-
-        val normalized = UsernamePolicy.normalize(input)
-        if (!UsernamePolicy.isValid(normalized)) {
-            actions.value = actions.value.copy(
-                usernameAvailability = UsernameAvailability.UNKNOWN,
-                checkedUsername = null,
-                usernameMessage = "Используйте 3–20 латинских букв, цифр или символов подчёркивания.",
-                usernameError = true,
-            )
-            return
-        }
-        if (normalized == activeProfile.username.orEmpty()) {
-            actions.value = actions.value.copy(
-                usernameAvailability = UsernameAvailability.AVAILABLE,
-                checkedUsername = normalized,
-                usernameMessage = "Это ваш текущий ник.",
-                usernameError = false,
-            )
-            return
-        }
-
-        actions.value = actions.value.copy(
-            isCheckingUsername = true,
-            usernameAvailability = UsernameAvailability.UNKNOWN,
-            checkedUsername = null,
-            usernameMessage = null,
-            usernameError = false,
-        )
-        viewModelScope.launch {
-            try {
-                val available = userDirectoryRepository.isUsernameAvailable(firebaseUid, normalized)
-                actions.value = actions.value.copy(
-                    isCheckingUsername = false,
-                    usernameAvailability = if (available) UsernameAvailability.AVAILABLE else UsernameAvailability.TAKEN,
-                    checkedUsername = normalized,
-                    usernameMessage = if (available) "Ник свободен. Теперь его можно сохранить."
-                    else "Этот ник уже занят.",
-                    usernameError = !available,
-                )
-            } catch (error: Exception) {
-                actions.value = actions.value.copy(
-                    isCheckingUsername = false,
-                    usernameAvailability = UsernameAvailability.UNKNOWN,
-                    checkedUsername = null,
-                    usernameMessage = errorMessage(error),
-                    usernameError = true,
-                )
-            }
-        }
-    }
-
-    fun saveUsername(input: String) {
-        val activeProfile = profile.value
-        val firebaseUid = activeProfile?.firebaseUid
-        if (activeProfile == null || firebaseUid == null) {
-            actions.value = actions.value.copy(
-                usernameMessage = "Сначала подключите Google-аккаунт.",
-                usernameError = true,
-            )
+            onResult(false)
             return
         }
 
@@ -163,24 +99,36 @@ class UserDirectoryViewModel(
                 usernameMessage = "Используйте 3–20 латинских букв, цифр или символов подчёркивания.",
                 usernameError = true,
             )
-            return
-        }
-        if (normalized == activeProfile.username.orEmpty()) return
-        if (normalized.isNotEmpty() &&
-            (actions.value.checkedUsername != normalized ||
-                actions.value.usernameAvailability != UsernameAvailability.AVAILABLE)
-        ) {
-            actions.value = actions.value.copy(
-                usernameMessage = "Сначала проверьте доступность нового ника.",
-                usernameError = true,
-            )
+            onResult(false)
             return
         }
 
-        actions.value = actions.value.copy(isSavingUsername = true, usernameMessage = null, usernameError = false)
+        if (normalized == activeProfile.username.orEmpty()) {
+            resetUsernameError()
+            onResult(true)
+            return
+        }
+
+        actions.value = actions.value.copy(
+            isSavingUsername = true,
+            usernameMessage = null,
+            usernameError = false,
+        )
         viewModelScope.launch {
             try {
-                // The transaction rechecks uniqueness; the earlier UI check is advisory only.
+                if (normalized.isNotEmpty() &&
+                    !userDirectoryRepository.isUsernameAvailable(firebaseUid, normalized)
+                ) {
+                    actions.value = actions.value.copy(
+                        isSavingUsername = false,
+                        usernameMessage = "Этот ник уже занят.",
+                        usernameError = true,
+                    )
+                    onResult(false)
+                    return@launch
+                }
+
+                // Transactional write repeats ownership/uniqueness checks to prevent races.
                 userDirectoryRepository.updateUsername(firebaseUid, normalized)
                 userProfileRepository.updateUsername(
                     localAccountId = activeProfile.localAccountId,
@@ -188,16 +136,54 @@ class UserDirectoryViewModel(
                 )
                 actions.value = actions.value.copy(
                     isSavingUsername = false,
-                    usernameAvailability = UsernameAvailability.UNKNOWN,
-                    checkedUsername = null,
-                    usernameMessage = if (normalized.isBlank()) "Ник удалён." else "Ник сохранён.",
+                    usernameMessage = null,
                     usernameError = false,
                 )
+                onResult(true)
+            } catch (cancelled: CancellationException) {
+                actions.value = actions.value.copy(isSavingUsername = false)
+                throw cancelled
             } catch (error: Exception) {
                 actions.value = actions.value.copy(
                     isSavingUsername = false,
                     usernameMessage = errorMessage(error),
                     usernameError = true,
+                )
+                onResult(false)
+            }
+        }
+    }
+
+    /** Deletes the cloud directory and releases the handle before clearing this local binding. */
+    fun unlinkGoogleAccount(onUnlinked: () -> Unit) {
+        val activeProfile = profile.value ?: return
+        val firebaseUid = activeProfile.firebaseUid ?: return
+
+        actions.value = actions.value.copy(isUnlinkingGoogle = true, unlinkError = null)
+        viewModelScope.launch {
+            var cloudProfileDeleted = false
+            try {
+                userDirectoryRepository.unlinkProfile(firebaseUid)
+                cloudProfileDeleted = true
+                userProfileRepository.unlinkGoogleAccount(activeProfile.localAccountId)
+                firebaseAuthenticationRepository.signOut()
+                actions.value = actions.value.copy(isUnlinkingGoogle = false, unlinkError = null)
+                onUnlinked()
+            } catch (cancelled: CancellationException) {
+                if (cloudProfileDeleted) firebaseAuthenticationRepository.signOut()
+                actions.value = actions.value.copy(isUnlinkingGoogle = false)
+                throw cancelled
+            } catch (error: Exception) {
+                if (cloudProfileDeleted) {
+                    firebaseAuthenticationRepository.signOut()
+                }
+                actions.value = actions.value.copy(
+                    isUnlinkingGoogle = false,
+                    unlinkError = if (cloudProfileDeleted) {
+                        "Облачный профиль удалён, но локальную привязку не удалось очистить. Перезапустите приложение."
+                    } else {
+                        errorMessage(error)
+                    },
                 )
             }
         }
@@ -246,6 +232,9 @@ class UserDirectoryViewModel(
                     searchResult = result,
                     searchError = null,
                 )
+            } catch (cancelled: CancellationException) {
+                actions.value = actions.value.copy(isSearching = false)
+                throw cancelled
             } catch (error: Exception) {
                 actions.value = actions.value.copy(
                     isSearching = false,
@@ -258,8 +247,9 @@ class UserDirectoryViewModel(
     }
 
     private fun errorMessage(error: Exception): String = when (error) {
-        is UsernameTakenException -> "Этот ник уже занят. Выберите другой."
-        is FirebaseSessionMismatchException -> "Активный Google-аккаунт не совпадает с выбранным профилем. Повторно подключите нужный аккаунт."
+        is UsernameTakenException -> "Этот ник уже занят."
+        is FirebaseSessionMismatchException ->
+            "Активный Google-аккаунт не совпадает с выбранным локальным профилем."
         is UserDirectoryNotConfiguredException -> "Firebase не настроен в приложении."
         else -> "Не удалось связаться с сервером. Проверьте подключение и попробуйте ещё раз."
     }

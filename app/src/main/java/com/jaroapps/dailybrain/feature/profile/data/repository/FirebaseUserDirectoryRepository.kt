@@ -48,7 +48,9 @@ class FirebaseUserDirectoryRepository(
 
             val username = UsernamePolicy.normalize(
                 privateSnapshot.getString("usernameLower")
-                    ?: privateSnapshot.getString("username").orEmpty(),
+                    ?: privateSnapshot.getString("username")
+                    ?: publicSnapshot.getString("usernameLower")
+                    ?: publicSnapshot.getString("username").orEmpty(),
             )
             val reservationRef = username.takeIf(String::isNotBlank)
                 ?.let { firestore.collection(USERNAMES).document(it) }

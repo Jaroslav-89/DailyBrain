@@ -21,6 +21,9 @@ interface UserDirectoryRepository {
     /** Atomically updates profile documents and acquires/releases username reservations. */
     suspend fun updateUsername(firebaseUid: String, username: String)
 
+    /** Deletes the cloud profile and releases its username reservation for this Firebase UID. */
+    suspend fun unlinkProfile(firebaseUid: String)
+
     /** Exact username lookup. The repository never lists the public directory. */
     suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile?
 }

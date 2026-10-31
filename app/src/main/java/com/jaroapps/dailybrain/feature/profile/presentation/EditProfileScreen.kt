@@ -27,7 +27,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -36,7 +35,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -46,10 +44,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
-import org.koin.androidx.compose.koinInject
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Instant
@@ -66,10 +60,6 @@ fun EditProfileScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
-    val googleSignInClient: GoogleSignInClient = koinInject()
-    val coroutineScope = rememberCoroutineScope()
-    var isGoogleReconnectInProgress by remember { mutableStateOf(false) }
-    var googleReconnectError by remember { mutableStateOf<String?>(null) }
     val profile = state.profile
     var username by remember(profile?.localAccountId, profile?.username) {
         mutableStateOf(profile?.username.orEmpty())
@@ -83,6 +73,7 @@ fun EditProfileScreen(
     var birthDateError by remember { mutableStateOf(false) }
     var datePickerVisible by remember { mutableStateOf(false) }
     var deleteDialogVisible by remember { mutableStateOf(false) }
+    var unlinkConfirmationVisible by remember { mutableStateOf(false) }
     val initialDateMillis = remember(birthDate) {
         runCatching { LocalDate.parse(birthDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
     }
@@ -134,103 +125,27 @@ fun EditProfileScreen(
                 value = username,
                 onValueChange = {
                     username = UsernamePolicy.sanitizeInput(it)
-                    directoryViewModel.resetUsernameCheck()
+                    directoryViewModel.resetUsernameError()
                 },
                 modifier = Modifier.fillMaxWidth(),
                 label = { Text("Ваш ник") },
                 leadingIcon = { Text("@") },
                 placeholder = { Text("brain_user") },
                 singleLine = true,
-                supportingText = { Text("3–20 символов: латинские буквы, цифры и _") },
-            )
-            Spacer(Modifier.height(8.dp))
-            Button(
-                onClick = { directoryViewModel.checkUsernameAvailability(username) },
-                enabled = !directoryState.isCheckingUsername &&
-                    !directoryState.isSavingUsername &&
-                    UsernamePolicy.isValid(username),
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (directoryState.isCheckingUsername) "Проверяем..." else "Проверить ник")
-            }
-            directoryState.usernameMessage?.let { message ->
-                Spacer(Modifier.height(6.dp))
-                Text(
-                    message,
-                    color = if (directoryState.usernameError) MaterialTheme.colorScheme.error
-                    else MaterialTheme.colorScheme.primary,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
-            val normalizedUsername = UsernamePolicy.normalize(username)
-            val canSaveUsername = normalizedUsername == profile.username.orEmpty() ||
-                (normalizedUsername.isEmpty() && !profile.username.isNullOrBlank()) ||
-                (directoryState.usernameAvailability == UsernameAvailability.AVAILABLE &&
-                    directoryState.checkedUsername == normalizedUsername)
-            Button(
-                onClick = { directoryViewModel.saveUsername(username) },
-                enabled = canSaveUsername &&
-                    normalizedUsername != profile.username.orEmpty() &&
-                    !directoryState.isSavingUsername,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(if (directoryState.isSavingUsername) "Сохраняем..." else "Сохранить ник")
-            }
-            Spacer(Modifier.height(8.dp))
-            OutlinedButton(
-                onClick = {
-                    coroutineScope.launch {
-                        isGoogleReconnectInProgress = true
-                        googleReconnectError = null
-                        viewModel.clearGoogleLinkError()
-                        try {
-                            val signInResult = googleSignInClient.signIn()
-                            if (signInResult.account.subject != profile.googleSubject) {
-                                googleReconnectError = "Выберите тот Google-аккаунт, который уже привязан к этому профилю."
-                            } else {
-                                viewModel.linkGoogleAccount(signInResult)
-                            }
-                        } catch (error: Exception) {
-                            googleReconnectError = if (error is GoogleSignInConfigurationException) {
-                                error.message
-                            } else {
-                                "Не удалось повторно подключить Google. Попробуйте ещё раз."
-                            }
-                        } finally {
-                            isGoogleReconnectInProgress = false
-                        }
+                isError = directoryState.usernameError,
+                supportingText = {
+                    val message = directoryState.usernameMessage
+                    if (message != null) {
+                        Text(
+                            message,
+                            color = if (directoryState.usernameError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text("3–20 символов: латинские буквы, цифры и _")
                     }
                 },
-                enabled = !isGoogleReconnectInProgress && !state.isGoogleLinking,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                Text(
-                    if (isGoogleReconnectInProgress || state.isGoogleLinking) {
-                        "Подключаем Google..."
-                    } else {
-                        "Переподключить Google"
-                    },
-                )
-            }
-            googleReconnectError?.let { error ->
-                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-            state.googleLinkError?.let { error ->
-                Text(
-                    when (error) {
-                        GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE ->
-                            "Этот Google-аккаунт привязан к другому локальному профилю."
-                        GoogleLinkError.FIREBASE_NOT_CONFIGURED ->
-                            "Firebase не настроен в приложении."
-                        GoogleLinkError.FIREBASE_AUTH_FAILED ->
-                            "Не удалось авторизовать Google-аккаунт: ${state.googleLinkDiagnostic.orEmpty()}"
-                        GoogleLinkError.SAVE_FAILED ->
-                            "Не удалось сохранить связь с Google-аккаунтом."
-                    },
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-            }
+            )
         }
         Spacer(Modifier.height(8.dp))
         Column {
@@ -335,6 +250,54 @@ fun EditProfileScreen(
             )
         }
 
+        if (unlinkConfirmationVisible) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (!directoryState.isUnlinkingGoogle) {
+                        unlinkConfirmationVisible = false
+                    }
+                },
+                title = { Text("Отвязать Google-аккаунт?") },
+                text = {
+                    Column {
+                        Text(
+                            "Облачный профиль будет удалён, а уникальный ник освобождён. " +
+                                "Локальные тренировки и настройки профиля останутся на устройстве. " +
+                                "После отвязки можно будет подключить другой Google-аккаунт.",
+                        )
+                        directoryState.unlinkError?.let { error ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(error, color = MaterialTheme.colorScheme.error)
+                        }
+                        if (directoryState.isUnlinkingGoogle) {
+                            Spacer(Modifier.height(12.dp))
+                            Text("Отвязываем Google-аккаунт...")
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            directoryViewModel.unlinkGoogleAccount {
+                                unlinkConfirmationVisible = false
+                            }
+                        },
+                        enabled = !directoryState.isUnlinkingGoogle,
+                    ) {
+                        Text("Отвязать")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { unlinkConfirmationVisible = false },
+                        enabled = !directoryState.isUnlinkingGoogle,
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
+        }
+
         Button(
             onClick = {
                 val normalizedBirthDate = birthDate.trim()
@@ -345,20 +308,37 @@ fun EditProfileScreen(
                 if (!validBirthDate) {
                     birthDateError = true
                 } else {
-                    viewModel.saveProfile(
-                        displayName = displayName,
-                        gender = gender,
-                        birthDate = normalizedBirthDate,
-                        country = country,
-                        city = city,
-                        onSaved = onBack,
-                    )
+                    val saveProfileDetails = {
+                        viewModel.saveProfile(
+                            displayName = displayName,
+                            gender = gender,
+                            birthDate = normalizedBirthDate,
+                            country = country,
+                            city = city,
+                            onSaved = onBack,
+                        )
+                    }
+                    if (profile?.firebaseUid != null) {
+                        directoryViewModel.saveUsername(username) { usernameSaved ->
+                            if (usernameSaved) saveProfileDetails()
+                        }
+                    } else {
+                        saveProfileDetails()
+                    }
                 }
             },
-            enabled = !state.isSaving,
+            enabled = !state.isSaving &&
+                !directoryState.isSavingUsername &&
+                !directoryState.isUnlinkingGoogle,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.isSaving) stringResource(R.string.status_saving) else stringResource(R.string.action_save))
+            Text(
+                if (state.isSaving || directoryState.isSavingUsername) {
+                    stringResource(R.string.status_saving)
+                } else {
+                    stringResource(R.string.action_save)
+                },
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -383,6 +363,29 @@ fun EditProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
+        }
+
+        if (profile?.firebaseUid != null) {
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    unlinkConfirmationVisible = true
+                    directoryViewModel.resetUsernameError()
+                },
+                enabled = !state.isSaving && !directoryState.isSavingUsername &&
+                    !directoryState.isUnlinkingGoogle,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text("Отвязать Google аккаунт")
+            }
+            directoryState.unlinkError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

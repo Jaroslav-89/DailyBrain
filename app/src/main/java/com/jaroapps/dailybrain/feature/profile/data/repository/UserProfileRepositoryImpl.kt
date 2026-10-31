@@ -164,6 +164,26 @@ class UserProfileRepositoryImpl(
         )
     }
 
+    override suspend fun unlinkGoogleAccount(localAccountId: String) {
+        database.withTransaction {
+            val dao = database.userProfileDao()
+            val profile = requireNotNull(dao.getProfile(localAccountId)) {
+                "Local profile does not exist: $localAccountId"
+            }
+            dao.save(
+                profile.copy(
+                    firebaseUid = null,
+                    username = null,
+                    googleSubject = null,
+                    googleEmail = null,
+                    googleDisplayName = null,
+                    googlePhotoUrl = null,
+                    updatedAtEpochMs = System.currentTimeMillis(),
+                ),
+            )
+        }
+    }
+
     override suspend fun saveProfile(
         displayName: String?,
         gender: String?,

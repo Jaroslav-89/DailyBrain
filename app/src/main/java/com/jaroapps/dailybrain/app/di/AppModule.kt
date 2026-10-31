@@ -153,7 +153,7 @@ val appModule = module {
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteActiveProfile = get(), linkGoogleAccountUseCase = get()) }
     viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteLocalProfile = get()) }
-    viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get()) }
+    viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get(), firebaseAuthenticationRepository = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
     single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }

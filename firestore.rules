@@ -36,8 +36,13 @@ service cloud.firestore {
         && ownsUsernameReservation(uid)
         && getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.usernameLower
           == request.resource.data.usernameLower;
-      // Local profile deletion must not delete a global Firebase identity.
-      allow delete: if false;
+      allow delete: if isOwner(uid)
+        && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid))
+        && (
+          resource.data.usernameLower == null
+          || resource.data.usernameLower == ''
+          || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.usernameLower))
+        );
     }
 
     match /publicProfiles/{uid} {
@@ -52,7 +57,13 @@ service cloud.firestore {
         && ownsUsernameReservation(uid)
         && getAfter(/databases/$(database)/documents/users/$(uid)).data.usernameLower
           == request.resource.data.usernameLower;
-      allow delete: if false;
+      allow delete: if isOwner(uid)
+        && !existsAfter(/databases/$(database)/documents/users/$(uid))
+        && (
+          resource.data.usernameLower == null
+          || resource.data.usernameLower == ''
+          || !existsAfter(/databases/$(database)/documents/usernames/$(resource.data.usernameLower))
+        );
     }
 
     match /usernames/{username} {
@@ -70,10 +81,8 @@ service cloud.firestore {
       allow update: if false;
       allow delete: if signedIn()
         && resource.data.userId == request.auth.uid
-        && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower
-          != username
-        && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower
-          != username;
+        && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
+        && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
     }
   }
 }

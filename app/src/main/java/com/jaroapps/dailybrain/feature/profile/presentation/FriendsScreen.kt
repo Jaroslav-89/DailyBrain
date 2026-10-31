@@ -11,7 +11,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -154,30 +153,6 @@ fun FriendsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
-                        Spacer(Modifier.height(8.dp))
-                        OutlinedButton(
-                            onClick = { connectGoogle() },
-                            enabled = !isGoogleSignInInProgress && !state.isGoogleLinking,
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Text(if (isGoogleSignInInProgress || state.isGoogleLinking) "Подключаем Google..." else "Переподключить Google")
-                        }
-                        googleSignInError?.let { error ->
-                            Spacer(Modifier.height(8.dp))
-                            Text(error, color = MaterialTheme.colorScheme.error)
-                        }
-                        state.googleLinkError?.let {
-                            Spacer(Modifier.height(8.dp))
-                            Text(
-                                when (it) {
-                                    GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> "Этот Google-аккаунт уже привязан к другому локальному профилю."
-                                    GoogleLinkError.FIREBASE_NOT_CONFIGURED -> "Firebase не настроен в приложении."
-                                    GoogleLinkError.FIREBASE_AUTH_FAILED -> "Ошибка Google/Firebase: ${state.googleLinkDiagnostic.orEmpty()}"
-                                    GoogleLinkError.SAVE_FAILED -> "Не удалось сохранить привязку Google-аккаунта."
-                                },
-                                color = MaterialTheme.colorScheme.error,
-                            )
-                        }
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = usernameQuery,
