@@ -105,7 +105,8 @@ service cloud.firestore {
     }
 
     match /publicProfileCards/{uid} {
-      allow get, list: if signedIn();
+      allow get: if signedIn();
+      allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly(['uid', 'displayName', 'username', 'usernameLower', 'avatarConfigurationJson', 'updatedAt'])
         && request.resource.data.uid == uid
@@ -113,8 +114,8 @@ service cloud.firestore {
         && request.resource.data.username is string
         && request.resource.data.usernameLower == request.resource.data.username.lower()
         && request.resource.data.avatarConfigurationJson is string
-        && exists(/databases/$(database)/documents/users/$(uid))
-        && exists(/databases/$(database)/documents/publicProfiles/$(uid));
+        && existsAfter(/databases/$(database)/documents/users/$(uid))
+        && existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
       allow delete: if isOwner(uid)
         && !existsAfter(/databases/$(database)/documents/users/$(uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
@@ -182,7 +183,9 @@ service cloud.firestore {
         && request.resource.data.followingUid is string
         && request.resource.data.followingUid != request.auth.uid
         && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid
-        && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid));
+        && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(request.resource.data.followingUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.resource.data.followingUid)/users/$(request.auth.uid));
       allow update: if false;
       allow delete: if signedIn()
         && (
