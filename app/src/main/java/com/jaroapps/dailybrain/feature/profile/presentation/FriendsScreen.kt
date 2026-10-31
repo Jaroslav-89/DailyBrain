@@ -108,6 +108,13 @@ fun FriendsScreen(
                 )
             }
             Spacer(Modifier.height(20.dp))
+            if (selectedTab == 0) {
+                Button(
+                    onClick = { showAddFriendsDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                ) { Text("Добавить друзей") }
+                Spacer(Modifier.height(16.dp))
+            }
             if (directoryState.isLoadingRelationships) {
                 CircularProgressIndicator()
             } else if (directoryState.relationshipError != null) {
@@ -134,13 +141,6 @@ fun FriendsScreen(
                         Spacer(Modifier.height(8.dp))
                     }
                 }
-            }
-            if (selectedTab == 0) {
-                Spacer(Modifier.height(16.dp))
-                Button(
-                    onClick = { showAddFriendsDialog = true },
-                    modifier = Modifier.fillMaxWidth(),
-                ) { Text("Добавить друзей") }
             }
         }
     }
