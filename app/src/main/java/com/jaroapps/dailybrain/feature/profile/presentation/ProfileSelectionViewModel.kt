@@ -9,6 +9,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteLocalProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -17,6 +18,7 @@ import kotlinx.coroutines.launch
 
 data class ProfileSelectionUiState(
     val profiles: List<UserProfile> = emptyList(),
+    val isLoading: Boolean = true,
     val isWorking: Boolean = false,
     val error: String? = null,
 )
@@ -27,21 +29,26 @@ class ProfileSelectionViewModel(
     private val switchActiveProfile: SwitchActiveProfileUseCase,
     private val deleteLocalProfile: DeleteLocalProfileUseCase,
 ) : ViewModel() {
-    private val profiles = observeLocalProfiles().stateIn(
-        viewModelScope,
-        SharingStarted.Eagerly,
-        emptyList(),
-    )
+    private val profilesLoaded = MutableStateFlow(false)
+    private val profiles = observeLocalProfiles()
+        .onEach { profilesLoaded.value = true }
+        .stateIn(
+            viewModelScope,
+            SharingStarted.Eagerly,
+            emptyList(),
+        )
     private val isWorking = MutableStateFlow(false)
     private val error = MutableStateFlow<String?>(null)
 
     val uiState: StateFlow<ProfileSelectionUiState> = combine(
         profiles,
+        profilesLoaded,
         isWorking,
         error,
-    ) { availableProfiles, working, actionError ->
+    ) { availableProfiles, loaded, working, actionError ->
         ProfileSelectionUiState(
             profiles = availableProfiles,
+            isLoading = !loaded,
             isWorking = working,
             error = actionError,
         )
