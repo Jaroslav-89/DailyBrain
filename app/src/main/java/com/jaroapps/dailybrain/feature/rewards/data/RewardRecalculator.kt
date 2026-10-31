@@ -149,8 +149,9 @@ object RewardRecalculator {
             val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
             "$weekKey:${session.exerciseType}"
         }.values.forEach { weekTypeSessions ->
-            val first = weekTypeSessions.minByOrNull { it.finishedAtEpochMs } ?: return@forEach
-            val date = LocalDate.parse(first.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
+            val firstEntry = weekTypeSessions.minByOrNull { it.second.finishedAtEpochMs } ?: return@forEach
+            val date = firstEntry.first
+            val first = firstEntry.second
             val weekStart = date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
             val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
             addReward(
@@ -236,7 +237,6 @@ object RewardRecalculator {
                 bestEligibleTime = session.durationMs
                 val key = "arithmetic_record:${session.id}"
                 addReward(key, 100, 10, "ARITHMETIC_PERSONAL_RECORD", session, date.toString())
-                addBadge(key, "ARITHMETIC_RECORD", session.id.toString(), session)
                 addEvent(
                     key = key,
                     type = "PERSONAL_RECORD",
