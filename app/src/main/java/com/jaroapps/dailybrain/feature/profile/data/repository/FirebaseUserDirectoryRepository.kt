@@ -55,14 +55,12 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                 throw IllegalStateException("Invite code reservation ownership mismatch.")
             }
 
-            val normalizedEmail = email?.trim().orEmpty()
-            val normalizedDisplayName = displayName?.trim().orEmpty()
             val now = FieldValue.serverTimestamp()
             transaction.set(privateRef, mapOf(
                 "uid" to firebaseUid,
-                "email" to normalizedEmail,
-                "emailLower" to normalizedEmail.lowercase(Locale.ROOT),
-                "displayName" to normalizedDisplayName,
+                "email" to "",
+                "emailLower" to "",
+                "displayName" to "",
                 "avatarUrl" to avatarUrl.orEmpty(),
                 "username" to username,
                 "usernameLower" to username,
@@ -258,6 +256,14 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             .document("${firebaseUid}_${targetFirebaseUid}").get().awaitResult().exists()
     }
 
+    override suspend fun unfollowUser(firebaseUid: String, targetFirebaseUid: String) {
+        require(firebaseUid != targetFirebaseUid) { "Cannot unfollow yourself." }
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        FirebaseFirestore.getInstance(app).collection(FOLLOWS)
+            .document("${firebaseUid}_${targetFirebaseUid}").delete().awaitResult()
+    }
+
     override suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile> =
         loadConnections(firebaseUid, "followerUid", "followingUid")
 
@@ -283,7 +289,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         return PublicUserProfile(
             firebaseUid = uid,
             username = getString("username") ?: getString("usernameLower") ?: "",
-            displayName = getString("displayName")?.takeIf(String::isNotBlank),
+            displayName = null,
             avatarUrl = getString("avatarUrl")?.takeIf(String::isNotBlank),
         )
     }
