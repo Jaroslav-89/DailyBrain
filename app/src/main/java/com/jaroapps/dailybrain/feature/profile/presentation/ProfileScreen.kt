@@ -30,6 +30,8 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -54,6 +56,7 @@ import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
@@ -70,7 +73,7 @@ fun ProfileScreen(
     onOpenSettings: () -> Unit,
     onEditAvatar: () -> Unit,
     onOpenFriends: () -> Unit,
-    onActiveProfileChanged: () -> Unit,
+    onExitProfile: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
 ) {
@@ -78,6 +81,7 @@ fun ProfileScreen(
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val googleSignInClient: GoogleSignInClient = koinInject()
+    val exitActiveProfile: ExitActiveProfileUseCase = koinInject()
     val coroutineScope = rememberCoroutineScope()
     val profile = state.profile
     val stats = state.statistics
@@ -85,6 +89,8 @@ fun ProfileScreen(
     var showMyQrDialog by remember { mutableStateOf(false) }
     var isGoogleSignInInProgress by remember { mutableStateOf(false) }
     var googleSignInError by remember { mutableStateOf<String?>(null) }
+    var isExitingProfile by remember { mutableStateOf(false) }
+    var exitProfileError by remember { mutableStateOf(false) }
     val today = LocalDate.now()
     val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
     val accountPeriod = profile?.let {
@@ -335,31 +341,37 @@ fun ProfileScreen(
                 BestKind.DURATION,
             )
 
-            if (state.profiles.size > 1) {
-                Spacer(Modifier.height(22.dp))
-                Text("Локальные профили", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                state.profiles.forEach { localProfile ->
-                    OutlinedButton(
-                        onClick = { viewModel.switchProfile(localProfile.localAccountId, onActiveProfileChanged) },
-                        enabled = localProfile.localAccountId != profile?.localAccountId,
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        val activeMark = if (localProfile.localAccountId == profile?.localAccountId) "✓ " else ""
-                        Text(activeMark + localProfile.effectiveDisplayName)
+            Spacer(Modifier.height(22.dp))
+            Button(
+                onClick = {
+                    coroutineScope.launch {
+                        isExitingProfile = true
+                        exitProfileError = false
+                        try {
+                            exitActiveProfile()
+                            onExitProfile()
+                        } catch (_: Exception) {
+                            exitProfileError = true
+                        } finally {
+                            isExitingProfile = false
+                        }
                     }
-                    Spacer(Modifier.height(6.dp))
-                }
-            }
-            OutlinedButton(
-                onClick = { viewModel.createProfile(onActiveProfileChanged) },
+                },
+                enabled = !isExitingProfile,
                 modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = Color(0xFFC62828),
+                    contentColor = Color.White,
+                ),
             ) {
-                Text("Добавить локальный профиль")
+                Text(if (isExitingProfile) "Выходим..." else "Выйти из профиля")
             }
-            if (state.saveError) {
+            if (exitProfileError || state.saveError) {
                 Spacer(Modifier.height(8.dp))
-                Text("Не удалось выполнить действие с профилем.", color = MaterialTheme.colorScheme.error)
+                Text(
+                    "Не удалось выполнить действие с профилем.",
+                    color = MaterialTheme.colorScheme.error,
+                )
             }
             Spacer(Modifier.height(16.dp))
         }
