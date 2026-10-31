@@ -1,0 +1,13 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "feedEvents",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "authorUid", "order": "ASCENDING" },
+        { "fieldPath": "occurredAtEpochMs", "order": "DESCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
