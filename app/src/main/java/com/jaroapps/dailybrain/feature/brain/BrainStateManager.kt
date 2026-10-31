@@ -50,7 +50,6 @@ class BrainStateManager(
             date = date.minusDays(1)
         }
 
-        AppIconController.apply(context, mood)
         BrainWidgetUpdater.update(context, mood, streak, hasTrainingToday)
     }
 }

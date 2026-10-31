@@ -13,6 +13,22 @@ class GenerateArithmeticProblemUseCase(
         return execute(operation)
     }
 
+    /**
+     * Generates a problem different from the immediately previous one.
+     * The fallback changes the operation, so even a pathological random source
+     * cannot produce an identical consecutive example.
+     */
+    fun executeAvoiding(previousProblem: ArithmeticProblem): ArithmeticProblem {
+        repeat(20) {
+            val candidate = execute()
+            if (candidate != previousProblem) return candidate
+        }
+        val alternativeOperation = ArithmeticOperation.entries.first {
+            it != previousProblem.operation
+        }
+        return execute(alternativeOperation)
+    }
+
     fun execute(
         operation: ArithmeticOperation,
     ): ArithmeticProblem {

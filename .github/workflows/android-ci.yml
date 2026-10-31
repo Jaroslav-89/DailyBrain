@@ -5,6 +5,7 @@ on:
     branches:
       - version_1_singl_module_main_functional_local
       - codex/android-ci-emulator
+      - 'feature/**'
   pull_request:
     branches:
       - version_1_singl_module_main_functional_local

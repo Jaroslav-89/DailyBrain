@@ -2,10 +2,11 @@ package com.jaroapps.dailybrain.feature.home.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUseCase
-import com.jaroapps.dailybrain.common.domain.usecase.ObserveTrainingDaysInRangeUseCase
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
@@ -16,56 +17,50 @@ import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
-    observeTrainingDaysInRange: ObserveTrainingDaysInRangeUseCase,
+    observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
     observeTotalTrainingCount: ObserveTotalTrainingCountUseCase,
 ) : ViewModel() {
-
     private val zone = ZoneId.systemDefault()
 
     private val todayFlow = flow {
         while (true) {
             val today = LocalDate.now(zone)
             emit(today)
-
             val nextMidnight = today.plusDays(1).atStartOfDay(zone).toInstant()
-            val delayMillis = Duration.between(Instant.now(), nextMidnight)
-                .toMillis()
-                .coerceAtLeast(1L)
-            delay(delayMillis)
+            delay(Duration.between(Instant.now(), nextMidnight).toMillis().coerceAtLeast(1L))
         }
     }
 
-    private val _uiState: StateFlow<HomeUiState> = todayFlow
-        .flatMapLatest { today ->
-            val startDate = today.minusDays(6).toDatabaseDate()
-            val endDate = today.toDatabaseDate()
+    val uiState: StateFlow<HomeUiState> = combine(
+        todayFlow,
+        observeAllCompletedTrainings(),
+        observeTotalTrainingCount(),
+    ) { today, sessions, totalCount ->
+        val completedDates = sessions.mapNotNull { session ->
+            runCatching {
+                Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
+            }.getOrNull()
+        }.toSet()
+        val typedDates = sessions.mapNotNull { session ->
+            val date = runCatching {
+                Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
+            }.getOrNull() ?: return@mapNotNull null
+            session.exerciseType to date
+        }.groupBy({ it.first }, { it.second })
+            .mapValues { (_, dates) -> dates.toSet() }
 
-            combine(
-                observeTrainingDaysInRange(startDate, endDate),
-                observeTotalTrainingCount(),
-            ) { activeDates, totalCount ->
-                HomeUiState(
-                    today = today,
-                    completedDates = activeDates.map { it.toLocalDate() }.toSet(),
-                    totalTrainingCount = totalCount,
-                )
-            }
-        }
-        .stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5_000),
-            initialValue = HomeUiState(),
+        HomeUiState(
+            today = today,
+            completedDates = completedDates,
+            completedExerciseDatesByType = typedDates,
+            totalTrainingCount = totalCount,
         )
-
-    val uiState: StateFlow<HomeUiState> = _uiState
-
-    private fun LocalDate.toDatabaseDate(): Int =
-        format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
-
-    private fun Int.toLocalDate(): LocalDate =
-        LocalDate.parse(toString(), DateTimeFormatter.BASIC_ISO_DATE)
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5_000),
+        initialValue = HomeUiState(),
+    )
 }

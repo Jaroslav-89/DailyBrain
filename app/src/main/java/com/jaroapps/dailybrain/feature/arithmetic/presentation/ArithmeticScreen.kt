@@ -1,5 +1,10 @@
 package com.jaroapps.dailybrain.feature.arithmetic.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -18,6 +23,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
@@ -32,6 +40,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
+import com.jaroapps.dailybrain.core.presentation.ExerciseExitConfirmationDialog
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -40,6 +49,7 @@ fun ArithmeticScreen(
     viewModel: ArithmeticViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showExitConfirmation by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner, viewModel) {
@@ -67,10 +77,13 @@ fun ArithmeticScreen(
     }
 
     BackHandler {
-        // Пока результат не сохранён, остаёмся на экране и даём пользователю повторить попытку.
-        if (!state.isCompleted || state.isSaved) {
-            viewModel.cancelTraining()
-            onExit()
+        when {
+            state.isReviewingAnswers -> viewModel.closeAnswerReview()
+            !state.isCompleted -> showExitConfirmation = true
+            state.isSaved -> {
+                viewModel.cancelTraining()
+                onExit()
+            }
         }
     }
 
@@ -92,15 +105,22 @@ fun ArithmeticScreen(
     } else {
         TrainingContent(
             state = state,
-            onExit = {
-                viewModel.cancelTraining()
-                onExit()
-            },
+            onExit = { showExitConfirmation = true },
             onDigitPressed = viewModel::onDigitPressed,
             onDeletePressed = viewModel::onDeletePressed,
             onSubmit = viewModel::submitAnswer,
         )
     }
+
+    ExerciseExitConfirmationDialog(
+        visible = showExitConfirmation,
+        onDismiss = { showExitConfirmation = false },
+        onConfirmExit = {
+            showExitConfirmation = false
+            viewModel.cancelTraining()
+            onExit()
+        },
+    )
 }
 
 @Composable
@@ -120,8 +140,12 @@ private fun TrainingContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = onExit) {
-                Text(stringResource(R.string.action_close))
+            IconButton(onClick = onExit) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
 
             Spacer(Modifier.weight(1f))
@@ -354,8 +378,12 @@ private fun AnswerReviewContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = onBack) {
-                Text(stringResource(R.string.action_back))
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
 
             Spacer(Modifier.weight(1f))

@@ -1,5 +1,9 @@
 package com.jaroapps.dailybrain.feature.onboarding.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -7,6 +11,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -29,7 +34,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
-
 
 @Composable
 fun ExerciseEntryScreen(
@@ -104,7 +108,11 @@ fun BrainTrainingArticleScreen(onClose: () -> Unit) {
                 title = { Text(stringResource(R.string.article_title)) },
                 navigationIcon = {
                     IconButton(onClick = onClose) {
-                        Text("×", style = MaterialTheme.typography.headlineMedium)
+                        Icon(
+                            imageVector = Icons.Filled.Close,
+                            contentDescription = stringResource(R.string.action_close),
+                            modifier = Modifier.size(24.dp),
+                        )
                     }
                 },
             )
@@ -152,10 +160,27 @@ fun ExerciseIntroScreen(
     BackHandler(onBack = onBack)
     val copy = exerciseCopy(exerciseKey)
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -167,6 +192,8 @@ fun ExerciseIntroScreen(
             Spacer(Modifier.height(20.dp))
             Text(text = stringResource(copy.intro), style = MaterialTheme.typography.bodyLarge)
         }
+
+        Spacer(Modifier.height(12.dp))
         Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_get_started))
         }
@@ -182,10 +209,27 @@ fun ExerciseRulesScreen(
     BackHandler(onBack = onBack)
     val copy = exerciseCopy(exerciseKey)
     Column(
-        modifier = Modifier.fillMaxSize().padding(24.dp),
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
     ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            IconButton(onClick = onBack) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+        }
+
         Column(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -197,12 +241,10 @@ fun ExerciseRulesScreen(
             Spacer(Modifier.height(20.dp))
             Text(text = stringResource(copy.rules), style = MaterialTheme.typography.bodyLarge)
         }
+
+        Spacer(Modifier.height(12.dp))
         Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_start_exercise))
-        }
-        Spacer(Modifier.height(8.dp))
-        OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) {
-            Text(stringResource(R.string.action_back))
         }
     }
 }

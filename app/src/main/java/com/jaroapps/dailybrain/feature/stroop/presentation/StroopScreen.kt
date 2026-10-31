@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.stroop.presentation
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -13,11 +15,16 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
@@ -35,6 +42,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.feature.stroop.domain.model.StroopStimulus
+import com.jaroapps.dailybrain.core.presentation.ExerciseExitConfirmationDialog
 import org.koin.androidx.compose.koinViewModel
 import kotlin.math.ceil
 
@@ -44,6 +52,7 @@ fun StroopScreen(
     viewModel: StroopViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showExitConfirmation by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner, viewModel) {
@@ -72,8 +81,9 @@ fun StroopScreen(
     }
 
     BackHandler {
-        if (!state.isFinished || state.isSaved) {
-            onExit()
+        when {
+            !state.isFinished -> showExitConfirmation = true
+            state.isSaved -> onExit()
         }
     }
 
@@ -91,9 +101,18 @@ fun StroopScreen(
             stimuli = state.stimuli,
             elapsedTimeMs = state.elapsedTimeMs,
             onFinish = viewModel::finishTraining,
-            onExit = onExit,
+            onExit = { showExitConfirmation = true },
         )
     }
+
+    ExerciseExitConfirmationDialog(
+        visible = showExitConfirmation,
+        onDismiss = { showExitConfirmation = false },
+        onConfirmExit = {
+            showExitConfirmation = false
+            onExit()
+        },
+    )
 }
 
 @Composable
@@ -119,8 +138,11 @@ private fun StroopTrainingContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            OutlinedButton(onClick = onExit) {
-                Text(stringResource(R.string.action_exit))
+            androidx.compose.material3.IconButton(onClick = onExit) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                )
             }
 
             Spacer(Modifier.weight(1f))

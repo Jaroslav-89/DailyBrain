@@ -1,5 +1,10 @@
 package com.jaroapps.dailybrain.feature.memory.presentation
 
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -20,6 +25,9 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
@@ -32,6 +40,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.feature.memory.domain.model.MemoryTrainingResult
+import com.jaroapps.dailybrain.core.presentation.ExerciseExitConfirmationDialog
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -40,6 +49,8 @@ fun MemoryTrainingScreen(
     viewModel: MemoryTrainingViewModel = koinViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showExitConfirmation by remember { mutableStateOf(false) }
+    val requestExit = { showExitConfirmation = true }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     DisposableEffect(lifecycleOwner, viewModel) {
@@ -67,7 +78,8 @@ fun MemoryTrainingScreen(
     }
 
     BackHandler {
-        onExit()
+        if (state is MemoryTrainingUiState.Result) onExit()
+        else showExitConfirmation = true
     }
 
     when (val currentState = state) {
@@ -80,7 +92,7 @@ fun MemoryTrainingScreen(
                 words = currentState.words.map { it.text },
                 progress = currentState.progress,
                 onStartRecall = viewModel::startRecallEarly,
-                onExit = onExit
+                onExit = requestExit
             )
         }
 
@@ -91,7 +103,7 @@ fun MemoryTrainingScreen(
                 errorMessage = currentState.errorMessage,
                 onAnswerChanged = viewModel::updateAnswer,
                 onCheck = viewModel::checkAnswers,
-                onExit = onExit
+                onExit = requestExit
             )
         }
 
@@ -105,10 +117,19 @@ fun MemoryTrainingScreen(
         is MemoryTrainingUiState.Error -> {
             ErrorContent(
                 message = currentState.message,
-                onExit = onExit
+                onExit = requestExit
             )
         }
     }
+
+    ExerciseExitConfirmationDialog(
+        visible = showExitConfirmation,
+        onDismiss = { showExitConfirmation = false },
+        onConfirmExit = {
+            showExitConfirmation = false
+            onExit()
+        },
+    )
 }
 
 @Composable
@@ -142,8 +163,12 @@ private fun MemorizingContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(onClick = onExit) {
-                Text(stringResource(R.string.action_exit))
+            IconButton(onClick = onExit) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
             Spacer(Modifier.weight(1f))
             OutlinedButton(onClick = onStartRecall) {
@@ -226,11 +251,15 @@ private fun RecallContent(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            OutlinedButton(
+            IconButton(
                 onClick = onExit,
-                enabled = !isSaving
+                enabled = !isSaving,
             ) {
-                Text(stringResource(R.string.action_exit))
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
             }
 
             Spacer(Modifier.weight(1f))
@@ -438,8 +467,12 @@ private fun ErrorContent(
         Spacer(Modifier.height(12.dp))
         Text(message, color = MaterialTheme.colorScheme.error)
         Spacer(Modifier.height(24.dp))
-        Button(onClick = onExit) {
-            Text(stringResource(R.string.action_back))
+        IconButton(onClick = onExit) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.action_close),
+                modifier = Modifier.size(24.dp),
+            )
         }
     }
 }

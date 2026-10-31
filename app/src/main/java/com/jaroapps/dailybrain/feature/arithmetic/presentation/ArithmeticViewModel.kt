@@ -115,7 +115,7 @@ class ArithmeticViewModel(
                 completedCount = completedCount,
             )
         } else {
-            val nextProblem = generateProblem.execute()
+            val nextProblem = generateProblem.executeAvoiding(problem)
             _uiState.value = state.copy(
                 operation = nextProblem.operation,
                 currentProblem = nextProblem,

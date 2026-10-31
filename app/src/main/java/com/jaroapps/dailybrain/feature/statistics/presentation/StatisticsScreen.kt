@@ -44,7 +44,6 @@ import java.util.Locale
 
 @Composable
 fun StatisticsScreen(
-    onBack: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: StatisticsViewModel = koinViewModel(),
 ) {
@@ -221,14 +220,6 @@ fun StatisticsScreen(
             )
         }
 
-        Spacer(Modifier.height(24.dp))
-
-        OutlinedButton(
-            onClick = onBack,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Text(stringResource(R.string.action_home))
-        }
     }
 }
 
