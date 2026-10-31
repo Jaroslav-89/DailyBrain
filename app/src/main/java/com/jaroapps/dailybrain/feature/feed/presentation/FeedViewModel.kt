@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -48,7 +50,7 @@ class FeedViewModel(
             isRefreshing.value = true
             errorMessage.value = null
             try {
-                repository.refresh()
+                withContext(Dispatchers.IO) { repository.refresh() }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (_: Exception) {
