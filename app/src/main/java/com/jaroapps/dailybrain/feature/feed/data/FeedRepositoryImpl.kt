@@ -230,7 +230,7 @@ class FeedRepositoryImpl(
         const val PUBLIC_FOLLOWING = "publicFollowing"
         const val CONNECTIONS = "users"
         const val FEED_EVENTS = "feedEvents"
-        const val MAX_AUTHORS_PER_QUERY = 30
+        const val MAX_AUTHORS_PER_QUERY = 9
         const val FEED_PAGE_SIZE = 20
         const val MAX_PUBLIC_EVENTS = 20
         const val PENDING_UPSERT = "PENDING_UPSERT"
