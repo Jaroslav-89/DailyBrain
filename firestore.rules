@@ -76,7 +76,7 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{uid} {
-      allow get: if signedIn();
+      allow get: if isOwner(uid) || (signedIn() && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid)));
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
@@ -104,6 +104,32 @@ service cloud.firestore {
         );
     }
 
+    match /publicProfileCards/{uid} {
+      allow get, list: if signedIn();
+      allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'username', 'usernameLower', 'avatarConfigurationJson', 'updatedAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.displayName is string
+        && request.resource.data.username is string
+        && request.resource.data.usernameLower == request.resource.data.username.lower()
+        && request.resource.data.avatarConfigurationJson is string
+        && exists(/databases/$(database)/documents/users/$(uid))
+        && exists(/databases/$(database)/documents/publicProfiles/$(uid));
+      allow delete: if isOwner(uid)
+        && !existsAfter(/databases/$(database)/documents/users/$(uid))
+        && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
+    }
+
+    match /blockedUsers/{blockerUid}/users/{blockedUid} {
+      allow get: if signedIn() && (request.auth.uid == blockerUid || request.auth.uid == blockedUid);
+      allow list: if signedIn() && request.auth.uid == blockerUid;
+      allow create: if isOwner(blockerUid)
+        && request.resource.data.keys().hasOnly(['uid', 'createdAt'])
+        && request.resource.data.uid == blockedUid
+        && blockedUid != blockerUid;
+      allow update: if false;
+      allow delete: if isOwner(blockerUid);
+    }
     match /usernames/{username} {
       allow get: if signedIn();
       allow list: if false;
@@ -158,13 +184,21 @@ service cloud.firestore {
         && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid
         && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid));
       allow update: if false;
-      allow delete: if signedIn() && resource.data.followerUid == request.auth.uid;
+      allow delete: if signedIn()
+        && (
+          resource.data.followerUid == request.auth.uid
+          || (
+            resource.data.followingUid == request.auth.uid
+            && existsAfter(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(resource.data.followerUid))
+          )
+        );
     }
 
     // Public relationship projections let signed-in users inspect another profile's lists
     // without granting access to arbitrary documents in the internal follows collection.
     match /publicFollowing/{profileUid}/users/{followingUid} {
-      allow get, list: if signedIn();
+      allow get, list: if signedIn()
+        && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
       allow create: if signedIn()
         && request.auth.uid == profileUid
         && request.resource.data.keys().hasOnly(['uid'])
@@ -173,12 +207,13 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid)).data.followingUid == followingUid;
       allow update: if false;
       allow delete: if signedIn()
-        && request.auth.uid == profileUid
+        && (request.auth.uid == profileUid || request.auth.uid == followingUid)
         && !existsAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid));
     }
 
     match /publicFollowers/{profileUid}/users/{followerUid} {
-      allow get, list: if signedIn();
+      allow get, list: if signedIn()
+        && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
       allow create: if signedIn()
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && request.resource.data.keys().hasOnly(['uid'])
