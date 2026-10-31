@@ -30,6 +30,9 @@ interface UserProfileDao {
     @Query("UPDATE user_profile SET username = :username, updatedAtEpochMs = :updatedAtEpochMs WHERE localAccountId = :localAccountId")
     suspend fun updateUsername(localAccountId: String, username: String?, updatedAtEpochMs: Long)
 
+    @Query("UPDATE user_profile SET inviteCode = :inviteCode, updatedAtEpochMs = :updatedAtEpochMs WHERE localAccountId = :localAccountId AND firebaseUid = :firebaseUid")
+    suspend fun updateInviteCode(localAccountId: String, firebaseUid: String, inviteCode: String, updatedAtEpochMs: Long): Int
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertIfAbsent(profile: UserProfileEntity): Long
 
