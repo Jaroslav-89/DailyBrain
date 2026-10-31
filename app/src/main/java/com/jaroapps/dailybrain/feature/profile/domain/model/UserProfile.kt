@@ -23,6 +23,7 @@ data class UserProfile(
     val googleDisplayName: String? = null,
     val googlePhotoUrl: String? = null,
     val username: String? = null,
+    val inviteCode: String? = null,
 ) {
     val effectiveDisplayName: String
         get() = displayName?.trim()?.takeIf(String::isNotEmpty) ?: generatedAlias
