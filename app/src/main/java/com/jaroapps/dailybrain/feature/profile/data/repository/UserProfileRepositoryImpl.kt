@@ -146,6 +146,7 @@ class UserProfileRepositoryImpl(
             currentProfile.copy(
                 firebaseUid = firebaseUid,
                 username = username?.takeIf(String::isNotBlank),
+                inviteCode = currentProfile.inviteCode.takeIf { currentProfile.firebaseUid == firebaseUid },
                 googleSubject = googleAccount.subject,
                 googleEmail = googleAccount.email,
                 googleDisplayName = googleAccount.displayName,
@@ -164,6 +165,20 @@ class UserProfileRepositoryImpl(
         )
     }
 
+    override suspend fun cacheInviteCode(
+        localAccountId: String,
+        firebaseUid: String,
+        inviteCode: String,
+    ) {
+        require(inviteCode.isNotBlank()) { "Invite code must not be blank." }
+        database.userProfileDao().updateInviteCode(
+            localAccountId = localAccountId,
+            firebaseUid = firebaseUid,
+            inviteCode = inviteCode,
+            updatedAtEpochMs = System.currentTimeMillis(),
+        )
+    }
+
     override suspend fun unlinkGoogleAccount(localAccountId: String) {
         database.withTransaction {
             val dao = database.userProfileDao()
@@ -174,6 +189,7 @@ class UserProfileRepositoryImpl(
                 profile.copy(
                     firebaseUid = null,
                     username = null,
+                    inviteCode = null,
                     googleSubject = null,
                     googleEmail = null,
                     googleDisplayName = null,
@@ -238,5 +254,6 @@ class UserProfileRepositoryImpl(
         googleEmail = googleEmail,
         googleDisplayName = googleDisplayName,
         googlePhotoUrl = googlePhotoUrl,
+        inviteCode = inviteCode,
     )
 }
