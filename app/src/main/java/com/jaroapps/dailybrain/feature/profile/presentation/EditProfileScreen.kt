@@ -36,6 +36,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
@@ -45,6 +46,10 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
+import org.koin.androidx.compose.koinInject
+import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Instant
@@ -61,6 +66,10 @@ fun EditProfileScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
+    val googleSignInClient: GoogleSignInClient = koinInject()
+    val coroutineScope = rememberCoroutineScope()
+    var isGoogleReconnectInProgress by remember { mutableStateOf(false) }
+    var googleReconnectError by remember { mutableStateOf<String?>(null) }
     val profile = state.profile
     var username by remember(profile?.localAccountId, profile?.username) {
         mutableStateOf(profile?.username.orEmpty())
@@ -166,6 +175,57 @@ fun EditProfileScreen(
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text(if (directoryState.isSavingUsername) "Сохраняем..." else "Сохранить ник")
+            }
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = {
+                    coroutineScope.launch {
+                        isGoogleReconnectInProgress = true
+                        googleReconnectError = null
+                        viewModel.clearGoogleLinkError()
+                        try {
+                            val signInResult = googleSignInClient.signIn()
+                            viewModel.linkGoogleAccount(signInResult)
+                        } catch (error: Exception) {
+                            googleReconnectError = if (error is GoogleSignInConfigurationException) {
+                                error.message
+                            } else {
+                                "Не удалось повторно подключить Google. Попробуйте ещё раз."
+                            }
+                        } finally {
+                            isGoogleReconnectInProgress = false
+                        }
+                    }
+                },
+                enabled = !isGoogleReconnectInProgress && !state.isGoogleLinking,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                Text(
+                    if (isGoogleReconnectInProgress || state.isGoogleLinking) {
+                        "Подключаем Google..."
+                    } else {
+                        "Переподключить Google"
+                    },
+                )
+            }
+            googleReconnectError?.let { error ->
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            state.googleLinkError?.let { error ->
+                Text(
+                    when (error) {
+                        GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE ->
+                            "Этот Google-аккаунт привязан к другому локальному профилю."
+                        GoogleLinkError.FIREBASE_NOT_CONFIGURED ->
+                            "Firebase не настроен в приложении."
+                        GoogleLinkError.FIREBASE_AUTH_FAILED ->
+                            "Не удалось авторизовать Google-аккаунт: ${state.googleLinkDiagnostic.orEmpty()}"
+                        GoogleLinkError.SAVE_FAILED ->
+                            "Не удалось сохранить связь с Google-аккаунтом."
+                    },
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
             }
         }
         Spacer(Modifier.height(8.dp))
