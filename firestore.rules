@@ -264,10 +264,15 @@ service cloud.firestore {
         );
 
       allow list: if signedIn()
-        && request.query.limit <= 20
         && (
-          resource.data.authorUid == request.auth.uid
-          || isFollowingAuthor(resource.data.authorUid)
+          (
+            resource.data.authorUid == request.auth.uid
+            && request.query.limit <= 21
+          )
+          || (
+            request.query.limit <= 20
+            && isFollowingAuthor(resource.data.authorUid)
+          )
         );
 
       allow create: if signedIn() && validFeedEvent();
