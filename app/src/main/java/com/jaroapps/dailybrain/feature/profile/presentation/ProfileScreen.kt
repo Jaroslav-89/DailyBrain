@@ -76,13 +76,13 @@ fun ProfileScreen(
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
     val stats = state.statistics
-    LaunchedEffect(profile?.firebaseUid) {
-        directoryViewModel.refreshRelationships()
-        if (profile?.firebaseUid != null) directoryViewModel.loadInviteCode()
-    }
     var showMyQrDialog by remember { mutableStateOf(false) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
+    LaunchedEffect(directoryState.profile?.firebaseUid) {
+        directoryViewModel.refreshRelationships()
+        if (directoryState.profile?.firebaseUid != null) directoryViewModel.loadInviteCode()
+    }
     val today = LocalDate.now()
     val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
     val accountPeriod = profile?.let {
