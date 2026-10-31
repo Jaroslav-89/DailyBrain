@@ -5,6 +5,7 @@ import com.jaroapps.dailybrain.common.data.repository.CompletedTrainingRepositor
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.common.domain.service.TrainingStateChangedNotifier
 import com.jaroapps.dailybrain.common.domain.usecase.DeleteCompletedTrainingUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
@@ -31,6 +32,11 @@ import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingVie
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
+import com.jaroapps.dailybrain.feature.feed.data.FeedRepositoryImpl
+import com.jaroapps.dailybrain.feature.feed.data.FeedSyncManager
+import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
+import com.jaroapps.dailybrain.feature.feed.domain.FeedSyncTrigger
+import com.jaroapps.dailybrain.feature.feed.presentation.FeedViewModel
 import com.jaroapps.dailybrain.feature.onboarding.data.OnboardingProgressRepository as OnboardingProgressRepositoryImpl
 import com.jaroapps.dailybrain.feature.onboarding.domain.repository.OnboardingProgressRepository
 import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
@@ -92,7 +98,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14)
             .build()
     }
 
@@ -127,8 +133,19 @@ val appModule = module {
     factory { ObserveActiveTrainingDatesUseCase(repository = get()) }
     factory { ObserveTrainingDaysInRangeUseCase(repository = get()) }
     factory { ObserveTotalTrainingCountUseCase(repository = get()) }
-    factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get()) }
-    factory { DeleteCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get()) }
+    factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
+    factory { DeleteCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
+    factory { InitializeRewardStateUseCase(repository = get()) }
+
+    single<FeedRepository> {
+        FeedRepositoryImpl(
+            context = androidContext(),
+            database = get(),
+            activeUserProvider = get(),
+        )
+    }
+    single<FeedSyncTrigger> { FeedSyncManager(repository = get()) }
+    viewModel { FeedViewModel(repository = get()) }
 
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
@@ -225,6 +242,6 @@ val appModule = module {
         )
     }
 
-    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeTotalTrainingCount = get()) }
+    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeTotalTrainingCount = get(), observeUserProfile = get(), initializeRewardState = get()) }
     viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), observeStatistics = get()) }
 }
