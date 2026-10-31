@@ -23,6 +23,8 @@ class PublicProfileSyncViewModel(
     private val userDirectoryRepository: UserDirectoryRepository,
 ) : ViewModel() {
 
+    private var relationshipsSyncedForUid: String? = null
+
     init {
         viewModelScope.launch {
             combine(
@@ -44,6 +46,11 @@ class PublicProfileSyncViewModel(
                         avatarConfigurationJson = AvatarJsonCodec.encode(avatar),
                         statistics = statistics,
                     )
+                    if (relationshipsSyncedForUid != firebaseUid) {
+                        userDirectoryRepository.getFollowing(firebaseUid)
+                        userDirectoryRepository.getFollowers(firebaseUid)
+                        relationshipsSyncedForUid = firebaseUid
+                    }
                 } catch (cancelled: CancellationException) {
                     throw cancelled
                 } catch (error: Exception) {
