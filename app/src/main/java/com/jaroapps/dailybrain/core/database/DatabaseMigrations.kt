@@ -437,4 +437,11 @@ object DatabaseMigrations {
             )
         }
     }
+
+    /** Cache the globally owned username on each local profile linked to a Google identity. */
+    val MIGRATION_11_12 = object : Migration(11, 12) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE user_profile ADD COLUMN username TEXT")
+        }
+    }
 }

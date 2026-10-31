@@ -17,6 +17,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.DailyBrain">
 
+        <meta-data
+            android:name="com.google.mlkit.vision.DEPENDENCIES"
+            android:value="barcode_ui" />
+
         <activity
             android:name="com.jaroapps.dailybrain.MainActivity"
             android:exported="true"

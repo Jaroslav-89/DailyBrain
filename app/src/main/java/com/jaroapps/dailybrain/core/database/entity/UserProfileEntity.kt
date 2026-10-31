@@ -31,4 +31,6 @@ data class UserProfileEntity(
     val googleEmail: String? = null,
     val googleDisplayName: String? = null,
     val googlePhotoUrl: String? = null,
+    /** Cached handle owned by firebaseUid; null for profiles without Google authentication. */
+    val username: String? = null,
 )

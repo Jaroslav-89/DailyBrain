@@ -27,7 +27,6 @@ import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -44,6 +43,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.Instant
@@ -56,9 +56,14 @@ fun EditProfileScreen(
     onEditAvatar: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
+    directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
+    var username by remember(profile?.localAccountId, profile?.username) {
+        mutableStateOf(profile?.username.orEmpty())
+    }
     var displayName by remember(profile?.displayName) { mutableStateOf(profile?.displayName.orEmpty()) }
     var gender by remember(profile?.gender) { mutableStateOf(profile?.gender?.name) }
     var birthDate by remember(profile?.birthDate) { mutableStateOf(profile?.birthDate?.toString().orEmpty()) }
@@ -68,6 +73,7 @@ fun EditProfileScreen(
     var birthDateError by remember { mutableStateOf(false) }
     var datePickerVisible by remember { mutableStateOf(false) }
     var deleteDialogVisible by remember { mutableStateOf(false) }
+    var unlinkConfirmationVisible by remember { mutableStateOf(false) }
     val initialDateMillis = remember(birthDate) {
         runCatching { LocalDate.parse(birthDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
     }
@@ -106,6 +112,41 @@ fun EditProfileScreen(
             supportingText = { Text(stringResource(R.string.profile_name_optional)) },
             singleLine = true,
         )
+        if (profile?.firebaseUid != null) {
+            Spacer(Modifier.height(20.dp))
+            Text("Уникальный ник", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Ник будет виден другим пользователям. Он закрепляется за вашим Google-аккаунтом.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = username,
+                onValueChange = {
+                    username = UsernamePolicy.sanitizeInput(it)
+                    directoryViewModel.resetUsernameError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Ваш ник") },
+                leadingIcon = { Text("@") },
+                placeholder = { Text("brain_user") },
+                singleLine = true,
+                isError = directoryState.usernameError,
+                supportingText = {
+                    val message = directoryState.usernameMessage
+                    if (message != null) {
+                        Text(
+                            message,
+                            color = if (directoryState.usernameError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text("3–20 символов: латинские буквы, цифры и _")
+                    }
+                },
+            )
+        }
         Spacer(Modifier.height(8.dp))
         Column {
             OutlinedTextField(
@@ -209,6 +250,54 @@ fun EditProfileScreen(
             )
         }
 
+        if (unlinkConfirmationVisible) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (!directoryState.isUnlinkingGoogle) {
+                        unlinkConfirmationVisible = false
+                    }
+                },
+                title = { Text("Отвязать Google-аккаунт?") },
+                text = {
+                    Column {
+                        Text(
+                            "Облачный профиль будет удалён, а уникальный ник освобождён. " +
+                                "Локальные тренировки и настройки профиля останутся на устройстве. " +
+                                "После отвязки можно будет подключить другой Google-аккаунт.",
+                        )
+                        directoryState.unlinkError?.let { error ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(error, color = MaterialTheme.colorScheme.error)
+                        }
+                        if (directoryState.isUnlinkingGoogle) {
+                            Spacer(Modifier.height(12.dp))
+                            Text("Отвязываем Google-аккаунт...")
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            directoryViewModel.unlinkGoogleAccount {
+                                unlinkConfirmationVisible = false
+                            }
+                        },
+                        enabled = !directoryState.isUnlinkingGoogle,
+                    ) {
+                        Text("Отвязать")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { unlinkConfirmationVisible = false },
+                        enabled = !directoryState.isUnlinkingGoogle,
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
+        }
+
         Button(
             onClick = {
                 val normalizedBirthDate = birthDate.trim()
@@ -219,20 +308,37 @@ fun EditProfileScreen(
                 if (!validBirthDate) {
                     birthDateError = true
                 } else {
-                    viewModel.saveProfile(
-                        displayName = displayName,
-                        gender = gender,
-                        birthDate = normalizedBirthDate,
-                        country = country,
-                        city = city,
-                        onSaved = onBack,
-                    )
+                    val saveProfileDetails = {
+                        viewModel.saveProfile(
+                            displayName = displayName,
+                            gender = gender,
+                            birthDate = normalizedBirthDate,
+                            country = country,
+                            city = city,
+                            onSaved = onBack,
+                        )
+                    }
+                    if (profile?.firebaseUid != null) {
+                        directoryViewModel.saveUsername(username) { usernameSaved ->
+                            if (usernameSaved) saveProfileDetails()
+                        }
+                    } else {
+                        saveProfileDetails()
+                    }
                 }
             },
-            enabled = !state.isSaving,
+            enabled = !state.isSaving &&
+                !directoryState.isSavingUsername &&
+                !directoryState.isUnlinkingGoogle,
             modifier = Modifier.fillMaxWidth(),
         ) {
-            Text(if (state.isSaving) stringResource(R.string.status_saving) else stringResource(R.string.action_save))
+            Text(
+                if (state.isSaving || directoryState.isSavingUsername) {
+                    stringResource(R.string.status_saving)
+                } else {
+                    stringResource(R.string.action_save)
+                },
+            )
         }
 
         Spacer(Modifier.height(12.dp))
@@ -257,6 +363,29 @@ fun EditProfileScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
+        }
+
+        if (profile?.firebaseUid != null) {
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = {
+                    unlinkConfirmationVisible = true
+                    directoryViewModel.resetUsernameError()
+                },
+                enabled = !state.isSaving && !directoryState.isSavingUsername &&
+                    !directoryState.isUnlinkingGoogle,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text("Отвязать Google аккаунт")
+            }
+            directoryState.unlinkError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

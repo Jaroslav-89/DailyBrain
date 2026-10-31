@@ -4,19 +4,20 @@ import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.CancellationException
 
 class LinkGoogleAccountUseCase(
     private val repository: UserProfileRepository,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
+    private val userDirectoryRepository: UserDirectoryRepository,
 ) {
     suspend operator fun invoke(
         localAccountId: String,
         googleAccount: GoogleAccountProfile,
         idToken: String,
     ): LinkGoogleAccountResult {
-        // Reject a duplicate before changing Firebase's app-wide current-user session.
         if (repository.isGoogleSubjectLinkedToAnotherProfile(localAccountId, googleAccount.subject)) {
             return LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE
         }
@@ -34,11 +35,27 @@ class LinkGoogleAccountUseCase(
             is FirebaseGoogleSignInResult.Success -> result
         }
 
+        val remoteUsername = try {
+            userDirectoryRepository.ensureProfile(
+                firebaseUid = authentication.firebaseUid,
+                email = googleAccount.email,
+                displayName = googleAccount.displayName,
+                avatarUrl = googleAccount.photoUrl,
+            )
+        } catch (cancelled: CancellationException) {
+            firebaseAuthenticationRepository.signOut()
+            throw cancelled
+        } catch (_: Exception) {
+            firebaseAuthenticationRepository.signOut()
+            return LinkGoogleAccountResult.SAVE_FAILED
+        }
+
         return try {
             val linkResult = repository.linkGoogleAccount(
                 localAccountId = localAccountId,
                 googleAccount = googleAccount,
                 firebaseUid = authentication.firebaseUid,
+                username = remoteUsername.takeIf(String::isNotBlank),
             )
             if (linkResult == LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE) {
                 firebaseAuthenticationRepository.signOut()
@@ -48,7 +65,6 @@ class LinkGoogleAccountUseCase(
             firebaseAuthenticationRepository.signOut()
             throw cancelled
         } catch (_: Exception) {
-            // Do not leave a Firebase session active when the local profile binding failed.
             firebaseAuthenticationRepository.signOut()
             LinkGoogleAccountResult.SAVE_FAILED
         }

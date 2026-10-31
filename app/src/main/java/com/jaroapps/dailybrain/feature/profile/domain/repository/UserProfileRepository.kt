@@ -21,7 +21,10 @@ interface UserProfileRepository {
         localAccountId: String,
         googleAccount: GoogleAccountProfile,
         firebaseUid: String,
+        username: String?,
     ): LinkGoogleAccountResult
+    suspend fun updateUsername(localAccountId: String, username: String?)
+    suspend fun unlinkGoogleAccount(localAccountId: String)
     suspend fun saveProfile(
         displayName: String?,
         gender: String?,

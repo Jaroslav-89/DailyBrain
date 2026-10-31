@@ -51,6 +51,9 @@ import com.jaroapps.dailybrain.feature.statistics.domain.repository.StatisticsRe
 import com.jaroapps.dailybrain.feature.statistics.domain.usecase.ObserveStatisticsUseCase
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.profile.data.repository.UserProfileRepositoryImpl
+import com.jaroapps.dailybrain.feature.profile.data.repository.FirebaseUserDirectoryRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
+import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.profile.data.auth.FirebaseAuthenticationRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
@@ -86,7 +89,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12)
             .build()
     }
 
@@ -126,6 +129,7 @@ val appModule = module {
 
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
+    single<UserDirectoryRepository> { FirebaseUserDirectoryRepository(context = androidContext()) }
     single { GoogleSignInClient() }
     single<FirebaseAuthenticationRepository> {
         FirebaseAuthenticationRepositoryImpl(context = androidContext())
@@ -134,6 +138,7 @@ val appModule = module {
         LinkGoogleAccountUseCase(
             repository = get(),
             firebaseAuthenticationRepository = get(),
+            userDirectoryRepository = get(),
         )
     }
     factory { ObserveUserProfileUseCase(repository = get()) }
@@ -148,6 +153,7 @@ val appModule = module {
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteActiveProfile = get(), linkGoogleAccountUseCase = get()) }
     viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteLocalProfile = get()) }
+    viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get(), firebaseAuthenticationRepository = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
     single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }
