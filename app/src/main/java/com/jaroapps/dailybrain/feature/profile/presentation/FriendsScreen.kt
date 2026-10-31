@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -45,6 +46,7 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun FriendsScreen(
     onBack: () -> Unit,
+    onOpenUserProfile: (String) -> Unit,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
@@ -109,6 +111,7 @@ fun FriendsScreen(
                             user = user,
                             showUnfollow = selectedTab == 0,
                             onUnfollow = { pendingUnfollowUser = user },
+                            onOpenProfile = { onOpenUserProfile(user.firebaseUid) },
                         )
                         Spacer(Modifier.height(8.dp))
                     }
@@ -153,6 +156,7 @@ fun FriendsScreen(
             directoryState = directoryState,
             profileViewModel = viewModel,
             directoryViewModel = directoryViewModel,
+            onOpenUserProfile = onOpenUserProfile,
             onDismiss = {
                 showAddFriendsDialog = false
                 directoryViewModel.refreshRelationships()
@@ -166,8 +170,9 @@ private fun FriendUserCard(
     user: PublicUserProfile,
     showUnfollow: Boolean,
     onUnfollow: () -> Unit,
+    onOpenProfile: () -> Unit,
 ) {
-    Card(modifier = Modifier.fillMaxWidth()) {
+    Card(modifier = Modifier.fillMaxWidth().clickable(onClick = onOpenProfile)) {
         androidx.compose.foundation.layout.Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
             verticalAlignment = Alignment.CenterVertically,
