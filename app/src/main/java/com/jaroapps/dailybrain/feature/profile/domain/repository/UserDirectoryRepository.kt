@@ -34,4 +34,8 @@ interface UserDirectoryRepository {
     suspend fun getPublicUserProfile(viewerFirebaseUid: String, profileFirebaseUid: String): PublicUserProfile?
     suspend fun getPublicFollowing(viewerFirebaseUid: String, profileFirebaseUid: String): List<PublicUserProfile>
     suspend fun getPublicFollowers(viewerFirebaseUid: String, profileFirebaseUid: String): List<PublicUserProfile>
+    suspend fun blockUser(blockerFirebaseUid: String, blockedFirebaseUid: String)
+    suspend fun unblockUser(blockerFirebaseUid: String, blockedFirebaseUid: String)
+    suspend fun isBlockedByProfile(profileFirebaseUid: String, viewerFirebaseUid: String): Boolean
+    suspend fun getBlockedUsers(blockerFirebaseUid: String): List<PublicUserProfile>
 }
