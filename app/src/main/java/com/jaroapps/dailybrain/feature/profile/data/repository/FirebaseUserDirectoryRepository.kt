@@ -328,6 +328,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val profiles = mutableListOf<PublicUserProfile>()
         for (relationship in relationships.documents) {
             val relatedUid = relationship.getString(relatedField) ?: continue
+            if (isBlockedByProfile(relatedUid, uid)) continue
             if (ownerField == "followerUid") {
                 ensurePublicConnection(
                     firestore.collection(PUBLIC_FOLLOWING).document(uid)
