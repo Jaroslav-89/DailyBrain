@@ -21,8 +21,10 @@ data class PublicUserProfileUiState(
     val followerUsers: List<PublicUserProfile> = emptyList(),
     val isSelf: Boolean = false,
     val isFollowing: Boolean = false,
+    val isBlockedByViewer: Boolean = false,
     val isLoading: Boolean = false,
     val isUpdatingFollow: Boolean = false,
+    val isUpdatingBlock: Boolean = false,
     val error: String? = null,
 )
 
@@ -48,6 +50,7 @@ class PublicUserProfileViewModel(
             val activeProfile = observeUserProfile().first()
             val viewerUid = activeProfile.firebaseUid
                 ?: throw IllegalStateException("Для просмотра профилей подключите Google-аккаунт.")
+            val isBlockedByViewer = userDirectoryRepository.isUserBlocked(viewerUid, profileFirebaseUid)
             val user = userDirectoryRepository.getPublicUserProfile(viewerUid, profileFirebaseUid)
                 ?: throw IllegalStateException("Профиль пользователя не найден.")
             val self = viewerUid == profileFirebaseUid
@@ -57,6 +60,7 @@ class PublicUserProfileViewModel(
                     user = user,
                     isSelf = false,
                     isFollowing = false,
+                    isBlockedByViewer = isBlockedByViewer,
                     isLoading = false,
                 )
                 return
@@ -76,11 +80,52 @@ class PublicUserProfileViewModel(
                 followerUsers = result.second,
                 isSelf = self,
                 isFollowing = result.third,
+                isBlockedByViewer = isBlockedByViewer,
             )
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (error: Exception) {
             _uiState.update { it.copy(isLoading = false, error = error.message ?: "Не удалось загрузить профиль.") }
+        }
+    }
+
+    fun toggleBlock() {
+        val state = _uiState.value
+        val viewerUid = state.viewerFirebaseUid ?: return
+        val user = state.user ?: return
+        if (state.isSelf || state.isUpdatingBlock) return
+        val shouldUnblock = state.isBlockedByViewer
+        viewModelScope.launch {
+            _uiState.update { it.copy(isUpdatingBlock = true, error = null) }
+            try {
+                if (shouldUnblock) {
+                    userDirectoryRepository.unblockUser(viewerUid, user.firebaseUid)
+                } else {
+                    userDirectoryRepository.blockUser(viewerUid, user.firebaseUid)
+                }
+                _uiState.update { current ->
+                    current.copy(
+                        isBlockedByViewer = !shouldUnblock,
+                        isUpdatingBlock = false,
+                        isFollowing = if (shouldUnblock) current.isFollowing else false,
+                        followingUsers = if (shouldUnblock) current.followingUsers
+                            else current.followingUsers.filterNot { it.firebaseUid == viewerUid },
+                        followerUsers = if (shouldUnblock) current.followerUsers
+                            else current.followerUsers.filterNot { it.firebaseUid == viewerUid },
+                        error = null,
+                    )
+                }
+            } catch (cancelled: CancellationException) {
+                _uiState.update { it.copy(isUpdatingBlock = false) }
+                throw cancelled
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(
+                        isUpdatingBlock = false,
+                        error = error.message ?: "Не удалось изменить блокировку.",
+                    )
+                }
+            }
         }
     }
 
