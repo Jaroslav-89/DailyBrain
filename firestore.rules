@@ -269,10 +269,10 @@ service cloud.firestore {
         && (
           (
             resource.data.authorUid == request.auth.uid
-            && request.query.limit <= 20
+            && request.query.limit <= 10
           )
           || (
-            request.query.limit <= 180
+            request.query.limit <= 90
             && isFollowingAuthor(resource.data.authorUid)
           )
         );
