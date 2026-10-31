@@ -196,10 +196,12 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val firestore = FirebaseFirestore.getInstance(app)
         val privateRef = firestore.collection(USERS).document(firebaseUid)
         val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        val publicCardRef = firestore.collection(PUBLIC_PROFILE_CARDS).document(firebaseUid)
 
         firestore.runTransaction { transaction ->
             val privateSnapshot = transaction.get(privateRef)
             val publicSnapshot = transaction.get(publicRef)
+            val publicCardSnapshot = transaction.get(publicCardRef)
             val username = UsernamePolicy.normalize(
                 privateSnapshot.getString("usernameLower") ?: privateSnapshot.getString("username")
                     ?: publicSnapshot.getString("usernameLower") ?: publicSnapshot.getString("username").orEmpty(),
@@ -219,6 +221,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             }
             if (privateSnapshot.exists()) transaction.delete(privateRef)
             if (publicSnapshot.exists()) transaction.delete(publicRef)
+            if (publicCardSnapshot.exists()) transaction.delete(publicCardRef)
             if (usernameReservation?.exists() == true) transaction.delete(requireNotNull(usernameRef))
             if (inviteReservation?.exists() == true) transaction.delete(requireNotNull(inviteRef))
             true
@@ -233,7 +236,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val firestore = FirebaseFirestore.getInstance(app)
         val reservation = firestore.collection(USERNAMES).document(normalized).get().awaitResult()
         val uid = reservation.getString("userId") ?: return null
-        return firestore.collection(PUBLIC_PROFILES).document(uid).get().awaitResult().toPublicProfile(uid)
+        return firestore.collection(PUBLIC_PROFILE_CARDS).document(uid).get().awaitResult().toPublicProfile(uid)
     }
 
     override suspend fun findUserByInviteCode(firebaseUid: String, inviteCode: String): PublicUserProfile? {
