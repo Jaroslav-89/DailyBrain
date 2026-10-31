@@ -120,7 +120,13 @@ service cloud.firestore {
     }
 
     match /follows/{followId} {
-      allow get, list: if signedIn()
+      allow get: if signedIn()
+        && (
+          !exists(/databases/$(database)/documents/follows/$(followId))
+          || resource.data.followerUid == request.auth.uid
+          || resource.data.followingUid == request.auth.uid
+        );
+      allow list: if signedIn()
         && (
           resource.data.followerUid == request.auth.uid
           || resource.data.followingUid == request.auth.uid
