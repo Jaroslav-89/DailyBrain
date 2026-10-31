@@ -43,7 +43,7 @@ class PublicUserProfileViewModel(
     }
 
     private suspend fun loadProfile(profileFirebaseUid: String) {
-        _uiState.update { it.copy(isLoading = true, error = null) }
+        _uiState.value = PublicUserProfileUiState(isLoading = true)
         try {
             val activeProfile = observeUserProfile().first()
             val viewerUid = activeProfile.firebaseUid
