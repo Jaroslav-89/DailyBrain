@@ -220,12 +220,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
                     onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
-                    onExitProfile = {
-                        navController.navigate(Route.PROFILE_SELECTION) {
-                            popUpTo(Route.HOME) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
                 )
             }
 
@@ -234,6 +228,12 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onBack = { navController.popBackStack() },
                     onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
                     onOpenParameters = { navController.navigate(Route.PARAMETERS) },
+                    onExitProfile = {
+                        navController.navigate(Route.PROFILE_SELECTION) {
+                            popUpTo(Route.HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
 
