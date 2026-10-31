@@ -27,6 +27,9 @@ interface FeedEventDao {
     @Query("UPDATE feed_events SET syncState = 'SYNCED' WHERE localAccountId = :localAccountId AND eventId = :eventId")
     suspend fun markSynced(localAccountId: String, eventId: String)
 
+    @Query("UPDATE feed_events SET syncState = :syncState WHERE localAccountId = :localAccountId AND eventId = :eventId")
+    suspend fun updateSyncState(localAccountId: String, eventId: String, syncState: String)
+
     @Query("DELETE FROM feed_events WHERE localAccountId = :localAccountId AND isLocal = 0")
     suspend fun deleteCachedFriendEvents(localAccountId: String)
 
