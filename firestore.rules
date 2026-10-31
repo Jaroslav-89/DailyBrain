@@ -36,6 +36,9 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
       allow create, update: if isOwner(uid)
+        && request.resource.data.keys().hasOnly([
+          'uid', 'displayName', 'avatarUrl', 'username', 'usernameLower', 'updatedAt'
+        ])
         && request.resource.data.uid == uid
         && validUsernameFields()
         && getAfter(/databases/$(database)/documents/users/$(uid)).data.usernameLower

@@ -185,7 +185,11 @@ fun EditProfileScreen(
                         viewModel.clearGoogleLinkError()
                         try {
                             val signInResult = googleSignInClient.signIn()
-                            viewModel.linkGoogleAccount(signInResult)
+                            if (signInResult.account.subject != profile.googleSubject) {
+                                googleReconnectError = "Выберите тот Google-аккаунт, который уже привязан к этому профилю."
+                            } else {
+                                viewModel.linkGoogleAccount(signInResult)
+                            }
                         } catch (error: Exception) {
                             googleReconnectError = if (error is GoogleSignInConfigurationException) {
                                 error.message
