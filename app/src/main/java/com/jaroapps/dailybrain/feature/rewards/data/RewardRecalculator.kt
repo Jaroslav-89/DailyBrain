@@ -88,7 +88,6 @@ object RewardRecalculator {
             val firebaseUid = profile.firebaseUid
             val stableAuthorId = firebaseUid ?: localAccountId
             val eventId = "$stableAuthorId:$key"
-            val existing = existingLocalEvents[eventId]
             desiredEvents[eventId] = FeedEventEntity(
                 localAccountId = localAccountId,
                 eventId = eventId,
@@ -104,11 +103,7 @@ object RewardRecalculator {
                 accuracyPercent = accuracyPercent,
                 isLocal = true,
                 isRevoked = false,
-                syncState = when {
-                    firebaseUid == null -> SYNC_LOCAL_ONLY
-                    existing?.syncState == SYNCED -> SYNCED
-                    else -> SYNC_PENDING
-                },
+                syncState = if (firebaseUid == null) SYNC_LOCAL_ONLY else SYNC_PENDING,
             )
         }
 
