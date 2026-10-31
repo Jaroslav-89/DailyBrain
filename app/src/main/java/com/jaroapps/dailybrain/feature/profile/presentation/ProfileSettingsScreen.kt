@@ -32,7 +32,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import kotlinx.coroutines.launch
-import org.koin.androidx.compose.koinInject
+import org.koin.compose.koinInject
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
