@@ -10,6 +10,8 @@ interface UserProfileRepository {
     fun observeProfiles(): Flow<List<UserProfile>>
     suspend fun createLocalProfile(): UserProfile
     suspend fun switchActiveProfile(localAccountId: String)
+    suspend fun exitActiveProfile()
+    suspend fun deleteProfile(localAccountId: String)
     suspend fun deleteActiveProfile()
     suspend fun isGoogleSubjectLinkedToAnotherProfile(
         localAccountId: String,

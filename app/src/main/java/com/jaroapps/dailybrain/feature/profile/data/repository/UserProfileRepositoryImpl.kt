@@ -61,35 +61,59 @@ class UserProfileRepositoryImpl(
             "Local profile does not exist: $localAccountId"
         }
         database.appSettingsDao().setActiveAccount(
-            AppSettingsEntity(activeLocalAccountId = localAccountId),
+            AppSettingsEntity(activeLocalAccountId = localAccountId, profileSelectionRequired = false),
         )
     }
 
+    override suspend fun exitActiveProfile() {
+        val activeId = activeUserProvider.currentUserId()
+        requireNotNull(database.userProfileDao().getProfile(activeId)) {
+            "Active profile does not exist"
+        }
+        database.appSettingsDao().setProfileSelectionRequired(true)
+    }
+
     override suspend fun deleteActiveProfile() {
+        deleteProfile(activeUserProvider.currentUserId())
+    }
+
+    override suspend fun deleteProfile(localAccountId: String) {
         database.withTransaction {
             val profileDao = database.userProfileDao()
-            val profiles = profileDao.getProfiles()
-            val activeId = activeUserProvider.currentUserId()
-            val activeProfile = profiles.firstOrNull { it.localAccountId == activeId }
-                ?: throw IllegalStateException("Active profile does not exist")
-            val replacement = profiles.firstOrNull { it.localAccountId != activeId } ?: run {
-                // Keep the invariant that there is always one active local profile.
-                // Deleting the last profile therefore replaces it with a fresh empty profile.
-                val newProfile = createInitialProfile(UUID.randomUUID().toString(), firstTrainingAt = null)
-                profileDao.insertIfAbsent(newProfile)
-                requireNotNull(profileDao.getProfile(newProfile.localAccountId))
+            val profile = profileDao.getProfile(localAccountId) ?: return@withTransaction
+            val settingsDao = database.appSettingsDao()
+            val activeId = settingsDao.getActiveLocalAccountId()
+
+            // Deleting the active profile must never make ActiveUserProvider recreate it.
+            // Keep the app in profile-selection mode until the user explicitly chooses another one.
+            if (activeId == localAccountId) {
+                val replacement = profileDao.getProfiles().firstOrNull {
+                    it.localAccountId != localAccountId
+                }
+                if (replacement != null) {
+                    settingsDao.setActiveAccount(
+                        AppSettingsEntity(
+                            activeLocalAccountId = replacement.localAccountId,
+                            profileSelectionRequired = true,
+                        ),
+                    )
+                } else {
+                    settingsDao.setActiveAccount(
+                        AppSettingsEntity(
+                            activeLocalAccountId = "",
+                            profileSelectionRequired = true,
+                        ),
+                    )
+                }
             }
 
-            database.appSettingsDao().setActiveAccount(
-                AppSettingsEntity(activeLocalAccountId = replacement.localAccountId),
-            )
-            database.trainingSessionDao().deleteAll(activeId)
-            database.trainingDayDao().deleteAll(activeId)
-            database.dailyExerciseResultDao().deleteAll(activeId)
-            database.statisticsDao().deleteOverall(activeId)
-            database.statisticsDao().deleteAllExerciseStatistics(activeId)
-            database.onboardingProgressDao().deleteProgress(activeId)
-            val deleted = profileDao.deleteByLocalAccountId(activeProfile.localAccountId)
+            database.trainingSessionDao().deleteAll(localAccountId)
+            database.trainingDayDao().deleteAll(localAccountId)
+            database.dailyExerciseResultDao().deleteAll(localAccountId)
+            database.statisticsDao().deleteOverall(localAccountId)
+            database.statisticsDao().deleteAllExerciseStatistics(localAccountId)
+            database.onboardingProgressDao().deleteProgress(localAccountId)
+            val deleted = profileDao.deleteByLocalAccountId(profile.localAccountId)
             check(deleted == 1) { "Failed to delete local profile" }
         }
     }

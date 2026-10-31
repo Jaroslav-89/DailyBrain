@@ -63,9 +63,12 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfil
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteActiveProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteLocalProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
 import org.koin.android.ext.koin.androidContext
@@ -83,7 +86,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11)
             .build()
     }
 
@@ -138,10 +141,13 @@ val appModule = module {
     factory { CreateLocalProfileUseCase(repository = get()) }
     factory { SwitchActiveProfileUseCase(repository = get(), stateChangedNotifier = get()) }
     factory { DeleteActiveProfileUseCase(repository = get()) }
+    factory { DeleteLocalProfileUseCase(repository = get()) }
+    factory { ExitActiveProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteActiveProfile = get(), linkGoogleAccountUseCase = get()) }
+    viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteLocalProfile = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
     single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }

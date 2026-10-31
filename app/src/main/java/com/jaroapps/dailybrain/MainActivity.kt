@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.jaroapps.dailybrain.feature.brain.BrainStateManager
+import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
 import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.StartupDestination
@@ -53,12 +54,17 @@ class MainActivity : ComponentActivity() {
 
         lifecycleScope.launch {
             val startDestination = try {
-                when (GlobalContext.get().get<GetStartupDestinationUseCase>().invoke().first()) {
-                    StartupDestination.APP_ONBOARDING -> Route.APP_ONBOARDING
-                    StartupDestination.HOME -> Route.HOME
+                val database = GlobalContext.get().get<AppDatabase>()
+                if (database.appSettingsDao().isProfileSelectionRequired() == true) {
+                    Route.PROFILE_SELECTION
+                } else {
+                    when (GlobalContext.get().get<GetStartupDestinationUseCase>().invoke().first()) {
+                        StartupDestination.APP_ONBOARDING -> Route.APP_ONBOARDING
+                        StartupDestination.HOME -> Route.HOME
+                    }
                 }
             } catch (_: Exception) {
-                // If startup progress cannot be read, show the existing startup recovery screen.
+                // If startup state cannot be read, show the existing startup recovery screen.
                 Route.STARTUP
             }
 

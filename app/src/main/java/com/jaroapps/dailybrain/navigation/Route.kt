@@ -13,6 +13,7 @@ object Route {
     fun exerciseRules(exercise: String): String = "exercise_rules/$exercise"
     const val HOME = "home"
     const val PROFILE = "profile"
+    const val PROFILE_SELECTION = "profile_selection"
     const val PROFILE_SETTINGS = "profile_settings"
     const val PARAMETERS = "profile_parameters"
     const val FRIENDS = "friends"
