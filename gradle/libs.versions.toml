@@ -16,6 +16,8 @@ koin = "4.2.2"
 room = "2.8.5"
 datastore = "1.2.1"
 ksp = "2.3.6"
+firebaseBom = "35.1.0"
+googleServices = "4.5.0"
 
 [libraries]
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "coreKtx" }
@@ -49,6 +51,9 @@ koin-androidx-compose = { group = "io.insert-koin", name = "koin-androidx-compos
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+firebase-bom = { group = "com.google.firebase", name = "firebase-bom", version.ref = "firebaseBom" }
+firebase-auth = { group = "com.google.firebase", name = "firebase-auth" }
+
 # Preferences DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version.ref = "datastore" }
 
@@ -57,3 +62,4 @@ android-application = { id = "com.android.application", version.ref = "agp" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
+google-services = { id = "com.google.gms.google-services", version.ref = "googleServices" }

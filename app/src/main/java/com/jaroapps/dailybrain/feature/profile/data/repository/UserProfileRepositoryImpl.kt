@@ -94,9 +94,18 @@ class UserProfileRepositoryImpl(
         }
     }
 
+    override suspend fun isGoogleSubjectLinkedToAnotherProfile(
+        localAccountId: String,
+        googleSubject: String,
+    ): Boolean {
+        val linkedProfile = database.userProfileDao().getProfileByGoogleSubject(googleSubject)
+        return linkedProfile != null && linkedProfile.localAccountId != localAccountId
+    }
+
     override suspend fun linkGoogleAccount(
         localAccountId: String,
         googleAccount: GoogleAccountProfile,
+        firebaseUid: String,
     ): LinkGoogleAccountResult = database.withTransaction {
         require(googleAccount.subject.isNotBlank()) { "Google account subject must not be blank" }
         val dao = database.userProfileDao()
@@ -110,6 +119,7 @@ class UserProfileRepositoryImpl(
 
         dao.save(
             currentProfile.copy(
+                firebaseUid = firebaseUid,
                 googleSubject = googleAccount.subject,
                 googleEmail = googleAccount.email,
                 googleDisplayName = googleAccount.displayName,

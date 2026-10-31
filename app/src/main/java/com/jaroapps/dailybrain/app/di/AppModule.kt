@@ -52,6 +52,8 @@ import com.jaroapps.dailybrain.feature.statistics.domain.usecase.ObserveStatisti
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsViewModel
 import com.jaroapps.dailybrain.feature.profile.data.repository.UserProfileRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.FirebaseAuthenticationRepositoryImpl
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
 import com.jaroapps.dailybrain.feature.profile.data.repository.ProfileStatisticsRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
@@ -122,7 +124,15 @@ val appModule = module {
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
     single { GoogleSignInClient(context = androidContext()) }
-    factory { LinkGoogleAccountUseCase(repository = get()) }
+    single<FirebaseAuthenticationRepository> {
+        FirebaseAuthenticationRepositoryImpl(context = androidContext())
+    }
+    factory {
+        LinkGoogleAccountUseCase(
+            repository = get(),
+            firebaseAuthenticationRepository = get(),
+        )
+    }
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }

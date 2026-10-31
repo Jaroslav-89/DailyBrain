@@ -43,6 +43,14 @@ fun AddFriendsDialog(
                             "Этот Google-аккаунт уже привязан к другому профилю на этом устройстве.",
                             color = androidx.compose.material3.MaterialTheme.colorScheme.error,
                         )
+                        GoogleLinkError.FIREBASE_NOT_CONFIGURED -> Text(
+                            "Firebase не настроен. Добавьте app/google-services.json и включите Google в Firebase Authentication.",
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        )
+                        GoogleLinkError.FIREBASE_AUTH_FAILED -> Text(
+                            "Firebase не подтвердил вход через Google. Проверьте настройки Google provider и повторите попытку.",
+                            color = androidx.compose.material3.MaterialTheme.colorScheme.error,
+                        )
                         GoogleLinkError.SAVE_FAILED -> Text(
                             "Не удалось сохранить привязку. Попробуйте ещё раз.",
                             color = androidx.compose.material3.MaterialTheme.colorScheme.error,

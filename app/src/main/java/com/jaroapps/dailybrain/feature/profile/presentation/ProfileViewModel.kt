@@ -2,7 +2,7 @@ package com.jaroapps.dailybrain.feature.profile.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
@@ -23,6 +23,8 @@ import kotlinx.coroutines.launch
 
 enum class GoogleLinkError {
     ALREADY_LINKED_TO_ANOTHER_PROFILE,
+    FIREBASE_NOT_CONFIGURED,
+    FIREBASE_AUTH_FAILED,
     SAVE_FAILED,
 }
 
@@ -133,16 +135,25 @@ class ProfileViewModel(
         googleLinkError.value = null
     }
 
-    fun linkGoogleAccount(googleAccount: GoogleAccountProfile) {
+    fun linkGoogleAccount(signInResult: GoogleSignInResult) {
         val localAccountId = uiState.value.profile?.localAccountId ?: return
         viewModelScope.launch {
             googleLinking.value = true
             googleLinkError.value = null
             try {
-                when (linkGoogleAccountUseCase(localAccountId, googleAccount)) {
+                when (linkGoogleAccountUseCase(localAccountId, signInResult.account, signInResult.idToken)) {
                     LinkGoogleAccountResult.LINKED -> Unit
                     LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE -> {
                         googleLinkError.value = GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE
+                    }
+                    LinkGoogleAccountResult.FIREBASE_NOT_CONFIGURED -> {
+                        googleLinkError.value = GoogleLinkError.FIREBASE_NOT_CONFIGURED
+                    }
+                    LinkGoogleAccountResult.FIREBASE_AUTH_FAILED -> {
+                        googleLinkError.value = GoogleLinkError.FIREBASE_AUTH_FAILED
+                    }
+                    LinkGoogleAccountResult.SAVE_FAILED -> {
+                        googleLinkError.value = GoogleLinkError.SAVE_FAILED
                     }
                 }
             } catch (_: Exception) {

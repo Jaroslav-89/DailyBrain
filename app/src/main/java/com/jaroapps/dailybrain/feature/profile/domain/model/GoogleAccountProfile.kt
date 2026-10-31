@@ -12,4 +12,7 @@ data class GoogleAccountProfile(
 enum class LinkGoogleAccountResult {
     LINKED,
     ALREADY_LINKED_TO_ANOTHER_PROFILE,
+    FIREBASE_NOT_CONFIGURED,
+    FIREBASE_AUTH_FAILED,
+    SAVE_FAILED,
 }

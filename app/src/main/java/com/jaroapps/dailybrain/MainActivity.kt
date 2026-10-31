@@ -14,6 +14,7 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.jaroapps.dailybrain.feature.brain.BrainStateManager
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
 import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.StartupDestination
 import com.jaroapps.dailybrain.navigation.AppNavHost
@@ -45,6 +46,7 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         splashScreen.setKeepOnScreenCondition { !startupResolved }
         super.onCreate(savedInstanceState)
+        GlobalContext.get().get<GoogleSignInClient>().attachActivity(this)
 
         window.statusBarColor = AndroidColor.WHITE
         WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = true
@@ -74,5 +76,9 @@ class MainActivity : ComponentActivity() {
         ) {
             notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
+    }
+    override fun onDestroy() {
+        GlobalContext.get().get<GoogleSignInClient>().attachActivity(null)
+        super.onDestroy()
     }
 }

@@ -11,9 +11,14 @@ interface UserProfileRepository {
     suspend fun createLocalProfile(): UserProfile
     suspend fun switchActiveProfile(localAccountId: String)
     suspend fun deleteActiveProfile()
+    suspend fun isGoogleSubjectLinkedToAnotherProfile(
+        localAccountId: String,
+        googleSubject: String,
+    ): Boolean
     suspend fun linkGoogleAccount(
         localAccountId: String,
         googleAccount: GoogleAccountProfile,
+        firebaseUid: String,
     ): LinkGoogleAccountResult
     suspend fun saveProfile(
         displayName: String?,

@@ -21,7 +21,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
@@ -47,7 +46,6 @@ fun FriendsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val googleSignInClient: GoogleSignInClient = koinInject()
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     var isGoogleSignInInProgress by remember { mutableStateOf(false) }
     var googleSignInError by remember { mutableStateOf<String?>(null) }
@@ -97,7 +95,7 @@ fun FriendsScreen(
 
     if (showAddFriends) {
         AddFriendsDialog(
-            googleLinked = state.profile?.googleSubject != null,
+            googleLinked = state.profile?.firebaseUid != null,
             googleEmail = state.profile?.googleEmail,
             isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
             googleLinkError = state.googleLinkError,
@@ -108,8 +106,8 @@ fun FriendsScreen(
                     googleSignInError = null
                     viewModel.clearGoogleLinkError()
                     try {
-                        val account = googleSignInClient.signIn(context)
-                        viewModel.linkGoogleAccount(account)
+                        val signInResult = googleSignInClient.signIn()
+                        viewModel.linkGoogleAccount(signInResult)
                     } catch (error: Exception) {
                         googleSignInError = if (error is GoogleSignInConfigurationException) {
                             error.message

@@ -4,6 +4,11 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// Keep local builds available before Firebase is configured.
+if (file("google-services.json").isFile) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.jaroapps.dailybrain"
     compileSdk {
@@ -66,6 +71,10 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+
+    // Firebase validates Google ID tokens and persists the authenticated session.
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.auth)
 
     // Google identity through the modern Android Credential Manager API.
     implementation("androidx.credentials:credentials:1.6.0")

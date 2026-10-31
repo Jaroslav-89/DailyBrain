@@ -40,7 +40,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -79,7 +78,6 @@ fun ProfileScreen(
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val googleSignInClient: GoogleSignInClient = koinInject()
-    val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val profile = state.profile
     val stats = state.statistics
@@ -147,7 +145,7 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                if (profile?.googleSubject != null) {
+                                if (profile?.firebaseUid != null) {
                                     Icon(
                                         imageVector = Icons.Filled.CheckCircle,
                                         contentDescription = "Google аккаунт подтверждён",
@@ -380,8 +378,8 @@ fun ProfileScreen(
                     googleSignInError = null
                     viewModel.clearGoogleLinkError()
                     try {
-                        val account = googleSignInClient.signIn(context)
-                        viewModel.linkGoogleAccount(account)
+                        val signInResult = googleSignInClient.signIn()
+                        viewModel.linkGoogleAccount(signInResult)
                     } catch (error: Exception) {
                         googleSignInError = if (error is GoogleSignInConfigurationException) {
                             error.message
