@@ -1,7 +1,7 @@
 package com.jaroapps.dailybrain.feature.feed.data
 
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
-import com.jaroapps.dailybrain.feature.feed.domain.FeedSyncTrigger
+import com.jaroapps.dailybrain.common.domain.service.FeedSyncTrigger
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
