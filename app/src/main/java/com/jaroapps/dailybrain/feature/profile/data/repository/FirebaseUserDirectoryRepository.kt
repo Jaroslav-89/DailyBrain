@@ -77,7 +77,8 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                 "usernameLower" to username,
                 "inviteCode" to inviteCode,
                 "updatedAt" to now,
-            ), SetOptions.merge())            transaction.set(publicCardRef, mapOf(
+            ), SetOptions.merge())
+            transaction.set(publicCardRef, mapOf(
                 "uid" to firebaseUid,
                 "displayName" to publicCardSnapshot.getString("displayName").orEmpty(),
                 "username" to username,
