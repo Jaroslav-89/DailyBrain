@@ -229,6 +229,8 @@ service cloud.firestore {
         && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
     match /feedEvents/{eventId} {
+      // The client queries followed authors in batches of nine so rule document-access
+      // calls remain below Firestore's per-query limit.
       function isFollowingAuthor(authorUid) {
         return signedIn()
           && exists(/databases/$(database)/documents/publicFollowing/$(request.auth.uid)/users/$(authorUid));
@@ -267,7 +269,7 @@ service cloud.firestore {
         && (
           (
             resource.data.authorUid == request.auth.uid
-            && request.query.limit <= 21
+            && request.query.limit <= 20
           )
           || (
             request.query.limit <= 180
