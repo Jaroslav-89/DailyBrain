@@ -20,6 +20,14 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.ui.platform.LocalContext
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
+import org.koin.androidx.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
+import kotlinx.coroutines.launch
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -33,7 +41,16 @@ import com.jaroapps.dailybrain.R
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FriendsScreen(onBack: () -> Unit) {
+fun FriendsScreen(
+    onBack: () -> Unit,
+    viewModel: ProfileViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val googleSignInClient: GoogleSignInClient = koinInject()
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
+    var googleSignInError by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddFriends by remember { mutableStateOf(false) }
 
@@ -79,6 +96,36 @@ fun FriendsScreen(onBack: () -> Unit) {
     }
 
     if (showAddFriends) {
-        AddFriendsDialog(onDismiss = { showAddFriends = false })
+        AddFriendsDialog(
+            googleLinked = state.profile?.googleSubject != null,
+            googleEmail = state.profile?.googleEmail,
+            isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
+            googleLinkError = state.googleLinkError,
+            googleSignInError = googleSignInError,
+            onContinueWithGoogle = {
+                coroutineScope.launch {
+                    isGoogleSignInInProgress = true
+                    googleSignInError = null
+                    viewModel.clearGoogleLinkError()
+                    try {
+                        val account = googleSignInClient.signIn(context)
+                        viewModel.linkGoogleAccount(account)
+                    } catch (error: Exception) {
+                        googleSignInError = if (error is GoogleSignInConfigurationException) {
+                            error.message
+                        } else {
+                            "Не удалось выполнить вход с Google. Попробуйте ещё раз."
+                        }
+                    } finally {
+                        isGoogleSignInInProgress = false
+                    }
+                }
+            },
+            onDismiss = {
+                showAddFriends = false
+                googleSignInError = null
+                viewModel.clearGoogleLinkError()
+            },
+        )
     }
 }
