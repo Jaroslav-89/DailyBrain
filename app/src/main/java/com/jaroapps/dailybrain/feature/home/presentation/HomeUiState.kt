@@ -16,6 +16,8 @@ data class HomeUiState(
     val completedDates: Set<LocalDate> = emptySet(),
     val completedExerciseDatesByType: Map<String, Set<LocalDate>> = emptyMap(),
     val totalTrainingCount: Int = 0,
+    val xpPoints: Int = 0,
+    val endorphinBalance: Int = 0,
 ) {
     val isTrainingCompletedToday: Boolean
         get() = today in completedDates
