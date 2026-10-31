@@ -11,6 +11,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -21,6 +22,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -31,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,6 +52,7 @@ fun FriendsScreen(
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
+    var pendingUnfollowUser by remember { mutableStateOf<PublicUserProfile?>(null) }
     val firebaseUid = directoryState.profile?.firebaseUid
 
     LaunchedEffect(firebaseUid) {
@@ -100,8 +104,12 @@ fun FriendsScreen(
                         style = MaterialTheme.typography.bodyLarge,
                     )
                 } else {
-                    users.forEach {
-                        FriendUserCard(it)
+                    users.forEach { user ->
+                        FriendUserCard(
+                            user = user,
+                            showUnfollow = selectedTab == 0,
+                            onUnfollow = { pendingUnfollowUser = user },
+                        )
                         Spacer(Modifier.height(8.dp))
                     }
                 }
@@ -114,6 +122,29 @@ fun FriendsScreen(
                 ) { Text("Добавить друзей") }
             }
         }
+    }
+
+    pendingUnfollowUser?.let { user ->
+        AlertDialog(
+            onDismissRequest = { pendingUnfollowUser = null },
+            title = { Text("Отписаться от пользователя?") },
+            text = {
+                Text(
+                    "Вы действительно хотите отписаться от " +
+                        (user.username.takeIf(String::isNotBlank)?.let { "@$it" } ?: "этого пользователя") +
+                        "? Его достижения больше не будут показываться в вашей ленте.",
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    directoryViewModel.unfollowUser(user)
+                    pendingUnfollowUser = null
+                }) { Text("Отписаться", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingUnfollowUser = null }) { Text("Отмена") }
+            },
+        )
     }
 
     if (showAddFriendsDialog) {
@@ -131,20 +162,33 @@ fun FriendsScreen(
 }
 
 @Composable
-private fun FriendUserCard(user: PublicUserProfile) {
+private fun FriendUserCard(
+    user: PublicUserProfile,
+    showUnfollow: Boolean,
+    onUnfollow: () -> Unit,
+) {
     Card(modifier = Modifier.fillMaxWidth()) {
-        Column(
+        androidx.compose.foundation.layout.Row(
             modifier = Modifier.fillMaxWidth().padding(14.dp),
-            verticalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(
-                user.displayName?.takeIf(String::isNotBlank)
-                    ?: user.username.takeIf(String::isNotBlank)?.let { "@$it" }
-                    ?: "Пользователь DailyBrain",
-                style = MaterialTheme.typography.titleMedium,
-            )
-            if (user.username.isNotBlank()) {
-                Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
+                Text(
+                    user.username.takeIf(String::isNotBlank)?.let { "@$it" } ?: "Пользователь DailyBrain",
+                    style = MaterialTheme.typography.titleMedium,
+                )
+            }
+            if (showUnfollow) {
+                IconButton(onClick = onUnfollow) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = "Отписаться",
+                        tint = Color(0xFFC62828),
+                    )
+                }
             }
         }
     }
