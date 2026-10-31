@@ -11,6 +11,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -55,8 +56,32 @@ fun FriendsScreen(
     var isGoogleSignInInProgress by remember { mutableStateOf(false) }
     var googleSignInError by remember { mutableStateOf<String?>(null) }
     var selectedTab by remember { mutableIntStateOf(2) }
-    var showAddFriends by remember { mutableStateOf(false) }
     var usernameQuery by remember { mutableStateOf("") }
+
+    val connectGoogle: (Boolean) -> Unit = { requireExistingIdentity ->
+        coroutineScope.launch {
+            isGoogleSignInInProgress = true
+            googleSignInError = null
+            viewModel.clearGoogleLinkError()
+            try {
+                val signInResult = googleSignInClient.signIn()
+                val expectedSubject = directoryState.profile?.googleSubject
+                if (requireExistingIdentity && signInResult.account.subject != expectedSubject) {
+                    googleSignInError = "Выберите тот Google-аккаунт, который уже привязан к этому профилю."
+                } else {
+                    viewModel.linkGoogleAccount(signInResult)
+                }
+            } catch (error: Exception) {
+                googleSignInError = if (error is GoogleSignInConfigurationException) {
+                    error.message
+                } else {
+                    "Не удалось выполнить вход с Google. Попробуйте ещё раз."
+                }
+            } finally {
+                isGoogleSignInInProgress = false
+            }
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -100,8 +125,28 @@ fun FriendsScreen(
                             style = MaterialTheme.typography.bodyLarge,
                         )
                         Spacer(Modifier.height(16.dp))
-                        Button(onClick = { showAddFriends = true }, modifier = Modifier.fillMaxWidth()) {
-                            Text("Подключить Google")
+                        Button(
+                            onClick = { connectGoogle(false) },
+                            enabled = !isGoogleSignInInProgress && !state.isGoogleLinking,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (isGoogleSignInInProgress || state.isGoogleLinking) "Подключаем Google..." else "Подключить Google")
+                        }
+                        googleSignInError?.let { error ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(error, color = MaterialTheme.colorScheme.error)
+                        }
+                        state.googleLinkError?.let {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                when (it) {
+                                    GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> "Этот Google-аккаунт уже привязан к другому локальному профилю."
+                                    GoogleLinkError.FIREBASE_NOT_CONFIGURED -> "Firebase не настроен в приложении."
+                                    GoogleLinkError.FIREBASE_AUTH_FAILED -> "Ошибка Google/Firebase: ${state.googleLinkDiagnostic.orEmpty()}"
+                                    GoogleLinkError.SAVE_FAILED -> "Не удалось сохранить привязку Google-аккаунта."
+                                },
+                                color = MaterialTheme.colorScheme.error,
+                            )
                         }
                     } else {
                         Text(
@@ -109,6 +154,30 @@ fun FriendsScreen(
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
+                        Spacer(Modifier.height(8.dp))
+                        OutlinedButton(
+                            onClick = { connectGoogle(true) },
+                            enabled = !isGoogleSignInInProgress && !state.isGoogleLinking,
+                            modifier = Modifier.fillMaxWidth(),
+                        ) {
+                            Text(if (isGoogleSignInInProgress || state.isGoogleLinking) "Подключаем Google..." else "Переподключить Google")
+                        }
+                        googleSignInError?.let { error ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(error, color = MaterialTheme.colorScheme.error)
+                        }
+                        state.googleLinkError?.let {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                when (it) {
+                                    GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> "Этот Google-аккаунт уже привязан к другому локальному профилю."
+                                    GoogleLinkError.FIREBASE_NOT_CONFIGURED -> "Firebase не настроен в приложении."
+                                    GoogleLinkError.FIREBASE_AUTH_FAILED -> "Ошибка Google/Firebase: ${state.googleLinkDiagnostic.orEmpty()}"
+                                    GoogleLinkError.SAVE_FAILED -> "Не удалось сохранить привязку Google-аккаунта."
+                                },
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
                         Spacer(Modifier.height(12.dp))
                         OutlinedTextField(
                             value = usernameQuery,
@@ -167,38 +236,4 @@ fun FriendsScreen(
         }
     }
 
-    if (showAddFriends) {
-        AddFriendsDialog(
-            googleLinked = state.profile?.firebaseUid != null,
-            googleEmail = state.profile?.googleEmail,
-            isGoogleSignInInProgress = isGoogleSignInInProgress || state.isGoogleLinking,
-            googleLinkError = state.googleLinkError,
-            googleLinkDiagnostic = state.googleLinkDiagnostic,
-            googleSignInError = googleSignInError,
-            onContinueWithGoogle = {
-                coroutineScope.launch {
-                    isGoogleSignInInProgress = true
-                    googleSignInError = null
-                    viewModel.clearGoogleLinkError()
-                    try {
-                        val signInResult = googleSignInClient.signIn()
-                        viewModel.linkGoogleAccount(signInResult)
-                    } catch (error: Exception) {
-                        googleSignInError = if (error is GoogleSignInConfigurationException) {
-                            error.message
-                        } else {
-                            "Не удалось выполнить вход с Google. Попробуйте ещё раз."
-                        }
-                    } finally {
-                        isGoogleSignInInProgress = false
-                    }
-                }
-            },
-            onDismiss = {
-                showAddFriends = false
-                googleSignInError = null
-                viewModel.clearGoogleLinkError()
-            },
-        )
-    }
 }
