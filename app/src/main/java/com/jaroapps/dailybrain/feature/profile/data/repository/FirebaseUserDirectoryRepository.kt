@@ -4,10 +4,12 @@ import android.content.Context
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Transaction
+import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
@@ -20,48 +22,43 @@ import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
-/**
- * Firestore-backed global identity directory:
- * users/{uid} is private, publicProfiles/{uid} is a safe projection,
- * and usernames/{lowercaseHandle} is the unique reservation/lookup index.
- */
-class FirebaseUserDirectoryRepository(
-    context: Context,
-) : UserDirectoryRepository {
+class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepository {
     private val appContext = context.applicationContext
 
-    override suspend fun ensureProfile(
-        firebaseUid: String,
-        email: String?,
-        displayName: String?,
-        avatarUrl: String?,
-    ): String {
+    override suspend fun ensureProfile(firebaseUid: String, email: String?, displayName: String?, avatarUrl: String?): String {
         val app = configuredApp()
         requireCurrentUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
         val privateRef = firestore.collection(USERS).document(firebaseUid)
         val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        val generatedInviteCode = InviteCodePolicy.generate()
 
         return firestore.runTransaction { transaction: Transaction ->
             val privateSnapshot = transaction.get(privateRef)
             val publicSnapshot = transaction.get(publicRef)
-
             val username = UsernamePolicy.normalize(
-                privateSnapshot.getString("usernameLower")
-                    ?: privateSnapshot.getString("username")
-                    ?: publicSnapshot.getString("usernameLower")
-                    ?: publicSnapshot.getString("username").orEmpty(),
+                privateSnapshot.getString("usernameLower") ?: privateSnapshot.getString("username")
+                    ?: publicSnapshot.getString("usernameLower") ?: publicSnapshot.getString("username").orEmpty(),
             )
-            val reservationRef = username.takeIf(String::isNotBlank)
-                ?.let { firestore.collection(USERNAMES).document(it) }
-            val reservation = reservationRef?.let { transaction.get(it) }
-            if (reservation?.exists() == true && reservation.getString("userId") != firebaseUid) {
+            val inviteCode = InviteCodePolicy.normalize(
+                privateSnapshot.getString("inviteCode") ?: publicSnapshot.getString("inviteCode").orEmpty(),
+            ).ifBlank { generatedInviteCode }
+
+            val usernameRef = username.takeIf(String::isNotBlank)?.let { firestore.collection(USERNAMES).document(it) }
+            val usernameReservation = usernameRef?.let { transaction.get(it) }
+            if (usernameReservation?.exists() == true && usernameReservation.getString("userId") != firebaseUid) {
                 throw UsernameTakenException()
+            }
+            val inviteRef = firestore.collection(INVITE_CODES).document(inviteCode)
+            val inviteReservation = transaction.get(inviteRef)
+            if (inviteReservation.exists() && inviteReservation.getString("userId") != firebaseUid) {
+                throw IllegalStateException("Invite code reservation ownership mismatch.")
             }
 
             val normalizedEmail = email?.trim().orEmpty()
             val normalizedDisplayName = displayName?.trim().orEmpty()
-            val privateFields = mapOf(
+            val now = FieldValue.serverTimestamp()
+            transaction.set(privateRef, mapOf(
                 "uid" to firebaseUid,
                 "email" to normalizedEmail,
                 "emailLower" to normalizedEmail.lowercase(Locale.ROOT),
@@ -69,22 +66,22 @@ class FirebaseUserDirectoryRepository(
                 "avatarUrl" to avatarUrl.orEmpty(),
                 "username" to username,
                 "usernameLower" to username,
-                "updatedAt" to FieldValue.serverTimestamp(),
-            )
-            val publicFields = mapOf(
+                "inviteCode" to inviteCode,
+                "updatedAt" to now,
+            ), SetOptions.merge())
+            transaction.set(publicRef, mapOf(
                 "uid" to firebaseUid,
                 "displayName" to normalizedDisplayName,
                 "avatarUrl" to avatarUrl.orEmpty(),
                 "username" to username,
                 "usernameLower" to username,
-                "updatedAt" to FieldValue.serverTimestamp(),
-            )
-
-            transaction.set(privateRef, privateFields, SetOptions.merge())
-            transaction.set(publicRef, publicFields, SetOptions.merge())
-            if (reservationRef != null && reservation?.exists() != true) {
-                transaction.set(reservationRef, mapOf("userId" to firebaseUid))
+                "inviteCode" to inviteCode,
+                "updatedAt" to now,
+            ), SetOptions.merge())
+            if (usernameRef != null && usernameReservation?.exists() != true) {
+                transaction.set(usernameRef, mapOf("userId" to firebaseUid))
             }
+            if (!inviteReservation.exists()) transaction.set(inviteRef, mapOf("userId" to firebaseUid))
             username
         }.awaitResult()
     }
@@ -94,11 +91,7 @@ class FirebaseUserDirectoryRepository(
         require(UsernamePolicy.isValid(normalized)) { "Invalid username." }
         val app = configuredApp()
         requireCurrentUser(app, firebaseUid)
-        val snapshot = FirebaseFirestore.getInstance(app)
-            .collection(USERNAMES)
-            .document(normalized)
-            .get()
-            .awaitResult()
+        val snapshot = FirebaseFirestore.getInstance(app).collection(USERNAMES).document(normalized).get().awaitResult()
         return !snapshot.exists() || snapshot.getString("userId") == firebaseUid
     }
 
@@ -115,59 +108,68 @@ class FirebaseUserDirectoryRepository(
             val privateSnapshot = transaction.get(privateRef)
             val publicSnapshot = transaction.get(publicRef)
             if (!privateSnapshot.exists()) throw UserDirectoryProfileMissingException()
-
-            val previousUsername = UsernamePolicy.normalize(
-                privateSnapshot.getString("usernameLower")
-                    ?: privateSnapshot.getString("username").orEmpty(),
+            val previous = UsernamePolicy.normalize(
+                privateSnapshot.getString("usernameLower") ?: privateSnapshot.getString("username").orEmpty(),
             )
-            val nextReservationRef = normalized.takeIf {
-                it.isNotBlank() && it != previousUsername
-            }?.let { firestore.collection(USERNAMES).document(it) }
-            val nextReservation = nextReservationRef?.let { transaction.get(it) }
-            val previousReservationRef = previousUsername.takeIf {
-                it.isNotBlank() && it != normalized
-            }?.let { firestore.collection(USERNAMES).document(it) }
-            val previousReservation = previousReservationRef?.let { transaction.get(it) }
-
-            if (nextReservation?.exists() == true &&
-                nextReservation.getString("userId") != firebaseUid
-            ) {
+            val nextRef = normalized.takeIf { it.isNotBlank() && it != previous }
+                ?.let { firestore.collection(USERNAMES).document(it) }
+            val nextReservation = nextRef?.let { transaction.get(it) }
+            val previousRef = previous.takeIf { it.isNotBlank() && it != normalized }
+                ?.let { firestore.collection(USERNAMES).document(it) }
+            val previousReservation = previousRef?.let { transaction.get(it) }
+            if (nextReservation?.exists() == true && nextReservation.getString("userId") != firebaseUid) {
                 throw UsernameTakenException()
             }
 
-            val displayName = publicSnapshot.getString("displayName")
-                ?: privateSnapshot.getString("displayName").orEmpty()
-            val avatarUrl = publicSnapshot.getString("avatarUrl")
-                ?: privateSnapshot.getString("avatarUrl").orEmpty()
+            val displayName = publicSnapshot.getString("displayName") ?: privateSnapshot.getString("displayName").orEmpty()
+            val avatarUrl = publicSnapshot.getString("avatarUrl") ?: privateSnapshot.getString("avatarUrl").orEmpty()
+            val inviteCode = privateSnapshot.getString("inviteCode") ?: publicSnapshot.getString("inviteCode").orEmpty()
             val now = FieldValue.serverTimestamp()
-            transaction.set(
-                privateRef,
-                mapOf("username" to normalized, "usernameLower" to normalized, "updatedAt" to now),
-                SetOptions.merge(),
-            )
-            transaction.set(
-                publicRef,
-                mapOf(
-                    "uid" to firebaseUid,
-                    "displayName" to displayName,
-                    "avatarUrl" to avatarUrl,
-                    "username" to normalized,
-                    "usernameLower" to normalized,
-                    "updatedAt" to now,
-                ),
-                SetOptions.merge(),
-            )
-
-            if (nextReservationRef != null && nextReservation?.exists() != true) {
-                transaction.set(nextReservationRef, mapOf("userId" to firebaseUid))
-            }
-            if (previousReservationRef != null &&
-                previousReservation?.exists() == true &&
+            transaction.set(privateRef, mapOf("username" to normalized, "usernameLower" to normalized, "updatedAt" to now), SetOptions.merge())
+            transaction.set(publicRef, mapOf(
+                "uid" to firebaseUid,
+                "displayName" to displayName,
+                "avatarUrl" to avatarUrl,
+                "username" to normalized,
+                "usernameLower" to normalized,
+                "inviteCode" to inviteCode,
+                "updatedAt" to now,
+            ), SetOptions.merge())
+            if (nextRef != null && nextReservation?.exists() != true) transaction.set(nextRef, mapOf("userId" to firebaseUid))
+            if (previousRef != null && previousReservation?.exists() == true &&
                 previousReservation.getString("userId") == firebaseUid
-            ) {
-                transaction.delete(previousReservationRef)
-            }
+            ) transaction.delete(previousRef)
             true
+        }.awaitResult()
+    }
+
+    override suspend fun getOrCreateInviteCode(firebaseUid: String): String {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val privateRef = firestore.collection(USERS).document(firebaseUid)
+        val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        val generated = InviteCodePolicy.generate()
+
+        return firestore.runTransaction { transaction ->
+            val privateSnapshot = transaction.get(privateRef)
+            val publicSnapshot = transaction.get(publicRef)
+            if (!privateSnapshot.exists() || !publicSnapshot.exists()) throw UserDirectoryProfileMissingException()
+            val existing = InviteCodePolicy.normalize(
+                privateSnapshot.getString("inviteCode") ?: publicSnapshot.getString("inviteCode").orEmpty(),
+            )
+            val code = existing.ifBlank { generated }
+            require(InviteCodePolicy.isValid(code)) { "Invalid invite code stored in cloud profile." }
+            val reservationRef = firestore.collection(INVITE_CODES).document(code)
+            val reservation = transaction.get(reservationRef)
+            if (reservation.exists() && reservation.getString("userId") != firebaseUid) {
+                throw IllegalStateException("Invite code reservation ownership mismatch.")
+            }
+            val now = FieldValue.serverTimestamp()
+            transaction.set(privateRef, mapOf("inviteCode" to code, "updatedAt" to now), SetOptions.merge())
+            transaction.set(publicRef, mapOf("uid" to firebaseUid, "inviteCode" to code, "updatedAt" to now), SetOptions.merge())
+            if (!reservation.exists()) transaction.set(reservationRef, mapOf("userId" to firebaseUid))
+            code
         }.awaitResult()
     }
 
@@ -178,83 +180,127 @@ class FirebaseUserDirectoryRepository(
         val privateRef = firestore.collection(USERS).document(firebaseUid)
         val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
 
-        firestore.runTransaction { transaction: Transaction ->
-            // Complete all reads before writes, as required by Firestore transactions.
+        firestore.runTransaction { transaction ->
             val privateSnapshot = transaction.get(privateRef)
             val publicSnapshot = transaction.get(publicRef)
             val username = UsernamePolicy.normalize(
-                privateSnapshot.getString("usernameLower")
-                    ?: privateSnapshot.getString("username")
-                    ?: publicSnapshot.getString("usernameLower")
-                    ?: publicSnapshot.getString("username").orEmpty(),
+                privateSnapshot.getString("usernameLower") ?: privateSnapshot.getString("username")
+                    ?: publicSnapshot.getString("usernameLower") ?: publicSnapshot.getString("username").orEmpty(),
             )
-            val reservationRef = username.takeIf(String::isNotBlank)
-                ?.let { firestore.collection(USERNAMES).document(it) }
-            val reservation = reservationRef?.let { transaction.get(it) }
-
-            if (reservation?.exists() == true && reservation.getString("userId") != firebaseUid) {
+            val inviteCode = InviteCodePolicy.normalize(
+                privateSnapshot.getString("inviteCode") ?: publicSnapshot.getString("inviteCode").orEmpty(),
+            )
+            val usernameRef = username.takeIf(String::isNotBlank)?.let { firestore.collection(USERNAMES).document(it) }
+            val usernameReservation = usernameRef?.let { transaction.get(it) }
+            val inviteRef = inviteCode.takeIf(String::isNotBlank)?.let { firestore.collection(INVITE_CODES).document(it) }
+            val inviteReservation = inviteRef?.let { transaction.get(it) }
+            if (usernameReservation?.exists() == true && usernameReservation.getString("userId") != firebaseUid) {
                 throw IllegalStateException("Username reservation ownership mismatch.")
             }
-
+            if (inviteReservation?.exists() == true && inviteReservation.getString("userId") != firebaseUid) {
+                throw IllegalStateException("Invite code reservation ownership mismatch.")
+            }
             if (privateSnapshot.exists()) transaction.delete(privateRef)
             if (publicSnapshot.exists()) transaction.delete(publicRef)
-            if (reservation?.exists() == true) {
-                transaction.delete(requireNotNull(reservationRef))
-            }
+            if (usernameReservation?.exists() == true) transaction.delete(requireNotNull(usernameRef))
+            if (inviteReservation?.exists() == true) transaction.delete(requireNotNull(inviteRef))
             true
         }.awaitResult()
     }
 
-    override suspend fun findUserByUsername(
-        firebaseUid: String,
-        username: String,
-    ): PublicUserProfile? {
+    override suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile? {
         val normalized = UsernamePolicy.normalize(username)
         require(UsernamePolicy.isValid(normalized)) { "Invalid username." }
         val app = configuredApp()
         requireCurrentUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
-        val reservation = firestore.collection(USERNAMES)
-            .document(normalized)
-            .get()
-            .awaitResult()
-        val targetUid = reservation.getString("userId") ?: return null
-        val publicProfile = firestore.collection(PUBLIC_PROFILES)
-            .document(targetUid)
-            .get()
-            .awaitResult()
-        if (!publicProfile.exists()) return null
+        val reservation = firestore.collection(USERNAMES).document(normalized).get().awaitResult()
+        val uid = reservation.getString("userId") ?: return null
+        return firestore.collection(PUBLIC_PROFILES).document(uid).get().awaitResult().toPublicProfile(uid)
+    }
 
+    override suspend fun findUserByInviteCode(firebaseUid: String, inviteCode: String): PublicUserProfile? {
+        val normalized = InviteCodePolicy.normalize(inviteCode)
+        require(InviteCodePolicy.isValid(normalized)) { "Invalid invite code." }
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val reservation = firestore.collection(INVITE_CODES).document(normalized).get().awaitResult()
+        val uid = reservation.getString("userId") ?: return null
+        return firestore.collection(PUBLIC_PROFILES).document(uid).get().awaitResult().toPublicProfile(uid)
+    }
+
+    override suspend fun followUser(firebaseUid: String, targetFirebaseUid: String) {
+        require(firebaseUid != targetFirebaseUid) { "Cannot follow yourself." }
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val target = firestore.collection(PUBLIC_PROFILES).document(targetFirebaseUid).get().awaitResult()
+        if (!target.exists()) throw UserDirectoryProfileMissingException()
+        val followRef = firestore.collection(FOLLOWS).document("${firebaseUid}_${targetFirebaseUid}")
+        firestore.runTransaction { transaction ->
+            val current = transaction.get(followRef)
+            if (!current.exists()) {
+                transaction.set(followRef, mapOf(
+                    "followerUid" to firebaseUid,
+                    "followingUid" to targetFirebaseUid,
+                    "createdAt" to FieldValue.serverTimestamp(),
+                ))
+            }
+            true
+        }.awaitResult()
+    }
+
+    override suspend fun isFollowing(firebaseUid: String, targetFirebaseUid: String): Boolean {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        return FirebaseFirestore.getInstance(app).collection(FOLLOWS)
+            .document("${firebaseUid}_${targetFirebaseUid}").get().awaitResult().exists()
+    }
+
+    override suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile> =
+        loadConnections(firebaseUid, "followerUid", "followingUid")
+
+    override suspend fun getFollowers(firebaseUid: String): List<PublicUserProfile> =
+        loadConnections(firebaseUid, "followingUid", "followerUid")
+
+    private suspend fun loadConnections(uid: String, ownerField: String, relatedField: String): List<PublicUserProfile> {
+        val app = configuredApp()
+        requireCurrentUser(app, uid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val relationships = firestore.collection(FOLLOWS).whereEqualTo(ownerField, uid).get().awaitResult()
+        val profiles = mutableListOf<PublicUserProfile>()
+        for (relationship in relationships.documents) {
+            val targetUid = relationship.getString(relatedField) ?: continue
+            firestore.collection(PUBLIC_PROFILES).document(targetUid).get().awaitResult()
+                .toPublicProfile(targetUid)?.let(profiles::add)
+        }
+        return profiles
+    }
+
+    private fun DocumentSnapshot.toPublicProfile(uid: String): PublicUserProfile? {
+        if (!exists()) return null
         return PublicUserProfile(
-            firebaseUid = targetUid,
-            username = publicProfile.getString("username")
-                ?: publicProfile.getString("usernameLower")
-                ?: normalized,
-            displayName = publicProfile.getString("displayName")?.takeIf(String::isNotBlank),
-            avatarUrl = publicProfile.getString("avatarUrl")?.takeIf(String::isNotBlank),
+            firebaseUid = uid,
+            username = getString("username") ?: getString("usernameLower") ?: "",
+            displayName = getString("displayName")?.takeIf(String::isNotBlank),
+            avatarUrl = getString("avatarUrl")?.takeIf(String::isNotBlank),
         )
     }
 
     private fun configuredApp(): FirebaseApp =
-        FirebaseApp.getApps(appContext).firstOrNull()
-            ?: throw UserDirectoryNotConfiguredException()
+        FirebaseApp.getApps(appContext).firstOrNull() ?: throw UserDirectoryNotConfiguredException()
 
-    private fun requireCurrentUser(app: FirebaseApp, expectedUid: String) {
-        val currentUid = FirebaseAuth.getInstance(app).currentUser?.uid
-        if (currentUid != expectedUid) throw FirebaseSessionMismatchException()
+    private fun requireCurrentUser(app: FirebaseApp, uid: String) {
+        if (FirebaseAuth.getInstance(app).currentUser?.uid != uid) throw FirebaseSessionMismatchException()
     }
 
     private suspend fun <T> Task<T>.awaitResult(): T =
         suspendCancellableCoroutine { continuation ->
             addOnCompleteListener { task ->
                 if (!continuation.isActive) return@addOnCompleteListener
-                if (task.isSuccessful) {
-                    continuation.resume(task.result)
-                } else {
-                    continuation.resumeWithException(
-                        task.exception ?: IllegalStateException("Firestore request failed."),
-                    )
-                }
+                if (task.isSuccessful) continuation.resume(task.result)
+                else continuation.resumeWithException(task.exception ?: IllegalStateException("Firestore request failed."))
             }
         }
 
@@ -262,5 +308,7 @@ class FirebaseUserDirectoryRepository(
         const val USERS = "users"
         const val PUBLIC_PROFILES = "publicProfiles"
         const val USERNAMES = "usernames"
+        const val INVITE_CODES = "inviteCodes"
+        const val FOLLOWS = "follows"
     }
 }
