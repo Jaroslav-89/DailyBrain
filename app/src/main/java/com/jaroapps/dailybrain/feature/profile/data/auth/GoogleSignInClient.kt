@@ -48,7 +48,7 @@ class GoogleSignInClient(
 
         return GoogleAccountProfile(
             subject = subject,
-            email = googleCredential.email.takeIf { it.isNotBlank() },
+            email = googleCredential.email?.takeIf { it.isNotBlank() },
             displayName = googleCredential.displayName?.takeIf { it.isNotBlank() },
             photoUrl = googleCredential.profilePictureUri?.toString(),
         )
