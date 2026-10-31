@@ -428,4 +428,13 @@ object DatabaseMigrations {
         }
     }
 
+
+    /** Persist the state where the app is waiting for the user to select a local profile. */
+    val MIGRATION_10_11 = object : Migration(10, 11) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE app_settings ADD COLUMN profileSelectionRequired INTEGER NOT NULL DEFAULT 0",
+            )
+        }
+    }
 }
