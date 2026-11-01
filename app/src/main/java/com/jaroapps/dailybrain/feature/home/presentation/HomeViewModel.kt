@@ -68,6 +68,7 @@ class HomeViewModel(
             today = today,
             completedDates = completedDates,
             completedExerciseDatesByType = typedDates,
+            isTrainingHistoryLoaded = true,
             totalTrainingCount = totalCount,
             xpPoints = profile.xpPoints,
             endorphinBalance = profile.endorphinBalance,

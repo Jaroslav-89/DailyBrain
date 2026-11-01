@@ -319,6 +319,8 @@ fun HomeScreen(
                                     )
                                     .semantics {
                                         contentDescription = when (status) {
+                                            ArithmeticDayStatus.LOADING ->
+                                                "$dateLabel: загрузка истории тренировок"
                                             ArithmeticDayStatus.FUTURE ->
                                                 "$dateLabel: ещё не доступно"
                                             ArithmeticDayStatus.AVAILABLE_TODAY ->
@@ -380,10 +382,11 @@ fun HomeScreen(
 }
 
 private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (status) {
-    ArithmeticDayStatus.COMPLETED -> BrainOrange
-    ArithmeticDayStatus.MISSED -> MissedBlue
+    ArithmeticDayStatus.LOADING,
     ArithmeticDayStatus.AVAILABLE_TODAY,
     ArithmeticDayStatus.FUTURE -> UnavailableGray
+    ArithmeticDayStatus.COMPLETED -> BrainOrange
+    ArithmeticDayStatus.MISSED -> MissedBlue
 }
 
 private fun depthColor(color: Color): Color = Color(
