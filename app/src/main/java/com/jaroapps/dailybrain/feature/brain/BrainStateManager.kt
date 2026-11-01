@@ -1,11 +1,11 @@
 package com.jaroapps.dailybrain.feature.brain
 
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import android.content.Context
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import java.time.LocalDate
 import java.time.LocalTime
-import java.time.format.DateTimeFormatter
 
 /**
  * Resolves the two-state mood from today's saved training and the local time.
@@ -32,24 +32,14 @@ class BrainStateManager(
         val userId = activeUserProvider.currentUserId()
         val today = LocalDate.now()
         val days = database.trainingDayDao().getAll(userId)
-        val trainedDates = days.mapNotNull { day ->
-            runCatching {
-                LocalDate.parse(day.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
-            }.getOrNull()
-        }.toSet()
+        val trainedDates = TrainingStreakCalculator.parseDateKeys(days.map { it.date })
         val hasTrainingToday = today in trainedDates
         val mood = when {
             hasTrainingToday -> BrainMood.BASE
             LocalTime.now().hour >= 20 -> BrainMood.SOUR
             else -> BrainMood.BASE
         }
-        var streak = 0
-        var date = if (hasTrainingToday) today else today.minusDays(1)
-        while (date in trainedDates) {
-            streak++
-            date = date.minusDays(1)
-        }
-
-        BrainWidgetUpdater.update(context, mood, streak, hasTrainingToday)
+        val streak = TrainingStreakCalculator.calculate(trainedDates, today)
+        BrainWidgetUpdater.update(context, mood, streak.currentDays, hasTrainingToday)
     }
 }

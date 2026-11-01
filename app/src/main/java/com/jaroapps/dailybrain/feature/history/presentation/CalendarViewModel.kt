@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.history.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,6 @@ import kotlinx.coroutines.flow.update
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 
 class CalendarViewModel(
     observeActiveTrainingDates: ObserveActiveTrainingDatesUseCase,
@@ -33,11 +33,7 @@ class CalendarViewModel(
         observeActiveTrainingDates(),
         clock,
     ) { month, dateKeys, currentTime ->
-        val activeDates = dateKeys.mapNotNull { key ->
-            runCatching {
-                LocalDate.parse(key.toString(), DateTimeFormatter.BASIC_ISO_DATE)
-            }.getOrNull()
-        }.toSet()
+        val activeDates = TrainingStreakCalculator.parseDateKeys(dateKeys)
 
         CalendarUiState(
             displayedMonth = month,

@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import java.time.DayOfWeek
 import java.time.LocalDate
 
@@ -31,15 +32,7 @@ data class HomeUiState(
         get() = (0..6).map { currentWeekStart.plusDays(it.toLong()) }
 
     val currentStreakDays: Int
-        get() {
-            var cursor = if (today in completedDates) today else today.minusDays(1)
-            var count = 0
-            while (cursor in completedDates) {
-                count++
-                cursor = cursor.minusDays(1)
-            }
-            return count
-        }
+        get() = TrainingStreakCalculator.calculate(completedDates, today).currentDays
 
     fun arithmeticDayStatus(date: LocalDate): ArithmeticDayStatus = when {
         date.isAfter(today) -> ArithmeticDayStatus.FUTURE

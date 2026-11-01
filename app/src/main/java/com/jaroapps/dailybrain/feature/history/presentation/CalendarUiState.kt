@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -19,15 +20,7 @@ data class CalendarUiState(
         get() = today in activeDates
 
     val currentStreakDays: Int
-        get() {
-            var cursor = if (hasTrainingToday) today else today.minusDays(1)
-            var count = 0
-            while (cursor in activeDates) {
-                count++
-                cursor = cursor.minusDays(1)
-            }
-            return count
-        }
+        get() = TrainingStreakCalculator.calculate(activeDates, today).currentDays
 
     val hoursRemainingToday: Int
         get() {

@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.profile.data.repository
 
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
@@ -36,28 +37,23 @@ class ProfileStatisticsRepositoryImpl(
         },
         database.statisticsDao().observeOverall(userId),
         database.statisticsDao().observeExerciseStatistics(userId),
-    ) { sessions, overall, exerciseStats ->
+        database.trainingDayDao().observeAll(userId),
+    ) { sessions, overall, exerciseStats, trainingDays ->
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val trainingDates = sessions.map { Instant.ofEpochMilli(it.finishedAtEpochMs).atZone(zone).toLocalDate() }.toSet()
+        val trainingDates = TrainingStreakCalculator.parseDateKeys(trainingDays.map { it.date })
+        val streak = TrainingStreakCalculator.calculate(trainingDates, today)
         val weekStart = today.minusDays(6)
         val recentSessions = sessions.count { session ->
             val date = Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
             !date.isBefore(weekStart) && !date.isAfter(today)
         }
-        var streak = 0
-        var cursor: LocalDate? = today.takeIf { it in trainingDates }
-            ?: today.minusDays(1).takeIf { it in trainingDates }
-        while (cursor != null && cursor in trainingDates) {
-            streak++
-            cursor = cursor.minusDays(1)
-        }
         ProfileStatistics(
             totalExerciseCount = sessions.size,
             lastSevenDaysExerciseCount = recentSessions,
             totalDurationMs = overall?.totalDurationMs ?: sessions.sumOf { it.durationMs.coerceAtLeast(0L) },
-            currentStreakDays = streak,
-            bestStreakDays = overall?.bestStreakDays ?: 0,
+            currentStreakDays = streak.currentDays,
+            bestStreakDays = streak.bestDays,
             firstTrainingDate = trainingDates.minOrNull(),
             bestExerciseStats = exerciseStats.map { BestExerciseResult(it.exerciseType, it.bestDurationMs, it.bestCorrectCount) },
         )

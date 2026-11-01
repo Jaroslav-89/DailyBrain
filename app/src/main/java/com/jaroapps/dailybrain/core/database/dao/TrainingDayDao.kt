@@ -15,6 +15,10 @@ interface TrainingDayDao {
     suspend fun insertAll(days: List<TrainingDayEntity>)
     @Query("DELETE FROM training_days WHERE userId = :userId")
     suspend fun deleteAll(userId: String)
+    @Query("DELETE FROM training_days WHERE userId = :userId AND date = :date")
+    suspend fun deleteByDate(userId: String, date: Int): Int
+    @Query("UPDATE training_days SET exerciseCount = :exerciseCount WHERE userId = :userId AND date = :date")
+    suspend fun updateExerciseCount(userId: String, date: Int, exerciseCount: Int): Int
     @Query("UPDATE training_days SET exerciseCount = exerciseCount + 1 WHERE userId = :userId AND date = :date")
     suspend fun incrementExerciseCount(userId: String, date: Int)
     @Query("SELECT EXISTS(SELECT 1 FROM training_days WHERE userId = :userId AND date = :date)")

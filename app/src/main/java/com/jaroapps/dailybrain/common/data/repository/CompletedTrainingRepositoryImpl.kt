@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.common.data.repository
 import androidx.room.withTransaction
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingSession
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
@@ -17,7 +18,6 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class CompletedTrainingRepositoryImpl(
@@ -45,13 +45,7 @@ class CompletedTrainingRepositoryImpl(
                 )
             )
 
-            val insertedId = database.trainingDayDao().insertIfAbsent(
-                TrainingDayEntity(userId = userId, date = date, exerciseCount = 1)
-            )
-            if (insertedId == -1L) {
-                database.trainingDayDao().incrementExerciseCount(userId, date)
-            }
-
+            updateTrainingDayCount(userId, date)
             updateOverallStatistics(session, date, userId)
             updateExerciseStatistics(session, userId)
             updateDailyExerciseResult(session, date, userId)
@@ -92,25 +86,19 @@ class CompletedTrainingRepositoryImpl(
             val deletedSession = sessionDao.getById(id, userId) ?: return@withTransaction false
             if (sessionDao.deleteById(id, userId) == 0) return@withTransaction false
 
-            // Rebuild date index and cached aggregate statistics from source sessions.
-            val remainingSessions = sessionDao.getAll(userId)
-            val trainingDayDao = database.trainingDayDao()
-            trainingDayDao.deleteAll(userId)
-            remainingSessions
-                .groupingBy { it.date }
-                .eachCount()
-                .map { (date, count) -> TrainingDayEntity(userId = userId, date = date, exerciseCount = count) }
-                .takeIf { it.isNotEmpty() }
-                ?.let { trainingDayDao.insertAll(it) }
+            // Update only the affected calendar day and preserve its stored historical date key.
+            updateTrainingDayCount(userId, deletedSession.date)
 
+            val remainingSessions = sessionDao.getAll(userId)
             val statisticsDao = database.statisticsDao()
             statisticsDao.deleteOverall(userId)
             statisticsDao.deleteAllExerciseStatistics(userId)
             remainingSessions.forEach { entity ->
                 val training = entity.toDomain()
-                updateOverallStatistics(training, entity.date, userId)
+                updateOverallStatistics(training, entity.date, userId, recalculateStreak = false)
                 updateExerciseStatistics(training, userId)
             }
+            updateOverallStreakStatistics(userId)
 
             recalculateDailyExerciseResultInTransaction(deletedSession.date, userId)
             RewardRecalculator.recalculate(database, userId)
@@ -135,31 +123,58 @@ class CompletedTrainingRepositoryImpl(
         }
     }
 
-    private suspend fun updateOverallStatistics(session: TrainingSession, date: Int, userId: String) {
+    private suspend fun updateTrainingDayCount(userId: String, date: Int) {
+        val count = database.trainingSessionDao().countByDate(userId, date)
+        val updatedRows = database.trainingDayDao().updateExerciseCount(
+            userId = userId,
+            date = date,
+            exerciseCount = count,
+        )
+
+        when {
+            count == 0 -> database.trainingDayDao().deleteByDate(userId, date)
+            updatedRows == 0 -> database.trainingDayDao().insertAll(
+                listOf(TrainingDayEntity(userId = userId, date = date, exerciseCount = count)),
+            )
+        }
+    }
+
+    private suspend fun updateOverallStatistics(
+        session: TrainingSession,
+        date: Int,
+        userId: String,
+        recalculateStreak: Boolean = true,
+    ) {
         val dao = database.statisticsDao()
         val previous = dao.getOverall(userId)
-        val previousDate = previous?.lastTrainingDate?.toLocalDate()
-        val sessionDate = date.toLocalDate()
-
-        val currentStreak = when {
-            previousDate == null -> 1
-            previousDate == sessionDate -> previous?.currentStreakDays ?: 1
-            previousDate?.plusDays(1) == sessionDate -> (previous?.currentStreakDays ?: 0) + 1
-            else -> 1
-        }
-        val bestStreak = maxOf(previous?.bestStreakDays ?: 0, currentStreak)
-
         dao.saveOverall(
             OverallStatisticsEntity(
                 userId = userId,
                 totalTrainingCount = (previous?.totalTrainingCount ?: 0) + 1,
                 totalDurationMs = (previous?.totalDurationMs ?: 0L) +
                     session.durationMs.coerceAtLeast(0L),
-                currentStreakDays = currentStreak,
-                bestStreakDays = bestStreak,
+                currentStreakDays = previous?.currentStreakDays ?: 0,
+                bestStreakDays = previous?.bestStreakDays ?: 0,
                 lastTrainingDate = date,
                 updatedAtEpochMs = System.currentTimeMillis(),
-            )
+            ),
+        )
+        if (recalculateStreak) updateOverallStreakStatistics(userId)
+    }
+
+    private suspend fun updateOverallStreakStatistics(userId: String) {
+        val dao = database.statisticsDao()
+        val previous = dao.getOverall(userId) ?: return
+        val activeDates = TrainingStreakCalculator.parseDateKeys(
+            database.trainingDayDao().getAll(userId).map { it.date },
+        )
+        val streak = TrainingStreakCalculator.calculate(activeDates, LocalDate.now())
+        dao.saveOverall(
+            previous.copy(
+                currentStreakDays = streak.currentDays,
+                bestStreakDays = streak.bestDays,
+                updatedAtEpochMs = System.currentTimeMillis(),
+            ),
         )
     }
 
@@ -237,9 +252,6 @@ class CompletedTrainingRepositoryImpl(
 
     override fun observeTotalTrainingCount(): Flow<Int> =
         activeUserProvider.observeUserId().flatMapLatest { userId -> database.trainingSessionDao().observeTotalCount(userId) }
-
-    private fun Int.toLocalDate(): LocalDate =
-        LocalDate.parse(toString(), DateTimeFormatter.BASIC_ISO_DATE)
 
     private fun TrainingSessionEntity.toDomain() = TrainingSession(
         id = id,
