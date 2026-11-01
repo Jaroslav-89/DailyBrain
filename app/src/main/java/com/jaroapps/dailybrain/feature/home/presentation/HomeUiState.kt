@@ -41,7 +41,8 @@ data class HomeUiState(
 
     fun arithmeticDayStatus(date: LocalDate): ArithmeticDayStatus = when {
         date.isAfter(today) -> ArithmeticDayStatus.FUTURE
-        date in completedDates -> ArithmeticDayStatus.COMPLETED
+        date in completedExerciseDatesByType[ExerciseType.ARITHMETIC.storageValue].orEmpty() ->
+            ArithmeticDayStatus.COMPLETED
         date.isBefore(today) -> ArithmeticDayStatus.MISSED
         else -> ArithmeticDayStatus.AVAILABLE_TODAY
     }

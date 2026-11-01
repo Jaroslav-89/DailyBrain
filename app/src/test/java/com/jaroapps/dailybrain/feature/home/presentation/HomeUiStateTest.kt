@@ -54,6 +54,41 @@ class HomeUiStateTest {
         assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST))
     }
 
+
+    @Test
+    fun additionalExerciseDoesNotMarkArithmeticAsCompletedButStillCountsForStreak() {
+        val today = LocalDate.of(2026, 10, 27)
+        val state = HomeUiState(
+            today = today,
+            completedDates = setOf(today, today.minusDays(1)),
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.MEMORY_WORDS.storageValue to setOf(today),
+                ExerciseType.STROOP_TEST.storageValue to setOf(today.minusDays(1)),
+            ),
+        )
+
+        assertEquals(ArithmeticDayStatus.AVAILABLE_TODAY, state.arithmeticDayStatus(today))
+        assertEquals(ArithmeticDayStatus.MISSED, state.arithmeticDayStatus(today.minusDays(1)))
+        assertEquals(2, state.currentStreakDays)
+        assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS))
+        assertFalse(state.hasCompletedExerciseThisWeek(ExerciseType.ARITHMETIC))
+    }
+
+    @Test
+    fun arithmeticIsMarkedCompletedOnlyWhenArithmeticWasCompleted() {
+        val today = LocalDate.of(2026, 10, 27)
+        val state = HomeUiState(
+            today = today,
+            completedDates = setOf(today),
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.ARITHMETIC.storageValue to setOf(today),
+                ExerciseType.COUNTING_TRAINING.storageValue to setOf(today),
+            ),
+        )
+
+        assertEquals(ArithmeticDayStatus.COMPLETED, state.arithmeticDayStatus(today))
+    }
+
     @Test
     fun onlyTodayIsAvailableAsAnArithmeticDay() {
         val today = LocalDate.of(2026, 10, 27)
