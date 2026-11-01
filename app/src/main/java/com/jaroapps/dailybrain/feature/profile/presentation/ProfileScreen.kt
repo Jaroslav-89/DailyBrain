@@ -90,7 +90,7 @@ fun ProfileScreen(
         val createdDate = Instant.ofEpochMilli(it.createdAtEpochMs)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
-        Period.between(createdDate, today).takeIf { elapsed -> !elapsed.isNegative }
+        Period.between(createdDate, today).plusDays(1).takeIf { elapsed -> !elapsed.isNegative }
     }
 
     Scaffold(

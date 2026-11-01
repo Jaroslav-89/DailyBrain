@@ -74,7 +74,7 @@ fun PublicUserProfileScreen(
         ?.let { firstDate -> Period.between(firstDate, today).plusDays(1).takeIf { !it.isNegative } }
     val memberPeriod = user?.memberSinceEpochMs?.let { epoch ->
         val date = Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()).toLocalDate()
-        Period.between(date, today).takeIf { !it.isNegative }
+        Period.between(date, today).plusDays(1).takeIf { !it.isNegative }
     }
 
     Scaffold(
