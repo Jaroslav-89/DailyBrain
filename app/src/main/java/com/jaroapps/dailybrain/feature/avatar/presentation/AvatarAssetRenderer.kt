@@ -93,8 +93,9 @@ private class SvgBitmapDrawable(
     @Deprecated("Deprecated in Android")
     override fun getOpacity(): Int = PixelFormat.TRANSLUCENT
 
-    override fun getIntrinsicWidth(): Int = bitmap.width
-    override fun getIntrinsicHeight(): Int = bitmap.height
+    // Keep the avatar canvas at 4:5 even though the source background SVG is square.
+    override fun getIntrinsicWidth(): Int = if (centerCrop) 256 else bitmap.width
+    override fun getIntrinsicHeight(): Int = if (centerCrop) 320 else bitmap.height
 }
 
 @Composable
