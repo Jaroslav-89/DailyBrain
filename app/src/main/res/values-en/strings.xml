@@ -222,14 +222,9 @@
     <string name="reward_history_title_xp">XP history</string>
     <string name="reward_history_title_endorphins">Endorphin history</string>
     <string name="reward_history_current_balance">Current balance</string>
-    <string name="reward_history_tab_xp">XP</string>
-    <string name="reward_history_tab_endorphins">Endorphins</string>
     <string name="reward_history_unit_xp">XP</string>
     <string name="reward_history_unit_endorphins">endorphins</string>
     <string name="reward_history_empty">No transactions yet</string>
-    <string name="reward_history_operation_earned">Credited</string>
-    <string name="reward_history_operation_spent">Spent</string>
-    <string name="reward_history_operation_gift_received">Gift received</string>
     <string name="reward_history_reason_other">Balance operation</string>
     <string name="reward_reason_first_arithmetic">First arithmetic workout of the day</string>
     <string name="reward_reason_repeat_arithmetic">Additional arithmetic workout that day</string>
@@ -247,5 +242,8 @@
     <string name="reward_reason_gift_croissant">Croissant received</string>
     <string name="reward_reason_gift_hamburger">Hamburger received</string>
     <string name="reward_reason_gift_cake">Cake received</string>
+
+    <string name="reward_history_week_title">Week: %1$s</string>
+    <string name="reward_history_week_change">(%1$s %2$s for the week)</string>
 
 </resources>

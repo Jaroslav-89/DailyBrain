@@ -19,7 +19,6 @@ import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -41,6 +40,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.rewards.domain.model.RewardBalanceType
 import com.jaroapps.dailybrain.feature.rewards.domain.model.RewardHistoryEntry
+import com.jaroapps.dailybrain.feature.rewards.domain.model.RewardHistoryWeekSection
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.ZoneId
@@ -50,6 +50,8 @@ import kotlin.math.abs
 
 private val RewardHistoryDateFormatter =
     DateTimeFormatter.ofPattern("dd.MM.yyyy · HH:mm", Locale.getDefault())
+private val RewardHistoryWeekFormatter =
+    DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault())
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -125,28 +127,12 @@ fun RewardHistoryScreen(
                 }
             }
 
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                FilterChip(
-                    selected = state.balanceType == RewardBalanceType.XP,
-                    onClick = { viewModel.selectBalanceType(RewardBalanceType.XP) },
-                    label = { Text(stringResource(R.string.reward_history_tab_xp)) },
-                )
-                FilterChip(
-                    selected = state.balanceType == RewardBalanceType.ENDORPHINS,
-                    onClick = { viewModel.selectBalanceType(RewardBalanceType.ENDORPHINS) },
-                    label = { Text(stringResource(R.string.reward_history_tab_endorphins)) },
-                )
-            }
-
             Spacer(Modifier.height(8.dp))
             when {
                 state.isLoading -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
-                state.entries.isEmpty() -> Box(
+                state.weekSections.isEmpty() -> Box(
                     Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
@@ -159,12 +145,21 @@ fun RewardHistoryScreen(
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    items(state.entries, key = { it.id }) { entry ->
-                        RewardHistoryEntryCard(
-                            entry = entry,
-                            type = state.balanceType,
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                        )
+                    state.weekSections.forEach { section ->
+                        item(key = "week-${section.weekStart}") {
+                            RewardHistoryWeekHeader(
+                                section = section,
+                                unitRes = unitRes,
+                                modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                            )
+                        }
+                        items(section.entries, key = { it.id }) { entry ->
+                            RewardHistoryEntryCard(
+                                entry = entry,
+                                unitRes = unitRes,
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                            )
+                        }
                     }
                     item { Spacer(Modifier.height(12.dp)) }
                 }
@@ -174,13 +169,52 @@ fun RewardHistoryScreen(
 }
 
 @Composable
-private fun RewardHistoryEntryCard(
-    entry: RewardHistoryEntry,
-    type: RewardBalanceType,
+private fun RewardHistoryWeekHeader(
+    section: RewardHistoryWeekSection,
+    unitRes: Int,
     modifier: Modifier = Modifier,
 ) {
-    val isCredit = entry.amount > 0
-    val amountText = (if (isCredit) "+" else "−") + abs(entry.amount).toString()
+    val weekRange = "${section.weekStart.format(RewardHistoryWeekFormatter)} — ${section.weekEnd.format(RewardHistoryWeekFormatter)}"
+    val totalText = when {
+        section.totalAmount > 0L -> "+${section.totalAmount}"
+        section.totalAmount < 0L -> "−${kotlin.math.abs(section.totalAmount)}"
+        else -> "0"
+    }
+    val totalColor = when {
+        section.totalAmount > 0L -> Color(0xFF2E7D32)
+        section.totalAmount < 0L -> MaterialTheme.colorScheme.error
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+
+    Column(
+        modifier = modifier.fillMaxWidth().padding(top = 8.dp, bottom = 2.dp),
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+    ) {
+        Text(
+            stringResource(R.string.reward_history_week_title, weekRange),
+            style = MaterialTheme.typography.titleSmall,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            stringResource(R.string.reward_history_week_change, totalText, stringResource(unitRes)),
+            style = MaterialTheme.typography.labelMedium,
+            color = totalColor,
+            fontWeight = FontWeight.SemiBold,
+        )
+    }
+}
+
+@Composable
+private fun RewardHistoryEntryCard(
+    entry: RewardHistoryEntry,
+    unitRes: Int,
+    modifier: Modifier = Modifier,
+) {
+    val amountText = when {
+        entry.amount > 0 -> "+${entry.amount}"
+        entry.amount < 0 -> "−${abs(entry.amount.toLong())}"
+        else -> "0"
+    }
     val reasonRes = when (entry.reason) {
         "FIRST_ARITHMETIC_OF_DAY" -> R.string.reward_reason_first_arithmetic
         "REPEAT_ARITHMETIC_OF_DAY" -> R.string.reward_reason_repeat_arithmetic
@@ -200,11 +234,6 @@ private fun RewardHistoryEntryCard(
         "GIFT_RECEIVED_CAKE" -> R.string.reward_reason_gift_cake
         else -> R.string.reward_history_reason_other
     }
-    val operationRes = when (entry.category) {
-        "SPENT" -> R.string.reward_history_operation_spent
-        "GIFT_RECEIVED" -> R.string.reward_history_operation_gift_received
-        else -> R.string.reward_history_operation_earned
-    }
     val dateText = runCatching {
         Instant.ofEpochMilli(entry.occurredAtEpochMs)
             .atZone(ZoneId.systemDefault())
@@ -219,17 +248,17 @@ private fun RewardHistoryEntryCard(
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(stringResource(reasonRes), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                Text(stringResource(operationRes), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 Text(dateText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
-                text = "$amountText ${stringResource(
-                    if (type == RewardBalanceType.XP) R.string.reward_history_unit_xp
-                    else R.string.reward_history_unit_endorphins
-                )}",
+                text = "$amountText ${stringResource(unitRes)}",
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = if (isCredit) Color(0xFF2E7D32) else MaterialTheme.colorScheme.error,
+                color = when {
+                    entry.amount > 0 -> Color(0xFF2E7D32)
+                    entry.amount < 0 -> MaterialTheme.colorScheme.error
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
             )
         }
     }

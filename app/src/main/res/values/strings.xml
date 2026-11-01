@@ -233,14 +233,9 @@
     <string name="reward_history_title_xp">История очков опыта</string>
     <string name="reward_history_title_endorphins">История эндорфинов</string>
     <string name="reward_history_current_balance">Текущий баланс</string>
-    <string name="reward_history_tab_xp">Очки опыта</string>
-    <string name="reward_history_tab_endorphins">Эндорфины</string>
     <string name="reward_history_unit_xp">XP</string>
     <string name="reward_history_unit_endorphins">эндорфинов</string>
     <string name="reward_history_empty">Операций пока нет</string>
-    <string name="reward_history_operation_earned">Начисление</string>
-    <string name="reward_history_operation_spent">Списание</string>
-    <string name="reward_history_operation_gift_received">Получен подарок</string>
     <string name="reward_history_reason_other">Операция с балансом</string>
     <string name="reward_reason_first_arithmetic">Первая тренировка арифметики за день</string>
     <string name="reward_reason_repeat_arithmetic">Повторная тренировка арифметики за день</string>
@@ -258,5 +253,8 @@
     <string name="reward_reason_gift_croissant">Получен круассан</string>
     <string name="reward_reason_gift_hamburger">Получен гамбургер</string>
     <string name="reward_reason_gift_cake">Получен торт</string>
+
+    <string name="reward_history_week_title">Неделя: %1$s</string>
+    <string name="reward_history_week_change">(%1$s %2$s за неделю)</string>
 
 </resources>

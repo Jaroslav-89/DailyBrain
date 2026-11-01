@@ -14,7 +14,6 @@ data class RewardHistoryEntry(
     val id: String,
     val amount: Int,
     val reason: String,
-    val category: String,
     val occurredAtEpochMs: Long,
 )
 

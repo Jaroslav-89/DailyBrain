@@ -34,7 +34,6 @@ class RewardHistoryRepositoryImpl(
                             id = operation.rewardKey,
                             amount = amount,
                             reason = operation.reason,
-                            category = operation.category,
                             occurredAtEpochMs = operation.occurredAtEpochMs,
                         )
                     }
