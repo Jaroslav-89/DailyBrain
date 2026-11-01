@@ -33,6 +33,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalLifecycleOwner
@@ -366,8 +367,8 @@ private fun AnswerReviewContent(
     results: List<ArithmeticTaskResult>,
     onBack: () -> Unit,
 ) {
-    val green = Color(0xFF2E7D32)
-    val red = Color(0xFFC62828)
+    val green = colorResource(R.color.color_positive_amount)
+    val red = colorResource(R.color.color_danger)
 
     Column(
         modifier = Modifier
@@ -409,9 +410,9 @@ private fun AnswerReviewContent(
                     Column(modifier = Modifier.padding(16.dp)) {
                         val problem = result.problem
                         val answerColor = if (result.isCorrect) {
-                            Color(0xFF2E7D32)
+                            green
                         } else {
-                            Color(0xFFC62828)
+                            red
                         }
 
                         Text(

@@ -265,4 +265,6 @@
     <string name="reward_history_week_change">(%1$s %2$s за неделю)</string>
 
     <string name="shop_title">Магазин</string>
+    <string name="preference_dark_theme">Тёмная тема</string>
+    <string name="preference_appearance_description">Выбор темы сохраняется на устройстве и применяется при следующем запуске. Динамический фон главного экрана также сохраняется отдельно.</string>
 </resources>

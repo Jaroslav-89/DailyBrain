@@ -47,6 +47,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
@@ -166,7 +167,7 @@ fun ProfileScreen(
                                     Icon(
                                         imageVector = Icons.Filled.CheckCircle,
                                         contentDescription = "Google аккаунт подтверждён",
-                                        tint = Color(0xFF2E7D32),
+                                        tint = colorResource(R.color.color_success),
                                         modifier = Modifier.size(20.dp),
                                     )
                                 }
@@ -257,8 +258,8 @@ fun ProfileScreen(
                     onClick = { showAddFriendsDialog = true },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E7D32),
-                        contentColor = Color.White,
+                        containerColor = colorResource(R.color.color_success),
+                        contentColor = colorResource(R.color.color_on_accent),
                     ),
                 ) {
                     Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))

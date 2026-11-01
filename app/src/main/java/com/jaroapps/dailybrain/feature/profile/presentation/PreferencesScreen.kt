@@ -26,6 +26,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.ui.theme.AppThemePreference
 import com.jaroapps.dailybrain.feature.home.presentation.HomeAppearancePreference
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -45,6 +48,7 @@ fun PreferencesScreen(onBack: () -> Unit) {
     ) { padding ->
         val context = LocalContext.current
         LaunchedEffect(context) {
+            AppThemePreference.ensureLoaded(context)
             HomeAppearancePreference.ensureLoaded(context)
         }
         val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
@@ -58,7 +62,14 @@ fun PreferencesScreen(onBack: () -> Unit) {
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("Внешний вид", style = MaterialTheme.typography.titleMedium)
-            SettingToggle("Тёмная тема", enabled = false)
+            SettingToggle(
+                label = stringResource(R.string.preference_dark_theme),
+                checked = AppThemePreference.isDarkTheme,
+                enabled = true,
+                onCheckedChange = { enabled ->
+                    AppThemePreference.setDarkTheme(context, enabled)
+                },
+            )
             SettingToggle(
                 label = "Динамический фон главного экрана",
                 checked = dynamicBackgroundEnabled,
@@ -80,7 +91,7 @@ fun PreferencesScreen(onBack: () -> Unit) {
             SettingToggle("Просмотр ленты", enabled = false)
             Spacer(Modifier.height(12.dp))
             Text(
-                text = "Динамический фон сохраняется на устройстве. Остальные настройки пока не подключены.",
+                text = stringResource(R.string.preference_appearance_description),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

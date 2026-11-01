@@ -17,10 +17,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Rect
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.colorResource
+import com.jaroapps.dailybrain.R
 import com.google.zxing.BarcodeFormat
 import com.google.zxing.EncodeHintType
 import com.google.zxing.common.BitMatrix
@@ -59,6 +60,8 @@ fun InviteQrCode(payload: String, modifier: Modifier = Modifier) {
     }
 
     val currentMatrix = matrix
+    val qrBackground = colorResource(R.color.color_qr_background)
+    val qrForeground = colorResource(R.color.color_qr_foreground)
     val qrPath = remember(currentMatrix) {
         currentMatrix?.let { encoded ->
             Path().apply {
@@ -81,12 +84,12 @@ fun InviteQrCode(payload: String, modifier: Modifier = Modifier) {
     }
 
     Box(
-        modifier = modifier.aspectRatio(1f).background(Color.White),
+        modifier = modifier.aspectRatio(1f).background(qrBackground),
         contentAlignment = Alignment.Center,
     ) {
         when {
             currentMatrix != null && qrPath != null -> Canvas(Modifier.fillMaxSize()) {
-                drawRect(Color.White)
+                drawRect(qrBackground)
                 withTransform({
                     scale(
                         scaleX = size.width / currentMatrix.width.toFloat(),
@@ -94,12 +97,12 @@ fun InviteQrCode(payload: String, modifier: Modifier = Modifier) {
                         pivot = Offset.Zero,
                     )
                 }) {
-                    drawPath(qrPath, Color(0xFF111111))
+                    drawPath(qrPath, qrForeground)
                 }
             }
             generationFailed -> Text(
                 "Не удалось создать QR-код.",
-                color = Color(0xFF111111),
+                color = qrForeground,
                 fontSize = 12.sp,
             )
             else -> CircularProgressIndicator()

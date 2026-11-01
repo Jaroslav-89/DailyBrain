@@ -26,10 +26,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -102,8 +104,8 @@ fun ProfileSettingsScreen(
                 enabled = !isExitingProfile,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFFC62828),
-                    contentColor = Color.White,
+                    containerColor = colorResource(R.color.color_danger),
+                    contentColor = colorResource(R.color.color_on_accent),
                 ),
             ) {
                 Text(if (isExitingProfile) "Выходим..." else "Выйти из профиля")

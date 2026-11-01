@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -213,8 +214,8 @@ fun PublicUserProfileScreen(
                             enabled = !state.isUpdatingFollow,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (state.isFollowing) Color(0xFFC62828) else Color(0xFF2E7D32),
-                                contentColor = Color.White,
+                                containerColor = if (state.isFollowing) colorResource(R.color.color_danger) else colorResource(R.color.color_success),
+                                contentColor = colorResource(R.color.color_on_accent),
                             ),
                         ) {
                             Text(
@@ -288,8 +289,8 @@ fun PublicUserProfileScreen(
                             enabled = !state.isUpdatingBlock,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (state.isBlockedByViewer) Color(0xFF2E7D32) else Color(0xFFC62828),
-                                contentColor = Color.White,
+                                containerColor = if (state.isBlockedByViewer) colorResource(R.color.color_success) else colorResource(R.color.color_danger),
+                                contentColor = colorResource(R.color.color_on_accent),
                             ),
                         ) {
                             Text(

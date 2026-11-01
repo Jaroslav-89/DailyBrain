@@ -1,10 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-
-    <style name="Theme.DailyBrain" parent="android:Theme.Material.Light.NoActionBar" />
+    <style name="Theme.DailyBrain" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/light_background</item>
+        <item name="android:statusBarColor">@color/light_background</item>
+        <item name="android:navigationBarColor">@color/light_background</item>
+        <item name="android:colorAccent">@color/light_primary</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
+    </style>
 
     <style name="Theme.DailyBrain.Starting" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenBackground">@android:color/white</item>
+        <item name="windowSplashScreenBackground">@color/light_background</item>
         <item name="windowSplashScreenAnimatedIcon">@drawable/brain_base</item>
         <item name="postSplashScreenTheme">@style/Theme.DailyBrain</item>
     </style>

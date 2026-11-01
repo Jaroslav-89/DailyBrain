@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
@@ -214,7 +215,7 @@ private fun FriendUserCard(
                     Icon(
                         imageVector = Icons.Filled.Close,
                         contentDescription = "Отписаться",
-                        tint = Color(0xFFC62828),
+                        tint = colorResource(R.color.color_danger),
                     )
                 }
             }
@@ -223,7 +224,7 @@ private fun FriendUserCard(
                     Icon(
                         imageVector = Icons.Filled.PersonAdd,
                         contentDescription = "Подписаться в ответ",
-                        tint = Color(0xFF2E7D32),
+                        tint = colorResource(R.color.color_success),
                     )
                 }
             }

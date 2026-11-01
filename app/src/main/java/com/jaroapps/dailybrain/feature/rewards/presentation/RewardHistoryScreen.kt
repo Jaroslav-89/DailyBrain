@@ -31,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -107,7 +108,7 @@ fun RewardHistoryScreen(
                             Icon(
                                 imageVector = Icons.Filled.Star,
                                 contentDescription = null,
-                                tint = Color(0xFF43A047),
+                                tint = colorResource(R.color.color_success),
                                 modifier = Modifier.padding(start = 10.dp).size(34.dp),
                             )
                         } else {
@@ -186,7 +187,7 @@ private fun RewardHistoryWeekHeader(
         else -> "0"
     }
     val totalColor = when {
-        section.totalAmount > 0L -> Color(0xFF2E7D32)
+        section.totalAmount > 0L -> colorResource(R.color.color_positive_amount)
         section.totalAmount < 0L -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -284,7 +285,7 @@ private fun RewardHistoryEntryCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = when {
-                    entry.amount > 0 -> Color(0xFF2E7D32)
+                    entry.amount > 0 -> colorResource(R.color.color_positive_amount)
                     entry.amount < 0 -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },

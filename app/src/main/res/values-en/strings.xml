@@ -254,4 +254,6 @@
     <string name="reward_history_week_change">(%1$s %2$s for the week)</string>
 
     <string name="shop_title">Shop</string>
+    <string name="preference_dark_theme">Dark theme</string>
+    <string name="preference_appearance_description">Your theme choice is saved on this device and restored the next time you open the app. The home screen dynamic background setting is saved separately.</string>
 </resources>
