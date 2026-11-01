@@ -253,4 +253,5 @@
     <string name="reward_history_week_title">Week: %1$s</string>
     <string name="reward_history_week_change">(%1$s %2$s for the week)</string>
 
+    <string name="shop_title">Shop</string>
 </resources>

@@ -573,4 +573,42 @@ object DatabaseMigrations {
             database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
         }
     }
+    /** Add local cosmetic inventory and a retry-safe outgoing gift queue. */
+    val MIGRATION_19_20 = object : Migration(19, 20) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE user_inventory (
+                    ownerUserId TEXT NOT NULL,
+                    itemId TEXT NOT NULL,
+                    itemType TEXT NOT NULL,
+                    acquiredAtEpochMs INTEGER NOT NULL,
+                    PRIMARY KEY(ownerUserId, itemId)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX index_user_inventory_ownerUserId_itemType ON user_inventory(ownerUserId, itemType)",
+            )
+            database.execSQL(
+                """
+                CREATE TABLE gift_outbox (
+                    ownerUserId TEXT NOT NULL,
+                    giftId TEXT NOT NULL,
+                    senderFirebaseUid TEXT NOT NULL,
+                    recipientFirebaseUid TEXT NOT NULL,
+                    senderName TEXT NOT NULL,
+                    giftType TEXT NOT NULL,
+                    amount INTEGER NOT NULL,
+                    createdAtEpochMs INTEGER NOT NULL,
+                    isSent INTEGER NOT NULL,
+                    PRIMARY KEY(ownerUserId, giftId)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX index_gift_outbox_ownerUserId_isSent_createdAtEpochMs ON gift_outbox(ownerUserId, isSent, createdAtEpochMs)",
+            )
+        }
+    }
 }

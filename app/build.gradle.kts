@@ -71,6 +71,7 @@ dependencies {
     implementation(libs.androidx.room.ktx)
     ksp(libs.androidx.room.compiler)
     implementation(libs.androidx.datastore.preferences)
+    implementation("com.caverock:androidsvg-aar:1.4")
 
     // Firebase validates Google ID tokens and persists the authenticated session.
     implementation(platform(libs.firebase.bom))

@@ -1,8 +1,8 @@
 package com.jaroapps.dailybrain.feature.avatar.domain.model
 
 /**
- * Stable local avatar selection. IDs refer to bundled resources and remain numeric
- * in JSON so catalog labels can change without changing persisted configurations.
+ * Stable local avatar selection. Legacy editor slots use numeric IDs; shop cosmetics
+ * use stable catalog string IDs in JSON so labels can change without changing selections.
  */
 data class AvatarConfiguration(
     val schemaVersion: Int = CURRENT_SCHEMA_VERSION,
@@ -22,9 +22,11 @@ data class AvatarConfiguration(
     val bodyTypeId: Int = DEFAULT_BODY_TYPE_ID,
     val hairLengthId: Int = DEFAULT_HAIR_LENGTH_ID,
     val facialHairId: Int = NO_FACIAL_HAIR_ID,
+    val costumeId: String? = null,
+    val backgroundSceneId: String? = null,
 ) {
     companion object {
-        const val CURRENT_SCHEMA_VERSION = 4
+        const val CURRENT_SCHEMA_VERSION = 5
         const val DEFAULT_SKIN_TONE_ID = 2
         const val DEFAULT_HAIR_STYLE_ID = 1
         const val DEFAULT_HAIR_COLOR_ID = 2

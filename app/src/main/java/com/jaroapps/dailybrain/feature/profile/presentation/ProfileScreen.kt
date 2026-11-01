@@ -85,7 +85,7 @@ fun ProfileScreen(
         if (directoryState.profile?.firebaseUid != null) directoryViewModel.loadInviteCode()
     }
     val today = LocalDate.now()
-    val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
+    val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today).plusDays(1) }
     val accountPeriod = profile?.let {
         val createdDate = Instant.ofEpochMilli(it.createdAtEpochMs)
             .atZone(ZoneId.systemDefault())

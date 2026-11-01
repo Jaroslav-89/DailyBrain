@@ -8,6 +8,8 @@ import android.graphics.drawable.InsetDrawable
 import androidx.core.content.ContextCompat
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 
 /** Assembles fresh, aligned vector layers in a fixed z-order. */
 internal object AvatarDrawableFactory {
@@ -22,19 +24,24 @@ internal object AvatarDrawableFactory {
     )
 
     fun create(context: Context, configuration: AvatarConfiguration): LayerDrawable {
-        val backgroundColors = AvatarBackgroundPalette.gradients[
-            (configuration.backgroundId - 1).coerceIn(AvatarBackgroundPalette.gradients.indices)
-        ]
-        val density = context.resources.displayMetrics.density
-        val background = InsetDrawable(
-            GradientDrawable(GradientDrawable.Orientation.TL_BR, backgroundColors).apply {
-                shape = GradientDrawable.OVAL
-            },
-            (8 * density).toInt(),
-            (8 * density).toInt(),
-            (8 * density).toInt(),
-            (72 * density).toInt(),
-        )
+        val background: Drawable = configuration.backgroundSceneId
+            ?.let { AvatarCosmeticCatalog.find(AvatarCosmeticType.BACKGROUND, it) }
+            ?.let { AvatarAssetRenderer.drawable(context, it.assetPath, centerCrop = true) }
+            ?: run {
+                val backgroundColors = AvatarBackgroundPalette.gradients[
+                    (configuration.backgroundId - 1).coerceIn(AvatarBackgroundPalette.gradients.indices)
+                ]
+                val density = context.resources.displayMetrics.density
+                InsetDrawable(
+                    GradientDrawable(GradientDrawable.Orientation.TL_BR, backgroundColors).apply {
+                        shape = GradientDrawable.OVAL
+                    },
+                    (8 * density).toInt(),
+                    (8 * density).toInt(),
+                    (8 * density).toInt(),
+                    (72 * density).toInt(),
+                )
+            }
         val face = when (configuration.faceTypeId) {
             2 -> R.drawable.avatar_face_male
             3 -> R.drawable.avatar_face_round
@@ -107,6 +114,10 @@ internal object AvatarDrawableFactory {
 
         val skinTint = skinTones[(configuration.skinToneId - 1).coerceIn(skinTones.indices)]
         val hairTint = hairColors[(configuration.hairColorId - 1).coerceIn(hairColors.indices)]
+        val costume = configuration.costumeId
+            ?.let { AvatarCosmeticCatalog.find(AvatarCosmeticType.COSTUME, it) }
+            ?.let { AvatarAssetRenderer.drawable(context, it.assetPath) }
+            ?: drawable(context, R.drawable.avatar_empty)
         val layers = arrayOf(
             background,
             drawable(context, body).apply { setTint(skinTint) },
@@ -114,9 +125,10 @@ internal object AvatarDrawableFactory {
                 setTint(clothingColors[(configuration.clothingColorId - 1).coerceIn(clothingColors.indices)])
             },
             drawable(context, R.drawable.avatar_neck).apply { setTint(skinTint) },
-            drawable(context, face).apply { setTint(skinTint) },
             drawable(context, hairLength).apply { setTint(hairTint) },
             drawable(context, hairStyle).apply { setTint(hairTint) },
+            costume,
+            drawable(context, face).apply { setTint(skinTint) },
             drawable(context, eyes).apply {
                 setTint(eyeColors[(configuration.eyeColorId - 1).coerceIn(eyeColors.indices)])
             },

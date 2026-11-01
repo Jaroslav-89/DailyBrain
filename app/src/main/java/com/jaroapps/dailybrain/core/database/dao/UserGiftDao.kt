@@ -18,6 +18,9 @@ interface UserGiftDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(gifts: List<UserGiftEntity>)
 
+    @Query("UPDATE user_gifts SET isOpened = 1 WHERE ownerUserId = :ownerUserId AND giftId = :giftId")
+    suspend fun markOpened(ownerUserId: String, giftId: String)
+
     @Query("DELETE FROM user_gifts WHERE ownerUserId = :ownerUserId")
     suspend fun deleteForUser(ownerUserId: String)
 }

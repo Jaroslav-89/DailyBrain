@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -66,6 +67,7 @@ import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncVie
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
+import com.jaroapps.dailybrain.feature.shop.presentation.ShopScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
@@ -79,6 +81,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         Route.HOME,
         Route.STATISTICS,
         Route.FEED,
+        Route.SHOP,
         Route.PROFILE,
     )
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
@@ -320,6 +323,10 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 )
             }
 
+            composable(Route.SHOP) {
+                ShopScreen()
+            }
+
             composable(Route.CALENDAR) {
                 CalendarScreen(
                     onBack = { navController.popBackStack() },
@@ -386,6 +393,11 @@ private fun AppBottomNavigation(
             route = Route.FEED,
             label = stringResource(R.string.feed_title),
             icon = Icons.Filled.Newspaper,
+        ),
+        BottomNavigationDestination(
+            route = Route.SHOP,
+            label = stringResource(R.string.shop_title),
+            icon = Icons.Filled.ShoppingBag,
         ),
         BottomNavigationDestination(
             route = Route.PROFILE,

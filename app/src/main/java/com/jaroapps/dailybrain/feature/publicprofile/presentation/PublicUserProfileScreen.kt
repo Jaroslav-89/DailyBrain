@@ -71,7 +71,7 @@ fun PublicUserProfileScreen(
     val today = LocalDate.now()
     val trainingPeriod = stats?.firstTrainingDate
         ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        ?.let { firstDate -> Period.between(firstDate, today).takeIf { !it.isNegative } }
+        ?.let { firstDate -> Period.between(firstDate, today).plusDays(1).takeIf { !it.isNegative } }
     val memberPeriod = user?.memberSinceEpochMs?.let { epoch ->
         val date = Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()).toLocalDate()
         Period.between(date, today).takeIf { !it.isNegative }

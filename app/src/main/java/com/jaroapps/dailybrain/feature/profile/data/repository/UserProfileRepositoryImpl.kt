@@ -116,6 +116,8 @@ class UserProfileRepositoryImpl(
             database.rewardLedgerDao().deleteForUser(localAccountId)
             database.userBadgeDao().deleteForUser(localAccountId)
             database.userGiftDao().deleteForUser(localAccountId)
+            database.userInventoryDao().deleteForUser(localAccountId)
+            database.giftOutboxDao().deleteForUser(localAccountId)
             profile.firebaseUid?.let { firebaseUid ->
                 database.userBadgeDao().deleteForUser(firebaseUid)
                 database.userGiftDao().deleteForUser(firebaseUid)

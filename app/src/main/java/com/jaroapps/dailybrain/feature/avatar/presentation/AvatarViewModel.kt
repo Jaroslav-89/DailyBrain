@@ -4,6 +4,8 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
+import com.jaroapps.dailybrain.feature.avatar.domain.model.OwnedAvatarCosmetic
+import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveOwnedAvatarCosmeticsUseCase
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ResetAvatarUseCase
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.SaveAvatarUseCase
@@ -17,10 +19,12 @@ data class AvatarEditorUiState(
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
+    val ownedCosmetics: Set<OwnedAvatarCosmetic> = emptySet(),
 )
 
 class AvatarViewModel(
     observeAvatar: ObserveAvatarUseCase,
+    observeOwnedCosmetics: ObserveOwnedAvatarCosmeticsUseCase,
     private val saveAvatar: SaveAvatarUseCase,
     private val resetAvatar: ResetAvatarUseCase,
 ) : ViewModel() {
@@ -37,6 +41,11 @@ class AvatarViewModel(
                 } else {
                     current.copy(configuration = stored, isLoading = false)
                 }
+            }
+        }
+        viewModelScope.launch {
+            observeOwnedCosmetics().collect { owned ->
+                _uiState.value = _uiState.value.copy(ownedCosmetics = owned)
             }
         }
     }

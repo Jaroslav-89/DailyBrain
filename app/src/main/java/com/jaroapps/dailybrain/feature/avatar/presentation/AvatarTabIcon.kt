@@ -31,6 +31,8 @@ internal enum class AvatarEditorTab(val label: String) {
     FRECKLES("Веснушки"),
     FACIAL_HAIR("Борода и усы"),
     BACKGROUND("Градиент фона"),
+    COSTUMES("Костюмы"),
+    BACKGROUND_SCENES("Пейзажные фоны"),
 }
 
 @Composable
@@ -140,6 +142,37 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
                 drawPath(moustache, outline)
                 line(6f, 17f, 8f, 21f, 1.5f)
                 line(18f, 17f, 16f, 21f, 1.5f)
+            }
+            AvatarEditorTab.COSTUMES -> {
+                val jacket = Path().apply {
+                    moveTo(8f * unit, 3f * unit)
+                    lineTo(3f * unit, 7f * unit)
+                    lineTo(1f * unit, 14f * unit)
+                    lineTo(6f * unit, 16f * unit)
+                    lineTo(8f * unit, 12f * unit)
+                    lineTo(8f * unit, 22f * unit)
+                    lineTo(16f * unit, 22f * unit)
+                    lineTo(16f * unit, 12f * unit)
+                    lineTo(18f * unit, 16f * unit)
+                    lineTo(23f * unit, 14f * unit)
+                    lineTo(21f * unit, 7f * unit)
+                    lineTo(16f * unit, 3f * unit)
+                    close()
+                }
+                drawPath(jacket, outline, style = Stroke(2f * unit))
+            }
+            AvatarEditorTab.BACKGROUND_SCENES -> {
+                drawRect(Color(0xFF90CAF9), p(2f, 2f), Size(20f * unit, 20f * unit))
+                drawCircle(Color(0xFFFFD54F), 3f * unit, p(17f, 7f))
+                val hills = Path().apply {
+                    moveTo(2f * unit, 19f * unit)
+                    lineTo(8f * unit, 10f * unit)
+                    lineTo(12f * unit, 15f * unit)
+                    lineTo(16f * unit, 11f * unit)
+                    lineTo(22f * unit, 20f * unit)
+                    close()
+                }
+                drawPath(hills, Color(0xFF388E3C))
             }
             AvatarEditorTab.BACKGROUND -> {
                 drawRoundRect(

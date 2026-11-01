@@ -22,6 +22,7 @@ import com.jaroapps.dailybrain.feature.brain.BrainStateManager
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarRepositoryImpl
 import com.jaroapps.dailybrain.feature.avatar.domain.repository.AvatarRepository
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
+import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveOwnedAvatarCosmeticsUseCase
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ResetAvatarUseCase
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.SaveAvatarUseCase
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
@@ -88,6 +89,11 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUse
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionViewModel
+import com.jaroapps.dailybrain.feature.shop.data.ShopRepositoryImpl
+import com.jaroapps.dailybrain.feature.shop.data.FirestoreGiftDeliveryRepository
+import com.jaroapps.dailybrain.feature.shop.domain.repository.ShopRepository
+import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
+import com.jaroapps.dailybrain.feature.shop.presentation.ShopViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
 import org.koin.android.ext.koin.androidContext
@@ -105,7 +111,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20)
             .build()
     }
 
@@ -155,6 +161,24 @@ val appModule = module {
     }
     viewModel { RewardHistoryViewModel(savedStateHandle = get(), repository = get()) }
 
+    single<ShopRepository> { ShopRepositoryImpl(database = get(), activeUserProvider = get()) }
+    single<GiftDeliveryRepository> {
+        FirestoreGiftDeliveryRepository(
+            context = androidContext(),
+            database = get(),
+            activeUserProvider = get(),
+            endorphinRepository = get(),
+        )
+    }
+    viewModel {
+        ShopViewModel(
+            observeUserProfile = get(),
+            shopRepository = get(),
+            giftDeliveryRepository = get(),
+            userDirectoryRepository = get(),
+        )
+    }
+
     single<FeedRepository> {
         FeedRepositoryImpl(
             context = androidContext(),
@@ -197,11 +221,25 @@ val appModule = module {
     viewModel { PublicUserConnectionsViewModel(observeUserProfile = get(), userDirectoryRepository = get()) }
 
     // Local avatar feature: domain use cases depend on the repository contract.
-    single<AvatarRepository> { AvatarRepositoryImpl(userProfileDao = get<AppDatabase>().userProfileDao(), activeUserProvider = get()) }
+    single<AvatarRepository> {
+        AvatarRepositoryImpl(
+            userProfileDao = get<AppDatabase>().userProfileDao(),
+            userInventoryDao = get<AppDatabase>().userInventoryDao(),
+            activeUserProvider = get(),
+        )
+    }
     factory { ObserveAvatarUseCase(repository = get()) }
+    factory { ObserveOwnedAvatarCosmeticsUseCase(repository = get()) }
     factory { SaveAvatarUseCase(repository = get()) }
     factory { ResetAvatarUseCase(repository = get()) }
-    viewModel { AvatarViewModel(observeAvatar = get(), saveAvatar = get(), resetAvatar = get()) }
+    viewModel {
+        AvatarViewModel(
+            observeAvatar = get(),
+            observeOwnedCosmetics = get(),
+            saveAvatar = get(),
+            resetAvatar = get(),
+        )
+    }
 
     single<StatisticsRepository> { StatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveStatisticsUseCase(repository = get()) }
