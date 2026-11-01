@@ -235,8 +235,9 @@ service cloud.firestore {
       function isFollowingAuthor(authorUid) {
         // The follows document is the canonical relationship source; publicFollowing is
         // only a projection used for profile UI and may lag behind older relationship data.
+        let followId = request.auth.uid + '_' + authorUid;
         return signedIn()
-          && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + authorUid));
+          && exists(/databases/$(database)/documents/follows/$(followId));
       }
 
       function validFeedEvent() {
