@@ -1,0 +1,477 @@
+package com.jaroapps.dailybrain.feature.profile.presentation
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.DatePicker
+import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.rememberDatePickerState
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
+import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
+import org.koin.androidx.compose.koinViewModel
+import java.time.LocalDate
+import java.time.Instant
+import java.time.ZoneOffset
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun EditProfileScreen(
+    onBack: () -> Unit,
+    onEditAvatar: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ProfileViewModel = koinViewModel(),
+    directoryViewModel: UserDirectoryViewModel = koinViewModel(),
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
+    val profile = state.profile
+    var username by remember(profile?.localAccountId, profile?.username) {
+        mutableStateOf(profile?.username.orEmpty())
+    }
+    var displayName by remember(profile?.displayName) { mutableStateOf(profile?.displayName.orEmpty()) }
+    var gender by remember(profile?.gender) { mutableStateOf(profile?.gender?.name) }
+    var birthDate by remember(profile?.birthDate) { mutableStateOf(profile?.birthDate?.toString().orEmpty()) }
+    var country by remember(profile?.country) { mutableStateOf(profile?.country.orEmpty()) }
+    var city by remember(profile?.city) { mutableStateOf(profile?.city.orEmpty()) }
+    var genderMenuExpanded by remember { mutableStateOf(false) }
+    var birthDateError by remember { mutableStateOf(false) }
+    var datePickerVisible by remember { mutableStateOf(false) }
+    var deleteDialogVisible by remember { mutableStateOf(false) }
+    var unlinkConfirmationVisible by remember { mutableStateOf(false) }
+    var googleSignInError by remember { mutableStateOf<String?>(null) }
+    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
+    val googleSignInClient: GoogleSignInClient = koinInject()
+    val coroutineScope = rememberCoroutineScope()
+
+    fun connectGoogle() {
+        coroutineScope.launch {
+            isGoogleSignInInProgress = true
+            googleSignInError = null
+            viewModel.clearGoogleLinkError()
+            try {
+                val result = googleSignInClient.signIn()
+                val expectedSubject = profile?.googleSubject
+                if (expectedSubject != null && result.account.subject != expectedSubject) {
+                    googleSignInError = "Выберите Google-аккаунт, который ранее был привязан к этому профилю."
+                } else {
+                    viewModel.linkGoogleAccount(result)
+                }
+            } catch (error: Exception) {
+                googleSignInError = if (error is GoogleSignInConfigurationException) {
+                    error.message
+                } else {
+                    "Не удалось выполнить вход с Google. Попробуйте ещё раз."
+                }
+            } finally {
+                isGoogleSignInInProgress = false
+            }
+        }
+    }
+
+    val initialDateMillis = remember(birthDate) {
+        runCatching { LocalDate.parse(birthDate).atStartOfDay(ZoneOffset.UTC).toInstant().toEpochMilli() }.getOrNull()
+    }
+    val datePickerState = rememberDatePickerState(initialSelectedDateMillis = initialDateMillis)
+
+    Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(24.dp)) {
+        TopAppBar(
+            title = { Text(stringResource(R.string.profile_edit_title)) },
+            navigationIcon = {
+                IconButton(onClick = onBack) {
+                    Icon(
+                        imageVector = Icons.Filled.Close,
+                        contentDescription = stringResource(R.string.action_close),
+                        modifier = Modifier.size(24.dp),
+                    )
+                }
+            },
+        )
+        Spacer(Modifier.height(8.dp))
+        Button(
+            onClick = onEditAvatar,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
+                contentColor = androidx.compose.ui.graphics.Color.White,
+            ),
+        ) {
+            Text("Редактировать аватар")
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedTextField(
+            value = displayName,
+            onValueChange = { displayName = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.profile_name)) },
+            supportingText = { Text(stringResource(R.string.profile_name_optional)) },
+            singleLine = true,
+        )
+        if (profile?.firebaseUid != null) {
+            Spacer(Modifier.height(20.dp))
+            Text("Уникальный ник", style = MaterialTheme.typography.titleMedium)
+            Text(
+                "Ник будет виден другим пользователям. Он закрепляется за вашим Google-аккаунтом.",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            Spacer(Modifier.height(8.dp))
+            OutlinedTextField(
+                value = username,
+                onValueChange = {
+                    username = UsernamePolicy.sanitizeInput(it)
+                    directoryViewModel.resetUsernameError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text("Ваш ник") },
+                leadingIcon = { Text("@") },
+                placeholder = { Text("brain_user") },
+                singleLine = true,
+                isError = directoryState.usernameError,
+                supportingText = {
+                    val message = directoryState.usernameMessage
+                    if (message != null) {
+                        Text(
+                            message,
+                            color = if (directoryState.usernameError) MaterialTheme.colorScheme.error
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    } else {
+                        Text("3–20 символов: латинские буквы, цифры и _")
+                    }
+                },
+            )
+        }
+        Spacer(Modifier.height(8.dp))
+        Column {
+            OutlinedTextField(
+                value = gender?.let { genderLabel(it) }.orEmpty(),
+                onValueChange = {},
+                readOnly = true,
+                modifier = Modifier.fillMaxWidth(),
+                label = { Text(stringResource(R.string.profile_gender)) },
+                trailingIcon = { TextButton(onClick = { genderMenuExpanded = true }) { Text("▾") } },
+            )
+            DropdownMenu(expanded = genderMenuExpanded, onDismissRequest = { genderMenuExpanded = false }) {
+                DropdownMenuItem(text = { Text(stringResource(R.string.profile_gender_not_set)) }, onClick = { gender = null; genderMenuExpanded = false })
+                listOf(UserGender.MALE, UserGender.FEMALE).forEach { option ->
+                    DropdownMenuItem(text = { Text(genderLabel(option.name)) }, onClick = { gender = option.name; genderMenuExpanded = false })
+                }
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(
+            value = birthDate,
+            onValueChange = {},
+            readOnly = true,
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text(stringResource(R.string.profile_birth_date)) },
+            placeholder = { Text(stringResource(R.string.profile_birth_date_hint)) },
+            supportingText = { Text(stringResource(R.string.profile_birth_date_hint)) },
+            isError = birthDateError,
+            singleLine = true,
+            trailingIcon = {
+                TextButton(onClick = { datePickerVisible = true }) {
+                    Text(stringResource(R.string.profile_choose_date))
+                }
+            },
+        )
+        if (datePickerVisible) {
+            DatePickerDialog(
+                onDismissRequest = { datePickerVisible = false },
+                confirmButton = {
+                    TextButton(onClick = {
+                        datePickerState.selectedDateMillis?.let { millis ->
+                            birthDate = Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate().toString()
+                            birthDateError = false
+                        } ?: run { birthDate = "" }
+                        datePickerVisible = false
+                    }) { Text(stringResource(R.string.action_done)) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { datePickerVisible = false }) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            ) {
+                DatePicker(state = datePickerState)
+            }
+        }
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(value = country, onValueChange = { country = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.profile_country)) }, singleLine = true)
+        Spacer(Modifier.height(8.dp))
+        OutlinedTextField(value = city, onValueChange = { city = it }, modifier = Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.profile_city)) }, singleLine = true)
+        if (state.saveError) {
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.profile_save_error), color = MaterialTheme.colorScheme.error)
+        }
+        Spacer(Modifier.height(20.dp))
+        if (deleteDialogVisible) {
+            AlertDialog(
+                onDismissRequest = {
+                    deleteDialogVisible = false
+                    viewModel.clearDeleteError()
+                },
+                title = { Text("Удаление аккаунта?") },
+                text = {
+                    Column {
+                        Text(stringResource(R.string.profile_delete_warning))
+                        if (state.deleteError) {
+                            Spacer(Modifier.height(8.dp))
+                            Text(
+                                stringResource(R.string.profile_delete_error),
+                                color = MaterialTheme.colorScheme.error,
+                            )
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = { viewModel.deleteProfile(onDeleted = onBack) },
+                    ) {
+                        Text(stringResource(R.string.profile_delete_confirm))
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = {
+                            deleteDialogVisible = false
+                            viewModel.clearDeleteError()
+                        },
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
+        }
+
+        if (unlinkConfirmationVisible) {
+            AlertDialog(
+                onDismissRequest = {
+                    if (!directoryState.isUnlinkingGoogle) {
+                        unlinkConfirmationVisible = false
+                    }
+                },
+                title = { Text("Отвязать Google-аккаунт?") },
+                text = {
+                    Column {
+                        Text(
+                            "Облачный профиль будет удалён, а уникальный ник освобождён. " +
+                                "Локальные тренировки и настройки профиля останутся на устройстве. " +
+                                "После отвязки можно будет подключить другой Google-аккаунт.",
+                        )
+                        directoryState.unlinkError?.let { error ->
+                            Spacer(Modifier.height(8.dp))
+                            Text(error, color = MaterialTheme.colorScheme.error)
+                        }
+                        if (directoryState.isUnlinkingGoogle) {
+                            Spacer(Modifier.height(12.dp))
+                            Text("Отвязываем Google-аккаунт...")
+                        }
+                    }
+                },
+                confirmButton = {
+                    TextButton(
+                        onClick = {
+                            directoryViewModel.unlinkGoogleAccount {
+                                unlinkConfirmationVisible = false
+                            }
+                        },
+                        enabled = !directoryState.isUnlinkingGoogle,
+                    ) {
+                        Text("Отвязать")
+                    }
+                },
+                dismissButton = {
+                    TextButton(
+                        onClick = { unlinkConfirmationVisible = false },
+                        enabled = !directoryState.isUnlinkingGoogle,
+                    ) {
+                        Text(stringResource(R.string.action_cancel))
+                    }
+                },
+            )
+        }
+
+        Button(
+            onClick = {
+                val normalizedBirthDate = birthDate.trim()
+                val validBirthDate = normalizedBirthDate.isEmpty() || runCatching {
+                    val parsed = LocalDate.parse(normalizedBirthDate)
+                    !parsed.isAfter(LocalDate.now())
+                }.getOrDefault(false)
+                if (!validBirthDate) {
+                    birthDateError = true
+                } else {
+                    val saveProfileDetails = {
+                        viewModel.saveProfile(
+                            displayName = displayName,
+                            gender = gender,
+                            birthDate = normalizedBirthDate,
+                            country = country,
+                            city = city,
+                            onSaved = onBack,
+                        )
+                    }
+                    if (profile?.firebaseUid != null) {
+                        directoryViewModel.saveUsername(username) { usernameSaved ->
+                            if (usernameSaved) saveProfileDetails()
+                        }
+                    } else {
+                        saveProfileDetails()
+                    }
+                }
+            },
+            enabled = !state.isSaving &&
+                !directoryState.isSavingUsername &&
+                !directoryState.isUnlinkingGoogle,
+            modifier = Modifier.fillMaxWidth(),
+        ) {
+            Text(
+                if (state.isSaving || directoryState.isSavingUsername) {
+                    stringResource(R.string.status_saving)
+                } else {
+                    stringResource(R.string.action_save)
+                },
+            )
+        }
+
+        Spacer(Modifier.height(12.dp))
+        if (profile?.firebaseUid != null) {
+            Button(
+                onClick = {
+                    unlinkConfirmationVisible = true
+                    directoryViewModel.resetUsernameError()
+                },
+                enabled = !state.isSaving && !directoryState.isSavingUsername &&
+                    !directoryState.isUnlinkingGoogle,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.error,
+                    contentColor = MaterialTheme.colorScheme.onError,
+                ),
+            ) {
+                Text("Отвязать Google аккаунт")
+            }
+            directoryState.unlinkError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        } else {
+            Button(
+                onClick = ::connectGoogle,
+                enabled = !state.isSaving && !isGoogleSignInInProgress && !state.isGoogleLinking,
+                modifier = Modifier.fillMaxWidth(),
+            ) {
+                if (isGoogleSignInInProgress || state.isGoogleLinking) {
+                    androidx.compose.material3.CircularProgressIndicator(
+                        modifier = Modifier.size(18.dp),
+                        strokeWidth = 2.dp,
+                    )
+                } else {
+                    Text("Войти через Google аккаунт")
+                }
+            }
+            googleSignInError?.let { error ->
+                Spacer(Modifier.height(8.dp))
+                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+            when (state.googleLinkError) {
+                GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> Text(
+                    "Этот Google-аккаунт уже привязан к другому профилю на устройстве.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GoogleLinkError.FIREBASE_NOT_CONFIGURED -> Text(
+                    "Firebase не настроен. Проверьте app/google-services.json и Google provider в Firebase Authentication.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GoogleLinkError.FIREBASE_AUTH_FAILED -> Text(
+                    firebaseDiagnosticDescription(state.googleLinkDiagnostic),
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                GoogleLinkError.SAVE_FAILED -> Text(
+                    "Не удалось сохранить привязку Google-аккаунта. Попробуйте ещё раз.",
+                    color = MaterialTheme.colorScheme.error,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                null -> Unit
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Button(
+            onClick = {
+                viewModel.clearDeleteError()
+                deleteDialogVisible = true
+            },
+            enabled = !state.isSaving && state.profiles.size > 1,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.error,
+                contentColor = MaterialTheme.colorScheme.onError,
+            ),
+        ) {
+            Text("Удаление аккаунта")
+        }
+        if (state.profiles.size <= 1) {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                stringResource(R.string.profile_delete_last_profile_hint),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
+
+
+    }
+}
+
+@Composable
+private fun genderLabel(value: String): String = when (value) {
+    UserGender.FEMALE.name -> stringResource(R.string.profile_gender_female)
+    UserGender.MALE.name -> stringResource(R.string.profile_gender_male)
+    else -> stringResource(R.string.profile_gender_not_set)
+}

@@ -1,47 +1,90 @@
 package com.jaroapps.dailybrain
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
+import android.graphics.Color as AndroidColor
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsControllerCompat
+import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
+import androidx.lifecycle.lifecycleScope
+import com.jaroapps.dailybrain.feature.brain.BrainStateManager
+import com.jaroapps.dailybrain.core.database.AppDatabase
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
+import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.StartupDestination
+import com.jaroapps.dailybrain.navigation.AppNavHost
+import com.jaroapps.dailybrain.navigation.Route
 import com.jaroapps.dailybrain.ui.theme.DailyBrainTheme
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import org.koin.core.context.GlobalContext
 
 class MainActivity : ComponentActivity() {
-    override fun onCreate(savedInstanceState: Bundle?) {
-        super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
-        setContent {
-            DailyBrainTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+
+    @Volatile private var startupResolved = false
+
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { }
+
+    override fun onResume() {
+        super.onResume()
+        lifecycleScope.launch {
+            try {
+                GlobalContext.get().get<BrainStateManager>().refresh()
+            } catch (_: Exception) {
+                // Mood refresh must not prevent the app from opening.
             }
         }
     }
-}
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
+    override fun onCreate(savedInstanceState: Bundle?) {
+        val splashScreen = installSplashScreen()
+        splashScreen.setKeepOnScreenCondition { !startupResolved }
+        super.onCreate(savedInstanceState)
+        GlobalContext.get().get<GoogleSignInClient>().attachActivity(this)
 
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    DailyBrainTheme {
-        Greeting("Android")
+        window.statusBarColor = AndroidColor.WHITE
+        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = true
+
+        lifecycleScope.launch {
+            val startDestination = try {
+                val database = GlobalContext.get().get<AppDatabase>()
+                if (database.appSettingsDao().isProfileSelectionRequired() == true) {
+                    Route.PROFILE_SELECTION
+                } else {
+                    when (GlobalContext.get().get<GetStartupDestinationUseCase>().invoke().first()) {
+                        StartupDestination.APP_ONBOARDING -> Route.APP_ONBOARDING
+                        StartupDestination.HOME -> Route.HOME
+                    }
+                }
+            } catch (_: Exception) {
+                // If startup state cannot be read, show the existing startup recovery screen.
+                Route.STARTUP
+            }
+
+            setContent {
+                DailyBrainTheme {
+                    AppNavHost(startDestination = startDestination)
+                }
+            }
+            startupResolved = true
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) !=
+            PackageManager.PERMISSION_GRANTED
+        ) {
+            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+        }
+    }
+    override fun onDestroy() {
+        GlobalContext.get().get<GoogleSignInClient>().attachActivity(null)
+        super.onDestroy()
     }
 }

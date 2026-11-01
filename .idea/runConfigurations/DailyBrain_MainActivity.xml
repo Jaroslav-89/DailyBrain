@@ -1,0 +1,17 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="DailyBrain — MainActivity" type="AndroidRunConfigurationType" factoryName="Android App">
+    <module name="app" />
+    <option name="DEPLOY" value="true" />
+    <option name="DEPLOY_APK_FROM_BUNDLE" value="false" />
+    <option name="ACTIVITY_CLASS" value="com.jaroapps.dailybrain.MainActivity" />
+    <option name="MODE" value="specific_activity" />
+    <option name="PACKAGE_NAME" value="com.jaroapps.dailybrain" />
+    <option name="CLEAR_LOGCAT" value="false" />
+    <option name="SHOW_LOGCAT" value="true" />
+    <option name="TARGET_SELECTION_MODE" value="DEVICE_AND_SNAPSHOT_COMBO" />
+    <option name="USE_LAST_SELECTED_DEVICE" value="true" />
+    <method v="2">
+      <option name="Android.Gradle.BeforeRun" enabled="true" />
+    </method>
+  </configuration>
+</component>

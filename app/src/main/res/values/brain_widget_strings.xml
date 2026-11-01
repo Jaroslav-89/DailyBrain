@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="brain_widget_base_title">Мозг готов к старту</string>
+    <string name="brain_widget_base_subtitle">Пора немного потренироваться</string>
+    <string name="brain_widget_sour_title">Мозг ждёт тренировку</string>
+    <string name="brain_widget_sour_subtitle">День подходит к концу — ещё успеваешь</string>
+    <string name="brain_widget_image_description">Настроение мозга DailyBrain</string>
+</resources>

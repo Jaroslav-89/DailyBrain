@@ -1,0 +1,43 @@
+package com.jaroapps.dailybrain.core.database.entity
+
+import androidx.room.ColumnInfo
+import androidx.room.Entity
+import androidx.room.Index
+import androidx.room.PrimaryKey
+
+@Entity(
+    tableName = "user_profile",
+    indices = [
+        Index(value = ["localAccountId"], unique = true),
+        Index(value = ["googleSubject"], unique = true),
+    ],
+)
+data class UserProfileEntity(
+    @PrimaryKey(autoGenerate = true) val id: Int = 0,
+    val localAccountId: String,
+    val firebaseUid: String? = null,
+    val displayName: String? = null,
+    val generatedAlias: String,
+    val gender: String? = null,
+    /** ISO-8601 calendar date (yyyy-MM-dd), not an epoch timestamp. */
+    val birthDate: String? = null,
+    val country: String? = null,
+    val city: String? = null,
+    val createdAtEpochMs: Long,
+    val updatedAtEpochMs: Long,
+    /** Versioned, local-only avatar configuration JSON. */
+    val avatarJson: String? = null,
+    /** Stable Google account subject (OIDC sub), unique across local profiles on this device. */
+    val googleSubject: String? = null,
+    val googleEmail: String? = null,
+    val googleDisplayName: String? = null,
+    val googlePhotoUrl: String? = null,
+    /** Cached handle owned by firebaseUid; null for profiles without Google authentication. */
+    val username: String? = null,
+    /** Cached cloud invite code; null until fetched or after Google account unlink. */
+    val inviteCode: String? = null,
+    @ColumnInfo(defaultValue = "0") val xpPoints: Int = 0,
+    @ColumnInfo(defaultValue = "0") val endorphinBalance: Int = 0,
+    @ColumnInfo(defaultValue = "0") val patchCount: Int = 0,
+    @ColumnInfo(defaultValue = "0") val rewardsInitialized: Boolean = false,
+)

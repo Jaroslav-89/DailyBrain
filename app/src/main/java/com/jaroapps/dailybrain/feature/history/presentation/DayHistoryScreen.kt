@@ -1,0 +1,243 @@
+package com.jaroapps.dailybrain.feature.history.presentation
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Card
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.model.TrainingSession
+import org.koin.androidx.compose.koinViewModel
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.util.Locale
+
+@Composable
+fun DayHistoryScreen(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: DayHistoryViewModel = koinViewModel(),
+) {
+    val sessions by viewModel.sessions.collectAsState()
+    val date = viewModel.date
+    var sessionToDelete by remember { mutableStateOf<TrainingSession?>(null) }
+
+    val dateFormatter = DateTimeFormatter
+        .ofPattern("d MMMM yyyy", Locale.getDefault())
+    val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+    val zone = ZoneId.systemDefault()
+
+    sessionToDelete?.let { session ->
+        AlertDialog(
+            onDismissRequest = { sessionToDelete = null },
+            title = { Text(stringResource(R.string.history_delete_title)) },
+            text = { Text(stringResource(R.string.history_delete_warning)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        viewModel.deleteTraining(session.id)
+                        sessionToDelete = null
+                    },
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { sessionToDelete = null }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(16.dp),
+    ) {
+        IconButton(onClick = onBack) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.action_close),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+
+        Text(
+            text = date.format(dateFormatter)
+                .replaceFirstChar { it.uppercase(Locale.getDefault()) },
+            style = MaterialTheme.typography.headlineSmall,
+        )
+
+        Spacer(Modifier.size(8.dp))
+
+        Text(
+            text = if (sessions.isEmpty()) {
+                stringResource(R.string.history_no_trainings)
+            } else {
+                pluralStringResource(
+                    R.plurals.history_training_count,
+                    sessions.size,
+                    sessions.size,
+                )
+            },
+            style = MaterialTheme.typography.bodyLarge,
+        )
+
+        Spacer(Modifier.size(16.dp))
+
+        if (sessions.isEmpty()) {
+            Text(
+                text = stringResource(R.string.history_empty_day),
+                style = MaterialTheme.typography.bodyMedium,
+            )
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                items(
+                    items = sessions,
+                    key = { it.id },
+                ) { session ->
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .animateItem(
+                                fadeInSpec = tween(durationMillis = 180),
+                                placementSpec = tween(durationMillis = 280),
+                                fadeOutSpec = tween(durationMillis = 180),
+                            ),
+                    ) {
+                        Box {
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                            ) {
+                                val exerciseType = ExerciseType.fromStorage(session.exerciseType)
+                                val exerciseName = when (exerciseType) {
+                                    ExerciseType.ARITHMETIC -> stringResource(R.string.exercise_arithmetic)
+                                    ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
+                                    ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
+                                    ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
+                                    null -> session.exerciseType
+                                }
+
+                                Text(
+                                    text = exerciseName,
+                                    style = MaterialTheme.typography.titleMedium,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(end = 40.dp),
+                                )
+
+                                Spacer(Modifier.size(8.dp))
+
+                                val finishedTime = Instant
+                                    .ofEpochMilli(session.finishedAtEpochMs)
+                                    .atZone(zone)
+                                    .format(timeFormatter)
+
+                                Text(stringResource(R.string.label_finished_at, finishedTime))
+
+                                Spacer(Modifier.size(4.dp))
+
+                                Text(
+                                    stringResource(
+                                        R.string.label_duration,
+                                        formatDuration(session.durationMs),
+                                    )
+                                )
+
+                                if (
+                                    exerciseType != ExerciseType.COUNTING_TRAINING &&
+                                    exerciseType != ExerciseType.STROOP_TEST
+                                ) {
+                                    Spacer(Modifier.size(4.dp))
+
+                                    Text(
+                                        stringResource(
+                                            R.string.history_accuracy,
+                                            String.format(
+                                                Locale.getDefault(),
+                                                "%.0f",
+                                                session.accuracyPercent,
+                                            ),
+                                        )
+                                    )
+
+                                    Spacer(Modifier.size(4.dp))
+                                }
+
+                                if (
+                                    exerciseType != ExerciseType.COUNTING_TRAINING &&
+                                    exerciseType != ExerciseType.STROOP_TEST
+                                ) {
+                                    Text(
+                                        stringResource(
+                                            R.string.history_correct_answers,
+                                            session.correctCount,
+                                            session.taskCount,
+                                        )
+                                    )
+                                }
+                            }
+
+                            IconButton(
+                                onClick = { sessionToDelete = session },
+                                modifier = Modifier.align(Alignment.TopEnd),
+                            ) {
+                                Text(
+                                    text = "×",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = MaterialTheme.colorScheme.error,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun formatDuration(durationMs: Long): String {
+    val totalSeconds = durationMs.coerceAtLeast(0L) / 1_000
+    val minutes = totalSeconds / 60
+    val seconds = totalSeconds % 60
+
+    return if (minutes > 0) {
+        stringResource(R.string.statistics_duration_minutes, minutes, seconds)
+    } else {
+        stringResource(R.string.statistics_duration_seconds, seconds)
+    }
+}

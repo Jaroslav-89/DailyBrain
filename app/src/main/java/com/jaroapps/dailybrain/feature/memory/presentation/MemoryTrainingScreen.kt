@@ -1,0 +1,478 @@
+package com.jaroapps.dailybrain.feature.memory.presentation
+
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.foundation.layout.size
+import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.LinearProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.stringResource
+import com.jaroapps.dailybrain.R
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.jaroapps.dailybrain.feature.memory.domain.model.MemoryTrainingResult
+import com.jaroapps.dailybrain.core.presentation.ExerciseExitConfirmationDialog
+import org.koin.androidx.compose.koinViewModel
+
+@Composable
+fun MemoryTrainingScreen(
+    onExit: () -> Unit,
+    viewModel: MemoryTrainingViewModel = koinViewModel()
+) {
+    val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showExitConfirmation by remember { mutableStateOf(false) }
+    val requestExit = { showExitConfirmation = true }
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_START -> viewModel.onAppResumed()
+                Lifecycle.Event.ON_STOP -> viewModel.onAppPaused()
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+
+        if (lifecycleOwner.lifecycle.currentState.isAtLeast(
+                Lifecycle.State.STARTED
+            )
+        ) {
+            viewModel.onAppResumed()
+        }
+
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.onAppPaused()
+        }
+    }
+
+    BackHandler {
+        if (state is MemoryTrainingUiState.Result) onExit()
+        else showExitConfirmation = true
+    }
+
+    when (val currentState = state) {
+        MemoryTrainingUiState.Loading -> {
+            LoadingContent()
+        }
+
+        is MemoryTrainingUiState.Memorizing -> {
+            MemorizingContent(
+                words = currentState.words.map { it.text },
+                progress = currentState.progress,
+                onStartRecall = viewModel::startRecallEarly,
+                onExit = requestExit
+            )
+        }
+
+        is MemoryTrainingUiState.Recall -> {
+            RecallContent(
+                answers = currentState.answers,
+                isSaving = currentState.isSaving,
+                errorMessage = currentState.errorMessage,
+                onAnswerChanged = viewModel::updateAnswer,
+                onCheck = viewModel::checkAnswers,
+                onExit = requestExit
+            )
+        }
+
+        is MemoryTrainingUiState.Result -> {
+            ResultContent(
+                result = currentState.result,
+                onExit = onExit
+            )
+        }
+
+        is MemoryTrainingUiState.Error -> {
+            ErrorContent(
+                message = currentState.message,
+                onExit = requestExit
+            )
+        }
+    }
+
+    ExerciseExitConfirmationDialog(
+        visible = showExitConfirmation,
+        onDismiss = { showExitConfirmation = false },
+        onConfirmExit = {
+            showExitConfirmation = false
+            onExit()
+        },
+    )
+}
+
+@Composable
+private fun LoadingContent() {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        CircularProgressIndicator()
+        Spacer(Modifier.height(16.dp))
+        Text(stringResource(R.string.memory_loading))
+    }
+}
+
+@Composable
+private fun MemorizingContent(
+    words: List<String>,
+    progress: Float,
+    onStartRecall: () -> Unit,
+    onExit: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 20.dp, vertical = 16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(onClick = onExit) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+            Spacer(Modifier.weight(1f))
+            OutlinedButton(onClick = onStartRecall) {
+                Text(stringResource(R.string.memory_start_recall))
+            }
+        }
+
+        Text(
+            text = stringResource(R.string.memory_title),
+            modifier = Modifier.padding(top = 12.dp),
+            style = MaterialTheme.typography.titleLarge
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        LinearProgressIndicator(
+            progress = { progress },
+            modifier = Modifier.fillMaxWidth()
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.memory_instruction),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+        Spacer(Modifier.height(16.dp))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            itemsIndexed(words) { index, word ->
+                Card(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "${index + 1}.",
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                        Spacer(Modifier.height(0.dp))
+                        Text(
+                            text = word,
+                            modifier = Modifier.padding(start = 12.dp),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                    }
+                }
+            }
+        }
+
+        Text(
+            text = stringResource(R.string.memory_progress_hint),
+            modifier = Modifier.padding(top = 12.dp),
+            style = MaterialTheme.typography.bodySmall
+        )
+    }
+}
+
+@Composable
+private fun RecallContent(
+    answers: List<String>,
+    isSaving: Boolean,
+    errorMessage: String?,
+    onAnswerChanged: (Int, String) -> Unit,
+    onCheck: () -> Unit,
+    onExit: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            IconButton(
+                onClick = onExit,
+                enabled = !isSaving,
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Close,
+                    contentDescription = stringResource(R.string.action_close),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
+
+            Spacer(Modifier.weight(1f))
+
+            Text(
+                text = stringResource(R.string.memory_recall_title),
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = stringResource(R.string.memory_recall_instruction),
+            style = MaterialTheme.typography.bodyMedium
+        )
+
+        Spacer(Modifier.height(12.dp))
+
+        LazyColumn(
+            modifier = Modifier.weight(1f),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            itemsIndexed(answers) { index, answer ->
+                OutlinedTextField(
+                    value = answer,
+                    onValueChange = { onAnswerChanged(index, it) },
+                    modifier = Modifier.fillMaxWidth(),
+                    label = { Text(stringResource(R.string.memory_word_number, index + 1)) },
+                    singleLine = true,
+                    enabled = !isSaving
+                )
+            }
+        }
+
+        if (errorMessage != null) {
+            Text(
+                text = errorMessage,
+                modifier = Modifier.padding(vertical = 8.dp),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Button(
+            onClick = onCheck,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(top = 8.dp),
+            enabled = !isSaving
+        ) {
+            if (isSaving) {
+                CircularProgressIndicator(
+                    modifier = Modifier.height(20.dp),
+                    strokeWidth = 2.dp
+                )
+                Text(
+                    text = stringResource(R.string.status_saving),
+                    modifier = Modifier.padding(start = 12.dp)
+                )
+            } else {
+                Text(stringResource(R.string.action_check_answers))
+            }
+        }
+    }
+}
+
+@Composable
+private fun ResultContent(
+    result: MemoryTrainingResult,
+    onExit: () -> Unit
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        item {
+            Text(
+                text = stringResource(R.string.memory_result_title),
+                style = MaterialTheme.typography.headlineMedium
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                text = stringResource(R.string.memory_score, result.correctCount, result.shownWords.size),
+                style = MaterialTheme.typography.headlineLarge,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = stringResource(R.string.memory_accuracy, result.accuracyPercent),
+                style = MaterialTheme.typography.titleMedium
+            )
+            Spacer(Modifier.height(12.dp))
+            Button(
+                onClick = onExit,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(stringResource(R.string.action_finish))
+            }
+        }
+
+        item {
+            Text(
+                text = stringResource(R.string.memory_recalled, result.recalledWords.size),
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+
+        if (result.recalledWords.isEmpty()) {
+            item { Text(stringResource(R.string.memory_no_recalled)) }
+        } else {
+            itemsIndexed(result.recalledWords) { _, word ->
+                Text(
+                    text = stringResource(R.string.memory_recalled_word, word.text),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+        }
+
+        if (result.repeatedWords.isNotEmpty()) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = stringResource(
+                        R.string.memory_repeated,
+                        result.repeatedWords.size
+                    ),
+                    style = MaterialTheme.typography.titleLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            itemsIndexed(result.repeatedWords) { _, word ->
+                Text(
+                    text = stringResource(R.string.memory_repeated_word, word),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(
+                    R.string.memory_incorrect,
+                    result.incorrectWords.size
+                ),
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.error
+            )
+        }
+
+        if (result.incorrectWords.isEmpty()) {
+            item { Text(stringResource(R.string.memory_no_incorrect)) }
+        } else {
+            itemsIndexed(result.incorrectWords) { _, word ->
+                Text(
+                    text = stringResource(R.string.memory_incorrect_word, word),
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+        }
+
+        item {
+            Spacer(Modifier.height(8.dp))
+            Text(
+                text = stringResource(R.string.memory_missed, result.missedWords.size),
+                style = MaterialTheme.typography.titleLarge
+            )
+        }
+
+        if (result.missedWords.isEmpty()) {
+            item { Text(stringResource(R.string.memory_all_recalled)) }
+        } else {
+            itemsIndexed(result.missedWords) { _, word ->
+                Text(
+                    text = stringResource(R.string.memory_missed_word, word.text),
+                    modifier = Modifier.padding(vertical = 3.dp)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun ErrorContent(
+    message: String,
+    onExit: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(24.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = stringResource(R.string.error_start_training),
+            style = MaterialTheme.typography.titleLarge
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(message, color = MaterialTheme.colorScheme.error)
+        Spacer(Modifier.height(24.dp))
+        IconButton(onClick = onExit) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.action_close),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+    }
+}
