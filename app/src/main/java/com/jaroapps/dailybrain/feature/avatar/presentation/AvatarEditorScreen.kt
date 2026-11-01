@@ -36,6 +36,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -49,6 +50,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import org.koin.androidx.compose.koinViewModel
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 
 private val editorTabs = AvatarEditorTab.values().toList()
 
@@ -61,6 +65,17 @@ fun AvatarEditorScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val avatar = state.configuration
+    val editorTabs = remember(state.ownedCosmetics) {
+        AvatarEditorTab.values().filter { tab ->
+            when (tab) {
+                AvatarEditorTab.COSTUMES ->
+                    state.ownedCosmetics.any { it.type == AvatarCosmeticType.COSTUME }
+                AvatarEditorTab.BACKGROUND_SCENES ->
+                    state.ownedCosmetics.any { it.type == AvatarCosmeticType.BACKGROUND }
+                else -> true
+            }
+        }
+    }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
 
     Scaffold(
@@ -181,6 +196,24 @@ fun AvatarEditorScreen(
                         onSelected = { viewModel.updateConfiguration(avatar.copy(backgroundId = it)) },
                     )
 
+                    AvatarEditorTab.COSTUMES -> AvatarCosmeticOptions(
+                        title = "Купленные костюмы",
+                        items = AvatarCosmeticCatalog.costumes.filter { item ->
+                            state.ownedCosmetics.any { it.type == AvatarCosmeticType.COSTUME && it.itemId == item.id }
+                        },
+                        selectedId = avatar.costumeId,
+                        onSelected = { viewModel.updateConfiguration(avatar.copy(costumeId = it)) },
+                    )
+
+                    AvatarEditorTab.BACKGROUND_SCENES -> AvatarCosmeticOptions(
+                        title = "Купленные фоны",
+                        items = AvatarCosmeticCatalog.backgrounds.filter { item ->
+                            state.ownedCosmetics.any { it.type == AvatarCosmeticType.BACKGROUND && it.itemId == item.id }
+                        },
+                        selectedId = avatar.backgroundSceneId,
+                        onSelected = { viewModel.updateConfiguration(avatar.copy(backgroundSceneId = it)) },
+                    )
+
                     AvatarEditorTab.OTHER -> {
                         OptionRow("Выражение лица", avatar.mouthStyleId, listOf(1 to "Улыбка", 2 to "Спокойное")) {
                             viewModel.updateConfiguration(avatar.copy(mouthStyleId = it))
@@ -266,6 +299,57 @@ private fun OptionRow(
                     Button(onClick = { onSelected(id) }) { Text(label, maxLines = 1) }
                 } else {
                     OutlinedButton(onClick = { onSelected(id) }) { Text(label, maxLines = 1) }
+                }
+            }
+        }
+    }
+}
+
+
+@Composable
+private fun AvatarCosmeticOptions(
+    title: String,
+    items: List<AvatarCosmeticItem>,
+    selectedId: String?,
+    onSelected: (String?) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(title, style = MaterialTheme.typography.titleSmall)
+        Row(
+            modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(
+                modifier = Modifier.width(96.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                OutlinedButton(onClick = { onSelected(null) }) { Text("Без предмета") }
+                Text("Стандартный", style = MaterialTheme.typography.bodySmall)
+            }
+            items.forEach { item ->
+                val selected = selectedId == item.id
+                Column(
+                    modifier = Modifier.width(108.dp).clickable { onSelected(item.id) },
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(5.dp),
+                ) {
+                    androidx.compose.material3.Surface(
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.surfaceVariant,
+                        border = androidx.compose.foundation.BorderStroke(
+                            if (selected) 3.dp else 1.dp,
+                            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                    ) {
+                        AvatarAssetPreview(
+                            assetPath = item.assetPath,
+                            contentDescription = item.displayName,
+                            centerCrop = item.type == AvatarCosmeticType.BACKGROUND,
+                            modifier = Modifier.size(width = 100.dp, height = 112.dp).padding(4.dp),
+                        )
+                    }
+                    Text(item.displayName, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 }
             }
         }
