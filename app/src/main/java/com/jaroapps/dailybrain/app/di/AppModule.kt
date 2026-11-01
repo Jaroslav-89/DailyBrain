@@ -61,9 +61,12 @@ import com.jaroapps.dailybrain.feature.profile.data.repository.FirebaseUserDirec
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
 import com.jaroapps.dailybrain.feature.rewards.data.EndorphinRepositoryImpl
+import com.jaroapps.dailybrain.feature.rewards.data.RewardHistoryRepositoryImpl
 import com.jaroapps.dailybrain.feature.rewards.domain.repository.EndorphinRepository
+import com.jaroapps.dailybrain.feature.rewards.domain.repository.RewardHistoryRepository
 import com.jaroapps.dailybrain.feature.rewards.domain.usecase.ReceiveGiftEndorphinsUseCase
 import com.jaroapps.dailybrain.feature.rewards.domain.usecase.SpendEndorphinsUseCase
+import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryViewModel
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsViewModel
@@ -147,6 +150,10 @@ val appModule = module {
     }
     factory { SpendEndorphinsUseCase(repository = get()) }
     factory { ReceiveGiftEndorphinsUseCase(repository = get()) }
+    single<RewardHistoryRepository> {
+        RewardHistoryRepositoryImpl(database = get(), activeUserProvider = get())
+    }
+    viewModel { RewardHistoryViewModel(savedStateHandle = get(), repository = get()) }
 
     single<FeedRepository> {
         FeedRepositoryImpl(

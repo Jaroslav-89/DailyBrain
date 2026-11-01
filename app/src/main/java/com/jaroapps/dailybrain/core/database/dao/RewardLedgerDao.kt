@@ -5,9 +5,13 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RewardLedgerDao {
+    @Query("SELECT * FROM reward_ledger WHERE userId = :userId ORDER BY occurredAtEpochMs DESC, rewardKey DESC")
+    fun observeForUser(userId: String): Flow<List<RewardLedgerEntity>>
+
     @Query("SELECT * FROM reward_ledger WHERE userId = :userId")
     suspend fun getForUser(userId: String): List<RewardLedgerEntity>
 
