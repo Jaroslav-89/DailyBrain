@@ -86,7 +86,7 @@ class FeedViewModel(
                 throw cancelled
             } catch (error: Exception) {
                 Log.e(LOG_TAG, "Feed refresh failed.", error)
-                val firestoreError = generateSequence(error) { it.cause }
+                val firestoreError = generateSequence<Throwable>(error) { it.cause }
                     .filterIsInstance<FirebaseFirestoreException>()
                     .firstOrNull()
                 val diagnosticCode = firestoreError?.code?.name
