@@ -87,6 +87,53 @@ class WeeklyAchievementRulesTest {
     }
 
     @Test
+    fun weeklyChallengeRewardsArePlannedForTwoConsecutiveCompletedWeeks() {
+        val secondWeekStart = weekStart.plusDays(7)
+        val exerciseTypesByDate = buildMap {
+            (0 until 7).forEach { offset ->
+                put(weekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+                put(secondWeekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+            }
+            put(weekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
+            put(weekStart.plusDays(2), setOf("ARITHMETIC", "STROOP_TEST"))
+            put(weekStart.plusDays(3), setOf("ARITHMETIC", "COUNTING_TRAINING"))
+            put(secondWeekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
+            put(secondWeekStart.plusDays(2), setOf("ARITHMETIC", "STROOP_TEST"))
+            put(secondWeekStart.plusDays(3), setOf("ARITHMETIC", "COUNTING_TRAINING"))
+        }
+
+        assertEquals(
+            listOf(weekStart, secondWeekStart),
+            WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+                exerciseTypesByDate = exerciseTypesByDate,
+                arithmeticExerciseType = "ARITHMETIC",
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ),
+        )
+    }
+
+    @Test
+    fun weeklyChallengeDoesNotCombineRequirementsFromDifferentWeeks() {
+        val secondWeekStart = weekStart.plusDays(7)
+        val exerciseTypesByDate = buildMap {
+            (0 until 7).forEach { offset ->
+                put(weekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+                put(secondWeekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+            }
+            put(weekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
+            put(secondWeekStart.plusDays(1), setOf("ARITHMETIC", "STROOP_TEST", "COUNTING_TRAINING"))
+        }
+
+        assertTrue(
+            WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+                exerciseTypesByDate = exerciseTypesByDate,
+                arithmeticExerciseType = "ARITHMETIC",
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ).isEmpty(),
+        )
+    }
+
+    @Test
     fun missingArithmeticOnAnyWeekDayPreventsWeeklyChallenge() {
         assertFalse(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(

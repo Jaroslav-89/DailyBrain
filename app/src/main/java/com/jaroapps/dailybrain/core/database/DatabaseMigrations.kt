@@ -566,4 +566,11 @@ object DatabaseMigrations {
             database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
         }
     }
+
+    /** Rebuild the complete earned-reward ledger for every profile from all saved sessions. */
+    val MIGRATION_18_19 = object : Migration(18, 19) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
+        }
+    }
 }

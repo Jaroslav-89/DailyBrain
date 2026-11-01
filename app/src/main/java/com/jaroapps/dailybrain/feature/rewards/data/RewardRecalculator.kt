@@ -188,47 +188,41 @@ object RewardRecalculator {
         // Weekly challenge: arithmetic is required on each of the seven dates in
         // this ISO week, plus all three additional exercise types within the same week.
         // The same eligibility predicate gates the XP and endorphin reward entries.
-        val sessionsByWeek = dated.groupBy { (date, _) ->
-            date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        }
-        sessionsByWeek.forEach { (weekStart, weekItems) ->
+        val exerciseTypesByDate = dated.groupBy({ it.first }, { it.second.exerciseType })
+            .mapValues { (_, exerciseTypes) -> exerciseTypes.toSet() }
+        val completedChallengeWeeks = WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+            exerciseTypesByDate = exerciseTypesByDate,
+            arithmeticExerciseType = ExerciseType.ARITHMETIC.storageValue,
+            requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
+        )
+        completedChallengeWeeks.forEach { weekStart ->
+            val weekEnd = weekStart.plusDays(WeeklyAchievementRules.REQUIRED_WEEK_DAYS - 1L)
+            val weekItems = dated.filter { (date, _) -> !date.isBefore(weekStart) && !date.isAfter(weekEnd) }
             val arithmeticSessionsByDate = weekItems
                 .filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
                 .groupBy({ it.first }, { it.second })
-            val arithmeticDates = arithmeticSessionsByDate.keys
-            val completedAdditionalTypes = weekItems
-                .map { (_, session) -> session.exerciseType }
-                .filter { it in knownNonArithmeticTypes }
-                .toSet()
-            val hasWeeklyChallenge = WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = arithmeticDates,
-                completedExerciseTypes = completedAdditionalTypes,
-                requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
-            )
-            if (hasWeeklyChallenge) {
-                // Timestamp the achievement at the last condition that was satisfied:
-                // one arithmetic workout on each day and one of every additional exercise.
-                val qualifyingSessions = mutableListOf<TrainingSessionEntity>()
-                for (offset in 0 until WeeklyAchievementRules.REQUIRED_WEEK_DAYS) {
-                    arithmeticSessionsByDate[weekStart.plusDays(offset.toLong())]
-                        ?.minByOrNull { it.finishedAtEpochMs }
-                        ?.let(qualifyingSessions::add)
-                }
-                knownNonArithmeticTypes.forEach { exerciseType ->
-                    weekItems.asSequence()
-                        .filter { it.second.exerciseType == exerciseType }
-                        .minByOrNull { it.second.finishedAtEpochMs }
-                        ?.second
-                        ?.let(qualifyingSessions::add)
-                }
-                val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
-                val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
-                val key = "weekly_challenge:$weekKey"
-                addReward(key, 100, EndorphinEconomy.WEEKLY_CHALLENGE_REWARD, "WEEKLY_CHALLENGE", trigger, weekKey)
-                addBadge(key, "WEEKLY_CHALLENGE", weekKey, trigger)
-                addEvent(key, "WEEKLY_CHALLENGE", trigger, weekKey)
+
+            // Timestamp the achievement at the last condition that was satisfied:
+            // one arithmetic workout on each day and one of every additional exercise.
+            val qualifyingSessions = mutableListOf<TrainingSessionEntity>()
+            for (offset in 0 until WeeklyAchievementRules.REQUIRED_WEEK_DAYS) {
+                arithmeticSessionsByDate[weekStart.plusDays(offset.toLong())]
+                    ?.minByOrNull { it.finishedAtEpochMs }
+                    ?.let(qualifyingSessions::add)
             }
+            knownNonArithmeticTypes.forEach { exerciseType ->
+                weekItems.asSequence()
+                    .filter { it.second.exerciseType == exerciseType }
+                    .minByOrNull { it.second.finishedAtEpochMs }
+                    ?.second
+                    ?.let(qualifyingSessions::add)
+            }
+            val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
+            val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
+            val key = "weekly_challenge:$weekKey"
+            addReward(key, 100, EndorphinEconomy.WEEKLY_CHALLENGE_REWARD, "WEEKLY_CHALLENGE", trigger, weekKey)
+            addBadge(key, "WEEKLY_CHALLENGE", weekKey, trigger)
+            addEvent(key, "WEEKLY_CHALLENGE", trigger, weekKey)
         }
 
         // A monthly series, like the calendar day streak, accepts any exercise type.
