@@ -229,8 +229,9 @@ service cloud.firestore {
         && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
     match /feedEvents/{eventId} {
-      // The client queries followed authors in batches of nine so rule document-access
-      // calls remain below Firestore's per-query limit.
+      // Each author is queried separately with a maximum of ten events. This lets the
+      // equality filter and the canonical follows/{viewerUid_authorUid} document jointly
+      // satisfy the rule without broad whereIn queries.
       function isFollowingAuthor(authorUid) {
         // The follows document is the canonical relationship source; publicFollowing is
         // only a projection used for profile UI and may lag behind older relationship data.

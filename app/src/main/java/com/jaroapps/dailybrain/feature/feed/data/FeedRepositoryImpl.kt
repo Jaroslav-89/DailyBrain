@@ -247,7 +247,7 @@ class FeedRepositoryImpl(
 
     private fun requireCurrentFirebaseUser(app: FirebaseApp, uid: String) {
         check(FirebaseAuth.getInstance(app).currentUser?.uid == uid) {
-            "The active Firebase account does not match the selected local profile."
+            "FIREBASE_SESSION_MISMATCH: the active Firebase account does not match the selected local profile."
         }
     }
 
