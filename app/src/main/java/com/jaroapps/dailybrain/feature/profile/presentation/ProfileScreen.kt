@@ -37,7 +37,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -59,13 +58,9 @@ import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
-import org.koin.androidx.compose.koinInject
-import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
-import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -85,15 +80,12 @@ fun ProfileScreen(
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val collectiblesRepository: ProfileCollectiblesRepository = koinInject()
-    val collectibles by collectiblesRepository.observeOwn().collectAsStateWithLifecycle(initialValue = emptyList())
-    val giftDeliveryRepository: GiftDeliveryRepository = koinInject()
+    val collectibles by viewModel.collectibles.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
-    val coroutineScope = rememberCoroutineScope()
-    DisposableEffect(lifecycleOwner, giftDeliveryRepository) {
+    DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                coroutineScope.launch { runCatching { giftDeliveryRepository.syncIncoming() } }
+                viewModel.refreshIncomingGifts()
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)

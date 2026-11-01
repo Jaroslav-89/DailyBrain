@@ -21,8 +21,8 @@ class CollectibleDetailViewModel(
     savedStateHandle: SavedStateHandle,
     private val repository: ProfileCollectiblesRepository,
 ) : ViewModel() {
-    private val ownerUid: String = savedStateHandle["ownerUid"] ?: "local"
-    private val itemId: String = savedStateHandle["itemId"].orEmpty()
+    private val ownerUid: String = savedStateHandle.get<String>("ownerUid") ?: "local"
+    private val itemId: String = savedStateHandle.get<String>("itemId").orEmpty()
     private val kind: ProfileCollectibleKind =
         ProfileCollectibleKind.entries.firstOrNull { it.name == savedStateHandle.get<String>("kind") }
             ?: ProfileCollectibleKind.GIFT

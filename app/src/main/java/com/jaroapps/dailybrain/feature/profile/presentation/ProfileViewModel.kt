@@ -8,6 +8,9 @@ import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectible
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
+import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
@@ -17,6 +20,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountU
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -57,6 +61,8 @@ class ProfileViewModel(
     private val switchActiveProfile: SwitchActiveProfileUseCase,
     private val deleteActiveProfile: DeleteActiveProfileUseCase,
     private val linkGoogleAccountUseCase: LinkGoogleAccountUseCase,
+    profileCollectiblesRepository: ProfileCollectiblesRepository,
+    private val giftDeliveryRepository: GiftDeliveryRepository,
 ) : ViewModel() {
     private val saving = MutableStateFlow(false)
     private val saveError = MutableStateFlow(false)
@@ -73,6 +79,13 @@ class ProfileViewModel(
         googleLinkDiagnostic,
     ) { hasSaveError, hasDeleteError, isLinking, linkError, diagnostic ->
         ProfileActionState(hasSaveError, hasDeleteError, isLinking, linkError, diagnostic)
+    }
+
+    val collectibles: StateFlow<List<ProfileCollectible>> = profileCollectiblesRepository.observeOwn()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    fun refreshIncomingGifts() {
+        viewModelScope.launch { runCatching { giftDeliveryRepository.syncIncoming() } }
     }
 
     val uiState: StateFlow<ProfileUiState> = combine(
