@@ -14,7 +14,7 @@ class WeeklyAchievementRulesTest {
 
     @Test
     fun weeklyStreakUsesAnyActiveCalendarDayRegardlessOfExerciseType() {
-        // These dates are supplied by training_days, which records all exercise types.
+        // These local dates are derived from completed sessions of all exercise types.
         assertEquals(
             listOf(weekStart.plusDays(6)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(weekDates),

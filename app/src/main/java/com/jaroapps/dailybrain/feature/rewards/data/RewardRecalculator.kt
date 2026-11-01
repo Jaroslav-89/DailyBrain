@@ -171,7 +171,7 @@ object RewardRecalculator {
         }
 
         // Weekly streak: any completed exercise marks the day as active.
-        // The dates come from training_days, the same index used to color the calendar.
+        // These dates use the same local completion timestamps as daily XP.
         var firstStreakCompletedAt: Long? = null
         WeeklyAchievementRules.weeklyStreakCompletionDates(activeTrainingDates).forEach { date ->
             // The first workout of the seventh active day is when the streak is completed.
@@ -232,7 +232,7 @@ object RewardRecalculator {
         }
 
         // A monthly series, like the calendar day streak, accepts any exercise type.
-        // Evaluate it from training_days rather than counting only session rows here.
+        // Evaluate it from the same local completed-session dates used by the daily streak.
         val trainingDatesByMonth = activeTrainingDates.groupBy { YearMonth.from(it) }
         trainingDatesByMonth.forEach { (month, trainedDates) ->
             val allDates = (1..month.lengthOfMonth()).map { month.atDay(it) }.toSet()
