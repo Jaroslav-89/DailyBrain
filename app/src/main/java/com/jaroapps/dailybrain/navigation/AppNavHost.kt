@@ -48,6 +48,7 @@ import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedScreen
+import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryScreen
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.AppOnboardingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.BrainTrainingArticleScreen
@@ -137,6 +138,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             composable(Route.HOME) {
                 HomeScreen(
                     onOpenCalendar = { navController.navigate(Route.CALENDAR) },
+                    onOpenRewardHistory = { currency -> navController.navigate(Route.rewardHistory(currency)) },
                     onStartTraining = { navController.navigate(Route.exerciseEntry("arithmetic")) },
                     onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
                     onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
@@ -297,6 +299,13 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
 
             composable(Route.AVATAR_EDITOR) {
                 AvatarEditorScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(
+                route = Route.REWARD_HISTORY,
+                arguments = listOf(navArgument("currency") { type = NavType.StringType }),
+            ) {
+                RewardHistoryScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.STATISTICS) {

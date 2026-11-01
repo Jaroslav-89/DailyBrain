@@ -13,6 +13,8 @@ interface TrainingSessionDao {
     fun observeAll(userId: String): Flow<List<TrainingSessionEntity>>
     @Query("SELECT COUNT(*) FROM training_sessions WHERE userId = :userId")
     fun observeTotalCount(userId: String): Flow<Int>
+    @Query("SELECT COUNT(*) FROM training_sessions WHERE userId = :userId AND date = :date")
+    suspend fun countByDate(userId: String, date: Int): Int
     @Query("SELECT MIN(startedAtEpochMs) FROM training_sessions WHERE userId = :userId")
     suspend fun getFirstTrainingStartedAtEpochMs(userId: String): Long?
     @Query("SELECT MIN(startedAtEpochMs) FROM training_sessions WHERE userId = :userId")

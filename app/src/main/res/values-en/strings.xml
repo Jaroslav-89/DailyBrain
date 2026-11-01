@@ -54,6 +54,7 @@
     <!-- Statistics screen -->
     <string name="statistics_title">Statistics</string>
     <string name="statistics_tagline">Your progress in Daily Brain</string>
+    <string name="statistics_overall_title">Overall statistics</string>
     <string name="statistics_tab_overall">Overall</string>
     <string name="statistics_total_trainings">Total trainings</string>
     <string name="statistics_last_seven_days">Last 7 days</string>
@@ -218,5 +219,38 @@
     <string name="rules_stroop">Name the colour of the text and ignore the meaning of the word. Focus on the colour of the letters. Work carefully at a comfortable pace.</string>
 
     <string name="splash_tagline">Your everyday brain trainer</string>
+
+    <string name="reward_history_title_xp">XP history</string>
+    <string name="reward_history_title_endorphins">Endorphin history</string>
+    <string name="reward_history_current_balance">Current balance</string>
+    <string name="reward_history_unit_xp">XP</string>
+    <string name="reward_history_unit_endorphins">endorphins</string>
+    <string name="reward_history_empty">No transactions yet</string>
+    <string name="reward_history_reason_other">Balance operation</string>
+    <string name="reward_reason_first_arithmetic">First arithmetic workout of the day</string>
+    <string name="reward_reason_repeat_arithmetic">Additional arithmetic workout that day</string>
+    <string name="reward_reason_first_exercise_week">First exercise of this type this week</string>
+    <string name="reward_reason_first_exercise_week_with_type">First %1$s exercise of the week</string>
+    <string name="reward_reason_weekly_streak">Seven-day training streak</string>
+    <string name="reward_reason_weekly_challenge">Weekly challenge completed</string>
+    <string name="reward_reason_monthly_streak">Month of daily training</string>
+    <string name="reward_reason_personal_record">New arithmetic personal record</string>
+    <string name="reward_reason_personal_record_with_time">New arithmetic personal record — %1$s</string>
+    <string name="reward_history_exercise">Exercise: %1$s</string>
+    <string name="reward_history_duration_hours">%1$d hr %2$d min %3$d sec</string>
+    <string name="reward_history_duration_minutes">%1$d min %2$d sec</string>
+    <string name="reward_history_duration_seconds">%1$d sec</string>
+    <string name="reward_reason_patch_purchase">Missed-day patch purchase</string>
+    <string name="reward_reason_gift_purchase">Gift purchase</string>
+    <string name="reward_reason_costume_purchase">Costume purchase</string>
+    <string name="reward_reason_background_purchase">Background purchase</string>
+    <string name="reward_reason_gift_candy">Candy received</string>
+    <string name="reward_reason_gift_coffee">Coffee received</string>
+    <string name="reward_reason_gift_croissant">Croissant received</string>
+    <string name="reward_reason_gift_hamburger">Hamburger received</string>
+    <string name="reward_reason_gift_cake">Cake received</string>
+
+    <string name="reward_history_week_title">Week: %1$s</string>
+    <string name="reward_history_week_change">(%1$s %2$s for the week)</string>
 
 </resources>

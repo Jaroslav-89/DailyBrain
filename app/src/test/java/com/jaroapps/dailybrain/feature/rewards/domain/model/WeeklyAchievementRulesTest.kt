@@ -14,7 +14,7 @@ class WeeklyAchievementRulesTest {
 
     @Test
     fun weeklyStreakUsesAnyActiveCalendarDayRegardlessOfExerciseType() {
-        // These dates are supplied by training_days, which records all exercise types.
+        // These local dates are derived from completed sessions of all exercise types.
         assertEquals(
             listOf(weekStart.plusDays(6)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(weekDates),
@@ -51,6 +51,30 @@ class WeeklyAchievementRulesTest {
     }
 
     @Test
+    fun streakStartingOnWednesdayCrossesMondayAndRewardsEverySeventhActiveDate() {
+        val wednesdayStart = LocalDate.of(2026, 10, 28)
+        // Eight active dates: Wednesday through the following Wednesday.
+        // Day seven is Tuesday; Monday does not reset the rolling streak.
+        val dates = (0..7).map { wednesdayStart.plusDays(it.toLong()) }
+
+        assertEquals(
+            listOf(wednesdayStart.plusDays(6)),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(dates),
+        )
+    }
+
+    @Test
+    fun streakStartingOnWednesdayRepeatsAfterAnotherSevenActiveDates() {
+        val wednesdayStart = LocalDate.of(2026, 10, 28)
+        val fifteenDates = (0..14).map { wednesdayStart.plusDays(it.toLong()) }
+
+        assertEquals(
+            listOf(wednesdayStart.plusDays(6), wednesdayStart.plusDays(13)),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(fifteenDates),
+        )
+    }
+
+    @Test
     fun weeklyChallengeRequiresArithmeticEveryDayAndAllThreeAdditionalExercises() {
         assertTrue(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
@@ -63,11 +87,59 @@ class WeeklyAchievementRulesTest {
     }
 
     @Test
+    fun weeklyChallengeRewardsArePlannedForTwoConsecutiveCompletedWeeks() {
+        val secondWeekStart = weekStart.plusDays(7)
+        val exerciseTypesByDate = buildMap {
+            (0 until 7).forEach { offset ->
+                put(weekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+                put(secondWeekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+            }
+            put(weekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
+            put(weekStart.plusDays(2), setOf("ARITHMETIC", "STROOP_TEST"))
+            put(weekStart.plusDays(3), setOf("ARITHMETIC", "COUNTING_TRAINING"))
+            put(secondWeekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
+            put(secondWeekStart.plusDays(2), setOf("ARITHMETIC", "STROOP_TEST"))
+            put(secondWeekStart.plusDays(3), setOf("ARITHMETIC", "COUNTING_TRAINING"))
+        }
+
+        assertEquals(
+            listOf(weekStart, secondWeekStart),
+            WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+                exerciseTypesByDate = exerciseTypesByDate,
+                arithmeticExerciseType = "ARITHMETIC",
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ),
+        )
+    }
+
+    @Test
+    fun weeklyChallengeDoesNotCombineRequirementsFromDifferentWeeks() {
+        val secondWeekStart = weekStart.plusDays(7)
+        val exerciseTypesByDate = buildMap {
+            (0 until 7).forEach { offset ->
+                put(weekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+                put(secondWeekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
+            }
+            put(weekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
+            put(secondWeekStart.plusDays(1), setOf("ARITHMETIC", "STROOP_TEST", "COUNTING_TRAINING"))
+        }
+
+        assertTrue(
+            WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+                exerciseTypesByDate = exerciseTypesByDate,
+                arithmeticExerciseType = "ARITHMETIC",
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ).isEmpty(),
+        )
+    }
+
+    @Test
     fun missingArithmeticOnAnyWeekDayPreventsWeeklyChallenge() {
         assertFalse(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
                 weekStart = weekStart,
-                arithmeticTrainingDates = weekDates - weekStart.plusDays(4),
+                // The following Monday cannot replace a missing day inside this Monday-Sunday week.
+                arithmeticTrainingDates = weekDates - weekStart.plusDays(4) + weekStart.plusDays(7),
                 completedExerciseTypes = additionalTypes,
                 requiredAdditionalExerciseTypes = additionalTypes,
             ),

@@ -8,9 +8,9 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
 import com.jaroapps.dailybrain.core.database.entity.UserBadgeEntity
+import com.jaroapps.dailybrain.core.utils.localDateAtEpochMillis
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 import java.time.temporal.WeekFields
@@ -36,26 +36,20 @@ object RewardRecalculator {
     suspend fun recalculate(database: AppDatabase, localAccountId: String) {
         val sessions = database.trainingSessionDao().getAll(localAccountId)
         val profile = database.userProfileDao().getProfile(localAccountId) ?: return
-        val ordered = sessions.sortedWith(compareBy<TrainingSessionEntity>({ it.date }, { it.finishedAtEpochMs }, { it.id }))
-        val dated = ordered.mapNotNull { session ->
-            runCatching {
-                LocalDate.parse(session.date.toString(), DateTimeFormatter.BASIC_ISO_DATE) to session
-            }.getOrNull()
+        // Derive reward days from the actual completion timestamp in the device's current
+        // local zone. This also repairs legacy rows whose stored date used a different zone.
+        val ordered = sessions.sortedWith(compareBy<TrainingSessionEntity>({ it.finishedAtEpochMs }, { it.id }))
+        val dated = ordered.map { session ->
+            localDateAtEpochMillis(session.finishedAtEpochMs) to session
         }
 
         val drafts = mutableListOf<RewardDraft>()
         val desiredBadges = linkedMapOf<String, UserBadgeEntity>()
         val desiredEvents = linkedMapOf<String, FeedEventEntity>()
         val sessionsByDate = dated.groupBy({ it.first }, { it.second })
-        // training_days is the calendar's source of truth: any completed exercise type
-        // makes the date active and therefore contributes to the day streak.
-        val activeTrainingDates = database.trainingDayDao().getAll(localAccountId)
-            .mapNotNull { day ->
-                runCatching {
-                    LocalDate.parse(day.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
-                }.getOrNull()
-            }
-            .toSet()
+        // Every completed workout has a session row. Use the same local timestamp dates
+        // for active days, daily XP, streaks, and monthly achievements.
+        val activeTrainingDates = dated.mapTo(mutableSetOf()) { it.first }
         val existingLocalEvents = database.feedEventDao().getLocalEvents(localAccountId).associateBy { it.eventId }
 
         fun addReward(
@@ -177,7 +171,7 @@ object RewardRecalculator {
         }
 
         // Weekly streak: any completed exercise marks the day as active.
-        // The dates come from training_days, the same index used to color the calendar.
+        // These dates use the same local completion timestamps as daily XP.
         var firstStreakCompletedAt: Long? = null
         WeeklyAchievementRules.weeklyStreakCompletionDates(activeTrainingDates).forEach { date ->
             // The first workout of the seventh active day is when the streak is completed.
@@ -194,51 +188,45 @@ object RewardRecalculator {
         // Weekly challenge: arithmetic is required on each of the seven dates in
         // this ISO week, plus all three additional exercise types within the same week.
         // The same eligibility predicate gates the XP and endorphin reward entries.
-        val sessionsByWeek = dated.groupBy { (date, _) ->
-            date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
-        }
-        sessionsByWeek.forEach { (weekStart, weekItems) ->
+        val exerciseTypesByDate = dated.groupBy({ it.first }, { it.second.exerciseType })
+            .mapValues { (_, exerciseTypes) -> exerciseTypes.toSet() }
+        val completedChallengeWeeks = WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+            exerciseTypesByDate = exerciseTypesByDate,
+            arithmeticExerciseType = ExerciseType.ARITHMETIC.storageValue,
+            requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
+        )
+        completedChallengeWeeks.forEach { weekStart ->
+            val weekEnd = weekStart.plusDays(WeeklyAchievementRules.REQUIRED_WEEK_DAYS - 1L)
+            val weekItems = dated.filter { (date, _) -> !date.isBefore(weekStart) && !date.isAfter(weekEnd) }
             val arithmeticSessionsByDate = weekItems
                 .filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
                 .groupBy({ it.first }, { it.second })
-            val arithmeticDates = arithmeticSessionsByDate.keys
-            val completedAdditionalTypes = weekItems
-                .map { (_, session) -> session.exerciseType }
-                .filter { it in knownNonArithmeticTypes }
-                .toSet()
-            val hasWeeklyChallenge = WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = arithmeticDates,
-                completedExerciseTypes = completedAdditionalTypes,
-                requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
-            )
-            if (hasWeeklyChallenge) {
-                // Timestamp the achievement at the last condition that was satisfied:
-                // one arithmetic workout on each day and one of every additional exercise.
-                val qualifyingSessions = mutableListOf<TrainingSessionEntity>()
-                for (offset in 0 until WeeklyAchievementRules.REQUIRED_WEEK_DAYS) {
-                    arithmeticSessionsByDate[weekStart.plusDays(offset.toLong())]
-                        ?.minByOrNull { it.finishedAtEpochMs }
-                        ?.let(qualifyingSessions::add)
-                }
-                knownNonArithmeticTypes.forEach { exerciseType ->
-                    weekItems.asSequence()
-                        .filter { it.second.exerciseType == exerciseType }
-                        .minByOrNull { it.second.finishedAtEpochMs }
-                        ?.second
-                        ?.let(qualifyingSessions::add)
-                }
-                val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
-                val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
-                val key = "weekly_challenge:$weekKey"
-                addReward(key, 100, EndorphinEconomy.WEEKLY_CHALLENGE_REWARD, "WEEKLY_CHALLENGE", trigger, weekKey)
-                addBadge(key, "WEEKLY_CHALLENGE", weekKey, trigger)
-                addEvent(key, "WEEKLY_CHALLENGE", trigger, weekKey)
+
+            // Timestamp the achievement at the last condition that was satisfied:
+            // one arithmetic workout on each day and one of every additional exercise.
+            val qualifyingSessions = mutableListOf<TrainingSessionEntity>()
+            for (offset in 0 until WeeklyAchievementRules.REQUIRED_WEEK_DAYS) {
+                arithmeticSessionsByDate[weekStart.plusDays(offset.toLong())]
+                    ?.minByOrNull { it.finishedAtEpochMs }
+                    ?.let(qualifyingSessions::add)
             }
+            knownNonArithmeticTypes.forEach { exerciseType ->
+                weekItems.asSequence()
+                    .filter { it.second.exerciseType == exerciseType }
+                    .minByOrNull { it.second.finishedAtEpochMs }
+                    ?.second
+                    ?.let(qualifyingSessions::add)
+            }
+            val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
+            val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
+            val key = "weekly_challenge:$weekKey"
+            addReward(key, 100, EndorphinEconomy.WEEKLY_CHALLENGE_REWARD, "WEEKLY_CHALLENGE", trigger, weekKey)
+            addBadge(key, "WEEKLY_CHALLENGE", weekKey, trigger)
+            addEvent(key, "WEEKLY_CHALLENGE", trigger, weekKey)
         }
 
         // A monthly series, like the calendar day streak, accepts any exercise type.
-        // Evaluate it from training_days rather than counting only session rows here.
+        // Evaluate it from the same local completed-session dates used by the daily streak.
         val trainingDatesByMonth = activeTrainingDates.groupBy { YearMonth.from(it) }
         trainingDatesByMonth.forEach { (month, trainedDates) ->
             val allDates = (1..month.lengthOfMonth()).map { month.atDay(it) }.toSet()

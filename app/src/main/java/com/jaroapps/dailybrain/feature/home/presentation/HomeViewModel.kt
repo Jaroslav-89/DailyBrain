@@ -3,6 +3,8 @@ package com.jaroapps.dailybrain.feature.home.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
+import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
@@ -24,6 +26,7 @@ import java.time.ZoneId
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModel(
     observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
+    observeActiveTrainingDates: ObserveActiveTrainingDatesUseCase,
     observeTotalTrainingCount: ObserveTotalTrainingCountUseCase,
     observeUserProfile: ObserveUserProfileUseCase,
     initializeRewardState: InitializeRewardStateUseCase,
@@ -47,15 +50,12 @@ class HomeViewModel(
 
     val uiState: StateFlow<HomeUiState> = combine(
         todayFlow,
+        observeActiveTrainingDates(),
         observeAllCompletedTrainings(),
         observeTotalTrainingCount(),
         observeUserProfile(),
-    ) { today, sessions, totalCount, profile ->
-        val completedDates = sessions.mapNotNull { session ->
-            runCatching {
-                Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
-            }.getOrNull()
-        }.toSet()
+    ) { today, activeDateKeys, sessions, totalCount, profile ->
+        val completedDates = TrainingStreakCalculator.parseDateKeys(activeDateKeys)
         val typedDates = sessions.mapNotNull { session ->
             val date = runCatching {
                 Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()

@@ -69,6 +69,7 @@ private val WeekdayLabels = listOf("пн", "вт", "ср", "чт", "пт", "сб
 @Composable
 fun HomeScreen(
     onOpenCalendar: () -> Unit,
+    onOpenRewardHistory: (String) -> Unit,
     onStartTraining: () -> Unit,
     onStartMemoryTraining: () -> Unit,
     onStartStroopTest: () -> Unit,
@@ -132,8 +133,8 @@ fun HomeScreen(
                 )
             }
             Row(
-                modifier = Modifier.weight(1f).semantics {
-                    contentDescription = "Очки опыта: ${state.xpPoints}"
+                modifier = Modifier.weight(1f).clip(CircleShape).clickable { onOpenRewardHistory("xp") }.semantics {
+                    contentDescription = "Очки опыта: ${state.xpPoints}. Открыть историю"
                 },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,
@@ -152,8 +153,8 @@ fun HomeScreen(
                 )
             }
             Row(
-                modifier = Modifier.weight(1f).semantics {
-                    contentDescription = "Эндорфины: ${state.endorphinBalance}"
+                modifier = Modifier.weight(1f).clip(CircleShape).clickable { onOpenRewardHistory("endorphins") }.semantics {
+                    contentDescription = "Эндорфины: ${state.endorphinBalance}. Открыть историю"
                 },
                 horizontalArrangement = Arrangement.Center,
                 verticalAlignment = Alignment.CenterVertically,

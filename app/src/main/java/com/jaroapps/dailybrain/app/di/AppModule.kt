@@ -61,9 +61,12 @@ import com.jaroapps.dailybrain.feature.profile.data.repository.FirebaseUserDirec
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
 import com.jaroapps.dailybrain.feature.rewards.data.EndorphinRepositoryImpl
+import com.jaroapps.dailybrain.feature.rewards.data.RewardHistoryRepositoryImpl
 import com.jaroapps.dailybrain.feature.rewards.domain.repository.EndorphinRepository
+import com.jaroapps.dailybrain.feature.rewards.domain.repository.RewardHistoryRepository
 import com.jaroapps.dailybrain.feature.rewards.domain.usecase.ReceiveGiftEndorphinsUseCase
 import com.jaroapps.dailybrain.feature.rewards.domain.usecase.SpendEndorphinsUseCase
+import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryViewModel
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsViewModel
@@ -102,7 +105,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19)
             .build()
     }
 
@@ -147,6 +150,10 @@ val appModule = module {
     }
     factory { SpendEndorphinsUseCase(repository = get()) }
     factory { ReceiveGiftEndorphinsUseCase(repository = get()) }
+    single<RewardHistoryRepository> {
+        RewardHistoryRepositoryImpl(database = get(), activeUserProvider = get())
+    }
+    viewModel { RewardHistoryViewModel(savedStateHandle = get(), repository = get()) }
 
     single<FeedRepository> {
         FeedRepositoryImpl(
@@ -253,6 +260,6 @@ val appModule = module {
         )
     }
 
-    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeTotalTrainingCount = get(), observeUserProfile = get(), initializeRewardState = get()) }
+    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeActiveTrainingDates = get(), observeTotalTrainingCount = get(), observeUserProfile = get(), initializeRewardState = get()) }
     viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), observeStatistics = get()) }
 }

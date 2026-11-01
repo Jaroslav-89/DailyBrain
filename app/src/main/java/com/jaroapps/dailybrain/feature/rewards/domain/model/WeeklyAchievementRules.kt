@@ -1,17 +1,19 @@
 package com.jaroapps.dailybrain.feature.rewards.domain.model
 
+import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.temporal.TemporalAdjusters
 
 /**
  * Completion rules shared by the weekly calendar streak and weekly challenge.
  *
- * The streak is based on active calendar dates, regardless of exercise type. Its
- * caller supplies dates from the training_days table, which is the same day index
- * used by the calendar UI.
+ * The streak is a rolling sequence of active calendar dates, regardless of
+ * ISO-week boundaries or exercise type. The first active date is day one, and a
+ * reward is completed on every seventh consecutive active date.
  *
- * The weekly challenge is stricter: arithmetic must be completed on each of the
- * seven dates in the ISO week, and all three additional exercise types must also
- * be completed during that same week.
+ * The weekly challenge is calendar-based: arithmetic must be completed on each
+ * of the seven dates from Monday through Sunday, and all three additional
+ * exercise types must also be completed during that same ISO week.
  */
 object WeeklyAchievementRules {
 
@@ -36,6 +38,43 @@ object WeeklyAchievementRules {
         }
 
         return completions
+    }
+
+    /**
+     * Returns every ISO-week start (Monday) whose seven days contain arithmetic and
+     * every required additional exercise type. Dates from adjacent weeks are never mixed.
+     */
+    fun weeklyChallengeCompletionWeekStarts(
+        exerciseTypesByDate: Map<LocalDate, Set<String>>,
+        arithmeticExerciseType: String,
+        requiredAdditionalExerciseTypes: Set<String>,
+    ): List<LocalDate> {
+        if (exerciseTypesByDate.isEmpty() || requiredAdditionalExerciseTypes.isEmpty()) {
+            return emptyList()
+        }
+
+        val candidateWeekStarts = exerciseTypesByDate.keys
+            .map { date -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
+            .distinct()
+            .sorted()
+
+        return candidateWeekStarts.filter { weekStart ->
+            val weekDates = (0 until REQUIRED_WEEK_DAYS)
+                .map { offset -> weekStart.plusDays(offset.toLong()) }
+            val arithmeticDates = weekDates.filter { date ->
+                arithmeticExerciseType in exerciseTypesByDate[date].orEmpty()
+            }.toSet()
+            val completedAdditionalTypes = weekDates
+                .flatMap { date -> exerciseTypesByDate[date].orEmpty() }
+                .toSet()
+
+            isWeeklyChallengeCompleted(
+                weekStart = weekStart,
+                arithmeticTrainingDates = arithmeticDates,
+                completedExerciseTypes = completedAdditionalTypes,
+                requiredAdditionalExerciseTypes = requiredAdditionalExerciseTypes,
+            )
+        }
     }
 
     fun isWeeklyChallengeCompleted(

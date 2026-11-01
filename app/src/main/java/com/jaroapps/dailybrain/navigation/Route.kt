@@ -26,11 +26,13 @@ object Route {
     const val ARITHMETIC = "arithmetic"
     const val CALENDAR = "calendar"
     const val DAY_HISTORY = "day_history/{date}"
+    const val REWARD_HISTORY = "reward_history/{currency}"
     const val MEMORY_TRAINING = "memory_training"
     const val STROOP_TEST = "stroop_test"
     const val COUNTING_TRAINING = "counting_training"
 
     fun dayHistory(date: Int): String = "day_history/$date"
+    fun rewardHistory(currency: String): String = "reward_history/$currency"
     fun userProfile(userId: String): String = "user_profile/$userId"
     fun userProfileConnections(userId: String, connectionType: String): String =
         "user_profile_connections/$userId/$connectionType"
