@@ -553,4 +553,11 @@ object DatabaseMigrations {
         }
     }
 
+    /** Recalculate day streaks and weekly challenge rewards using the corrected calendar rules. */
+    val MIGRATION_16_17 = object : Migration(16, 17) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
+        }
+    }
+
 }

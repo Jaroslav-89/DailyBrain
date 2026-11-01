@@ -3,24 +3,24 @@ package com.jaroapps.dailybrain.feature.rewards.domain.model
 import java.time.LocalDate
 
 /**
- * Shared completion rules for weekly streak and weekly challenge.
+ * Completion rules shared by the weekly calendar streak and weekly challenge.
  *
- * A weekly streak is seven consecutive calendar dates with at least one arithmetic
- * session on each date. The weekly challenge is intentionally different: it requires
- * at least seven arithmetic sessions anywhere in the ISO week, plus all three
- * additional exercise types at least once.
+ * The streak is based on active calendar dates, regardless of exercise type. Its
+ * caller supplies dates from the training_days table, which is the same day index
+ * used by the calendar UI.
  *
- * RewardRecalculator uses these same predicates before creating the XP and endorphin
- * ledger entries, so the two currencies cannot disagree about achievement eligibility.
+ * The weekly challenge is stricter: arithmetic must be completed on each of the
+ * seven dates in the ISO week, and all three additional exercise types must also
+ * be completed during that same week.
  */
 object WeeklyAchievementRules {
 
-    const val REQUIRED_WEEKLY_ARITHMETIC_SESSIONS = 7
+    const val REQUIRED_WEEK_DAYS = 7
 
     fun weeklyStreakCompletionDates(
-        arithmeticTrainingDates: Collection<LocalDate>,
+        trainingDates: Collection<LocalDate>,
     ): List<LocalDate> {
-        val dates = arithmeticTrainingDates.distinct().sorted()
+        val dates = trainingDates.distinct().sorted()
         if (dates.isEmpty()) return emptyList()
 
         val completions = mutableListOf<LocalDate>()
@@ -30,7 +30,7 @@ object WeeklyAchievementRules {
         dates.forEach { date ->
             streakLength = if (previousDate?.plusDays(1) == date) streakLength + 1 else 1
             previousDate = date
-            if (streakLength % REQUIRED_WEEKLY_ARITHMETIC_SESSIONS == 0) {
+            if (streakLength % REQUIRED_WEEK_DAYS == 0) {
                 completions += date
             }
         }
@@ -39,12 +39,19 @@ object WeeklyAchievementRules {
     }
 
     fun isWeeklyChallengeCompleted(
-        arithmeticSessionCount: Int,
+        weekStart: LocalDate,
+        arithmeticTrainingDates: Set<LocalDate>,
         completedExerciseTypes: Set<String>,
         requiredAdditionalExerciseTypes: Set<String>,
     ): Boolean {
-        if (arithmeticSessionCount < REQUIRED_WEEKLY_ARITHMETIC_SESSIONS) return false
         if (requiredAdditionalExerciseTypes.isEmpty()) return false
-        return completedExerciseTypes.containsAll(requiredAdditionalExerciseTypes)
+
+        val hasArithmeticEveryDay = (0 until REQUIRED_WEEK_DAYS).all { offset ->
+            weekStart.plusDays(offset.toLong()) in arithmeticTrainingDates
+        }
+        val hasAllAdditionalExercises =
+            completedExerciseTypes.containsAll(requiredAdditionalExerciseTypes)
+
+        return hasArithmeticEveryDay && hasAllAdditionalExercises
     }
 }

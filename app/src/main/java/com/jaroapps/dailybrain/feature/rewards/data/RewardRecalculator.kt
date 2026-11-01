@@ -47,6 +47,15 @@ object RewardRecalculator {
         val desiredBadges = linkedMapOf<String, UserBadgeEntity>()
         val desiredEvents = linkedMapOf<String, FeedEventEntity>()
         val sessionsByDate = dated.groupBy({ it.first }, { it.second })
+        // training_days is the calendar's source of truth: any completed exercise type
+        // makes the date active and therefore contributes to the day streak.
+        val activeTrainingDates = database.trainingDayDao().getAll(localAccountId)
+            .mapNotNull { day ->
+                runCatching {
+                    LocalDate.parse(day.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
+                }.getOrNull()
+            }
+            .toSet()
         val existingLocalEvents = database.feedEventDao().getLocalEvents(localAccountId).associateBy { it.eventId }
 
         fun addReward(
@@ -167,14 +176,12 @@ object RewardRecalculator {
             )
         }
 
-        // Weekly streak: arithmetic must be completed on seven consecutive dates.
-        // Extra exercise types do not start, extend, or complete this streak.
-        val arithmeticSessionsByDate = dated
-            .filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
-            .groupBy({ it.first }, { it.second })
+        // Weekly streak: any completed exercise marks the day as active.
+        // The dates come from training_days, the same index used to color the calendar.
         var firstStreakCompletedAt: Long? = null
-        WeeklyAchievementRules.weeklyStreakCompletionDates(arithmeticSessionsByDate.keys).forEach { date ->
-            val trigger = arithmeticSessionsByDate[date]?.maxByOrNull { it.finishedAtEpochMs }
+        WeeklyAchievementRules.weeklyStreakCompletionDates(activeTrainingDates).forEach { date ->
+            // The first workout of the seventh active day is when the streak is completed.
+            val trigger = sessionsByDate[date]?.minByOrNull { it.finishedAtEpochMs }
                 ?: return@forEach
             val periodKey = date.toString()
             val key = "weekly_streak:$periodKey"
@@ -184,27 +191,44 @@ object RewardRecalculator {
             if (firstStreakCompletedAt == null) firstStreakCompletedAt = trigger.finishedAtEpochMs
         }
 
-        // Weekly challenge: at least seven arithmetic sessions during this ISO week
-        // (they need not be on separate dates), plus all three additional exercise types.
-        // This single predicate gates both the XP and endorphin reward ledger entries.
+        // Weekly challenge: arithmetic is required on each of the seven dates in
+        // this ISO week, plus all three additional exercise types within the same week.
+        // The same eligibility predicate gates the XP and endorphin reward entries.
         val sessionsByWeek = dated.groupBy { (date, _) ->
             date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         }
         sessionsByWeek.forEach { (weekStart, weekItems) ->
-            val arithmeticSessionCount = weekItems.count {
-                ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC
-            }
+            val arithmeticSessionsByDate = weekItems
+                .filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
+                .groupBy({ it.first }, { it.second })
+            val arithmeticDates = arithmeticSessionsByDate.keys
             val completedAdditionalTypes = weekItems
                 .map { (_, session) -> session.exerciseType }
                 .filter { it in knownNonArithmeticTypes }
                 .toSet()
             val hasWeeklyChallenge = WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = arithmeticSessionCount,
+                weekStart = weekStart,
+                arithmeticTrainingDates = arithmeticDates,
                 completedExerciseTypes = completedAdditionalTypes,
                 requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
             )
             if (hasWeeklyChallenge) {
-                val trigger = weekItems.maxByOrNull { it.second.finishedAtEpochMs }?.second ?: return@forEach
+                // Timestamp the achievement at the last condition that was satisfied:
+                // one arithmetic workout on each day and one of every additional exercise.
+                val qualifyingSessions = mutableListOf<TrainingSessionEntity>()
+                for (offset in 0 until WeeklyAchievementRules.REQUIRED_WEEK_DAYS) {
+                    arithmeticSessionsByDate[weekStart.plusDays(offset.toLong())]
+                        ?.minByOrNull { it.finishedAtEpochMs }
+                        ?.let(qualifyingSessions::add)
+                }
+                knownNonArithmeticTypes.forEach { exerciseType ->
+                    weekItems.asSequence()
+                        .filter { it.second.exerciseType == exerciseType }
+                        .minByOrNull { it.second.finishedAtEpochMs }
+                        ?.second
+                        ?.let(qualifyingSessions::add)
+                }
+                val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
                 val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
                 val key = "weekly_challenge:$weekKey"
                 addReward(key, 100, EndorphinEconomy.WEEKLY_CHALLENGE_REWARD, "WEEKLY_CHALLENGE", trigger, weekKey)
@@ -213,14 +237,14 @@ object RewardRecalculator {
             }
         }
 
-        // A monthly series requires one training on every date in the calendar month.
-        val sessionsByMonth = dated.groupBy { YearMonth.from(it.first) }
-        sessionsByMonth.forEach { (month, monthItems) ->
-            val trainedDates = monthItems.map { it.first }.toSet()
+        // A monthly series, like the calendar day streak, accepts any exercise type.
+        // Evaluate it from training_days rather than counting only session rows here.
+        val trainingDatesByMonth = activeTrainingDates.groupBy { YearMonth.from(it) }
+        trainingDatesByMonth.forEach { (month, trainedDates) ->
             val allDates = (1..month.lengthOfMonth()).map { month.atDay(it) }.toSet()
             if (trainedDates.containsAll(allDates)) {
                 val lastDay = month.atEndOfMonth()
-                val trigger = sessionsByDate[lastDay]?.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
+                val trigger = sessionsByDate[lastDay]?.minByOrNull { it.finishedAtEpochMs } ?: return@forEach
                 val monthKey = month.toString()
                 val badgeType = "MONTH_${month.monthValue.toString().padStart(2, '0')}"
                 val key = "monthly_streak:$monthKey"

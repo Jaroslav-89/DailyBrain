@@ -13,7 +13,8 @@ class WeeklyAchievementRulesTest {
     private val additionalTypes = setOf("MEMORY_WORDS", "STROOP_TEST", "COUNTING_TRAINING")
 
     @Test
-    fun weeklyStreakIsGrantedAfterSevenConsecutiveArithmeticDays() {
+    fun weeklyStreakUsesAnyActiveCalendarDayRegardlessOfExerciseType() {
+        // These dates are supplied by training_days, which records all exercise types.
         assertEquals(
             listOf(weekStart.plusDays(6)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(weekDates),
@@ -21,71 +22,91 @@ class WeeklyAchievementRulesTest {
     }
 
     @Test
-    fun nonArithmeticWorkoutsDoNotExtendArithmeticWeeklyStreak() {
-        val arithmeticDates = weekDates - weekStart.plusDays(3)
-
-        assertTrue(
-            WeeklyAchievementRules.weeklyStreakCompletionDates(arithmeticDates).isEmpty(),
-        )
-    }
-
-    @Test
-    fun duplicateArithmeticSessionsOnOneDateCountAsOneStreakDay() {
-        val datesWithDuplicate = weekDates.toList() + weekStart.plusDays(6)
+    fun duplicateWorkoutsOnOneDateCountAsOneStreakDay() {
+        val calendarDates = weekDates.toList() + weekStart.plusDays(6)
 
         assertEquals(
             listOf(weekStart.plusDays(6)),
-            WeeklyAchievementRules.weeklyStreakCompletionDates(datesWithDuplicate),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(calendarDates),
         )
     }
 
     @Test
-    fun weeklyChallengeRequiresAtLeastSevenArithmeticSessionsAndAllThreeAdditionalExercises() {
+    fun aMissingCalendarDateBreaksTheWeeklyStreak() {
+        val activeDates = weekDates - weekStart.plusDays(3)
+
+        assertTrue(
+            WeeklyAchievementRules.weeklyStreakCompletionDates(activeDates).isEmpty(),
+        )
+    }
+
+    @Test
+    fun streakRewardsRepeatAfterEachFurtherSevenConsecutiveActiveDays() {
+        val fourteenDays = (0..13).map { weekStart.plusDays(it.toLong()) }
+
+        assertEquals(
+            listOf(weekStart.plusDays(6), weekStart.plusDays(13)),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(fourteenDays),
+        )
+    }
+
+    @Test
+    fun weeklyChallengeRequiresArithmeticEveryDayAndAllThreeAdditionalExercises() {
+        assertTrue(
+            WeeklyAchievementRules.isWeeklyChallengeCompleted(
+                weekStart = weekStart,
+                arithmeticTrainingDates = weekDates,
+                completedExerciseTypes = additionalTypes,
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ),
+        )
+    }
+
+    @Test
+    fun missingArithmeticOnAnyWeekDayPreventsWeeklyChallenge() {
         assertFalse(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = 7,
+                weekStart = weekStart,
+                arithmeticTrainingDates = weekDates - weekStart.plusDays(4),
+                completedExerciseTypes = additionalTypes,
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ),
+        )
+    }
+
+    @Test
+    fun multipleArithmeticSessionsOnOneDayCannotReplaceArithmeticOnEveryDay() {
+        // The calendar-date set contains one date even when that date has many sessions.
+        val arithmeticDates = setOf(weekStart)
+
+        assertFalse(
+            WeeklyAchievementRules.isWeeklyChallengeCompleted(
+                weekStart = weekStart,
+                arithmeticTrainingDates = arithmeticDates,
+                completedExerciseTypes = additionalTypes,
+                requiredAdditionalExerciseTypes = additionalTypes,
+            ),
+        )
+    }
+
+    @Test
+    fun allSevenArithmeticDaysAreNotEnoughWithoutAllThreeAdditionalExercises() {
+        assertFalse(
+            WeeklyAchievementRules.isWeeklyChallengeCompleted(
+                weekStart = weekStart,
+                arithmeticTrainingDates = weekDates,
                 completedExerciseTypes = setOf("MEMORY_WORDS", "STROOP_TEST"),
                 requiredAdditionalExerciseTypes = additionalTypes,
             ),
         )
-
-        assertTrue(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = 7,
-                completedExerciseTypes = additionalTypes,
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
     }
 
     @Test
-    fun fewerThanSevenArithmeticSessionsDoNotCompleteWeeklyChallengeEvenWithAllAdditionalExercises() {
+    fun unknownExerciseDoesNotReplaceARequiredAdditionalExercise() {
         assertFalse(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = 6,
-                completedExerciseTypes = additionalTypes,
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
-    }
-
-    @Test
-    fun sevenArithmeticSessionsDoNotNeedToBeSpreadAcrossSevenDaysForWeeklyChallenge() {
-        // Unlike the streak, the challenge has a weekly arithmetic count requirement.
-        assertTrue(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = 7,
-                completedExerciseTypes = additionalTypes,
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
-    }
-
-    @Test
-    fun additionalExerciseOutsideRequiredSetDoesNotSubstituteForMissingExercise() {
-        assertFalse(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = 7,
+                weekStart = weekStart,
+                arithmeticTrainingDates = weekDates,
                 completedExerciseTypes = additionalTypes - "COUNTING_TRAINING" + "UNKNOWN",
                 requiredAdditionalExerciseTypes = additionalTypes,
             ),
@@ -93,23 +114,14 @@ class WeeklyAchievementRulesTest {
     }
 
     @Test
-    fun completingOnlyArithmeticDoesNotGrantWeeklyChallenge() {
+    fun weeklyChallengeDoesNotCompleteWithoutAnyRequiredAdditionalExercises() {
         assertFalse(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                arithmeticSessionCount = 10,
+                weekStart = weekStart,
+                arithmeticTrainingDates = weekDates,
                 completedExerciseTypes = emptySet(),
                 requiredAdditionalExerciseTypes = additionalTypes,
             ),
-        )
-    }
-
-    @Test
-    fun streakRewardsRepeatAfterEachFurtherSevenConsecutiveArithmeticDays() {
-        val fourteenDays = (0..13).map { weekStart.plusDays(it.toLong()) }
-
-        assertEquals(
-            listOf(weekStart.plusDays(6), weekStart.plusDays(13)),
-            WeeklyAchievementRules.weeklyStreakCompletionDates(fourteenDays),
         )
     }
 }
