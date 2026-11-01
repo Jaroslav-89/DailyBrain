@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.rewards.data
 
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
@@ -23,7 +24,6 @@ object RewardRecalculator {
     private const val SYNC_PENDING = "PENDING_UPSERT"
     private const val SYNC_DELETE = "PENDING_DELETE"
     private const val SYNCED = "SYNCED"
-    private const val ENDORPHIN_REWARDS_ENABLED = false
 
     private val weekFields = WeekFields.ISO
     private val knownNonArithmeticTypes = setOf(
@@ -63,7 +63,7 @@ object RewardRecalculator {
                     userId = localAccountId,
                     rewardKey = key,
                     deltaXp = xp,
-                    deltaEndorphins = if (ENDORPHIN_REWARDS_ENABLED) endorphins else 0,
+                    deltaEndorphins = endorphins,
                     category = CATEGORY_EARNED,
                     reason = reason,
                     sourceId = trigger.id,
@@ -176,7 +176,7 @@ object RewardRecalculator {
                 val trigger = daySessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
                 val periodKey = date.toString()
                 val key = "weekly_streak:$periodKey"
-                addReward(key, 100, 10, "WEEKLY_STREAK", trigger, periodKey)
+                addReward(key, 100, EndorphinEconomy.WEEKLY_STREAK_REWARD, "WEEKLY_STREAK", trigger, periodKey)
                 addBadge(key, "WEEKLY_STREAK", periodKey, trigger)
                 addEvent(key, "WEEKLY_STREAK", trigger, periodKey)
                 if (firstStreakCompletedAt == null) firstStreakCompletedAt = trigger.finishedAtEpochMs
@@ -199,7 +199,7 @@ object RewardRecalculator {
                 val trigger = weekItems.maxByOrNull { it.second.finishedAtEpochMs }?.second ?: return@forEach
                 val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
                 val key = "weekly_challenge:$weekKey"
-                addReward(key, 100, 10, "WEEKLY_CHALLENGE", trigger, weekKey)
+                addReward(key, 100, EndorphinEconomy.WEEKLY_CHALLENGE_REWARD, "WEEKLY_CHALLENGE", trigger, weekKey)
                 addBadge(key, "WEEKLY_CHALLENGE", weekKey, trigger)
                 addEvent(key, "WEEKLY_CHALLENGE", trigger, weekKey)
             }
@@ -216,7 +216,7 @@ object RewardRecalculator {
                 val monthKey = month.toString()
                 val badgeType = "MONTH_${month.monthValue.toString().padStart(2, '0')}"
                 val key = "monthly_streak:$monthKey"
-                addReward(key, 500, 50, "MONTHLY_STREAK", trigger, monthKey)
+                addReward(key, 500, EndorphinEconomy.MONTHLY_STREAK_REWARD, "MONTHLY_STREAK", trigger, monthKey)
                 addBadge(key, badgeType, monthKey, trigger)
                 addEvent(key, "MONTHLY_STREAK", trigger, monthKey, valueInt = month.monthValue)
             }
@@ -236,7 +236,7 @@ object RewardRecalculator {
             if (previousBest == null || session.durationMs < previousBest) {
                 bestEligibleTime = session.durationMs
                 val key = "arithmetic_record:${session.id}"
-                addReward(key, 100, 10, "ARITHMETIC_PERSONAL_RECORD", session, date.toString())
+                addReward(key, 100, EndorphinEconomy.ARITHMETIC_RECORD_REWARD, "ARITHMETIC_PERSONAL_RECORD", session, date.toString())
                 addEvent(
                     key = key,
                     type = "PERSONAL_RECORD",
@@ -335,7 +335,8 @@ object RewardRecalculator {
         if (reconciledEvents.isNotEmpty()) feedDao.upsertAll(reconciledEvents)
 
         val xpBalance = ledgerDao.getXpBalance(localAccountId).coerceAtLeast(0)
-        val endorphinBalance = ledgerDao.getEndorphinBalance(localAccountId).coerceAtLeast(0)
+        // Revoking an earned reward must preserve a negative balance when its endorphins were spent.
+        val endorphinBalance = ledgerDao.getEndorphinBalance(localAccountId)
         if (
             profile.xpPoints != xpBalance ||
             profile.endorphinBalance != endorphinBalance ||

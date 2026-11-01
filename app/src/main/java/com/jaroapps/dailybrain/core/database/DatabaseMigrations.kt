@@ -539,4 +539,11 @@ object DatabaseMigrations {
         }
     }
 
+    /** Recalculate endorphins for profiles initialized while endorphin rewards were disabled. */
+    val MIGRATION_14_15 = object : Migration(14, 15) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
+        }
+    }
+
 }

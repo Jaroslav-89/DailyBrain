@@ -14,6 +14,9 @@ interface RewardLedgerDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(entries: List<RewardLedgerEntity>)
 
+    @Query("SELECT * FROM reward_ledger WHERE userId = :userId AND rewardKey = :rewardKey LIMIT 1")
+    suspend fun getByKey(userId: String, rewardKey: String): RewardLedgerEntity?
+
     @Query("SELECT COALESCE(SUM(deltaXp), 0) FROM reward_ledger WHERE userId = :userId AND isActive = 1")
     suspend fun getXpBalance(userId: String): Int
 

@@ -60,6 +60,10 @@ import com.jaroapps.dailybrain.feature.profile.data.repository.UserProfileReposi
 import com.jaroapps.dailybrain.feature.profile.data.repository.FirebaseUserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
+import com.jaroapps.dailybrain.feature.rewards.data.EndorphinRepositoryImpl
+import com.jaroapps.dailybrain.feature.rewards.domain.repository.EndorphinRepository
+import com.jaroapps.dailybrain.feature.rewards.domain.usecase.ReceiveGiftEndorphinsUseCase
+import com.jaroapps.dailybrain.feature.rewards.domain.usecase.SpendEndorphinsUseCase
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsViewModel
@@ -98,7 +102,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15)
             .build()
     }
 
@@ -136,6 +140,13 @@ val appModule = module {
     factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
     factory { DeleteCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
     factory { InitializeRewardStateUseCase(repository = get()) }
+
+    // Endorphin wallet primitives for future shop and gift flows.
+    single<EndorphinRepository> {
+        EndorphinRepositoryImpl(database = get(), activeUserProvider = get())
+    }
+    factory { SpendEndorphinsUseCase(repository = get()) }
+    factory { ReceiveGiftEndorphinsUseCase(repository = get()) }
 
     single<FeedRepository> {
         FeedRepositoryImpl(
