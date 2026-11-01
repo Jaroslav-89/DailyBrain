@@ -252,10 +252,15 @@ private fun RewardHistoryEntryCard(
     } else {
         null
     }
-    val reasonText = if (recordDurationText != null) {
-        stringResource(R.string.reward_reason_personal_record_with_time, recordDurationText)
-    } else {
-        stringResource(reasonRes)
+    val reasonText = when {
+        entry.reason == "FIRST_EXERCISE_TYPE_OF_WEEK" && exerciseRes != null ->
+            stringResource(
+                R.string.reward_reason_first_exercise_week_with_type,
+                stringResource(exerciseRes),
+            )
+        recordDurationText != null ->
+            stringResource(R.string.reward_reason_personal_record_with_time, recordDurationText)
+        else -> stringResource(reasonRes)
     }
     val dateText = runCatching {
         Instant.ofEpochMilli(entry.occurredAtEpochMs)
@@ -271,13 +276,6 @@ private fun RewardHistoryEntryCard(
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(reasonText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-                if (exerciseRes != null) {
-                    Text(
-                        stringResource(R.string.reward_history_exercise, stringResource(exerciseRes)),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
                 Text(dateText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(

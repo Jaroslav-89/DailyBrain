@@ -54,6 +54,7 @@
     <!-- Statistics screen -->
     <string name="statistics_title">Statistics</string>
     <string name="statistics_tagline">Your progress in Daily Brain</string>
+    <string name="statistics_overall_title">Overall statistics</string>
     <string name="statistics_tab_overall">Overall</string>
     <string name="statistics_total_trainings">Total trainings</string>
     <string name="statistics_last_seven_days">Last 7 days</string>
@@ -229,6 +230,7 @@
     <string name="reward_reason_first_arithmetic">First arithmetic workout of the day</string>
     <string name="reward_reason_repeat_arithmetic">Additional arithmetic workout that day</string>
     <string name="reward_reason_first_exercise_week">First exercise of this type this week</string>
+    <string name="reward_reason_first_exercise_week_with_type">First %1$s exercise of the week</string>
     <string name="reward_reason_weekly_streak">Seven-day training streak</string>
     <string name="reward_reason_weekly_challenge">Weekly challenge completed</string>
     <string name="reward_reason_monthly_streak">Month of daily training</string>

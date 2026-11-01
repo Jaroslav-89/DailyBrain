@@ -55,6 +55,7 @@
     <string name="statistics_title">Статистика</string>
     <string name="feed_title">Лента</string>
     <string name="statistics_tagline">Твой прогресс в Daily Brain</string>
+    <string name="statistics_overall_title">Общая статистика</string>
     <string name="statistics_tab_overall">Общая</string>
     <string name="statistics_total_trainings">Всего тренировок</string>
     <string name="statistics_last_seven_days">За последние 7 дней</string>
@@ -240,6 +241,7 @@
     <string name="reward_reason_first_arithmetic">Первая тренировка арифметики за день</string>
     <string name="reward_reason_repeat_arithmetic">Повторная тренировка арифметики за день</string>
     <string name="reward_reason_first_exercise_week">Первое упражнение этого типа за неделю</string>
+    <string name="reward_reason_first_exercise_week_with_type">Первое упражнение %1$s за неделю</string>
     <string name="reward_reason_weekly_streak">Серия тренировок 7 дней подряд</string>
     <string name="reward_reason_weekly_challenge">Выполнено недельное задание</string>
     <string name="reward_reason_monthly_streak">Месяц ежедневных тренировок</string>

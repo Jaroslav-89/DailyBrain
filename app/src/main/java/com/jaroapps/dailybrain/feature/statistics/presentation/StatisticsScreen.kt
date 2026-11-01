@@ -16,6 +16,12 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Calculate
+import androidx.compose.material.icons.filled.Memory
+import androidx.compose.material.icons.filled.Palette
+import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
@@ -51,19 +57,17 @@ fun StatisticsScreen(
     var selectedTab by remember { mutableIntStateOf(0) }
 
     val tabs = listOf(
-        stringResource(R.string.statistics_tab_overall),
-        stringResource(R.string.statistics_arithmetic),
-        stringResource(R.string.statistics_memory),
-        stringResource(R.string.exercise_counting),
-        stringResource(R.string.exercise_stroop),
+        Icons.Filled.Calculate to R.string.exercise_arithmetic,
+        Icons.Filled.Memory to R.string.exercise_memory,
+        Icons.Filled.Palette to R.string.exercise_stroop,
+        Icons.Filled.RecordVoiceOver to R.string.exercise_counting,
     )
 
     val stats = when (selectedTab) {
-        1 -> state.arithmetic
-        2 -> state.memoryWords
+        1 -> state.memoryWords
+        2 -> state.stroopTest
         3 -> state.countingTraining
-        4 -> state.stroopTest
-        else -> state.overall
+        else -> state.arithmetic
     }
 
     Column(
@@ -87,12 +91,50 @@ fun StatisticsScreen(
 
         Spacer(Modifier.height(20.dp))
 
+        Text(
+            text = stringResource(R.string.statistics_overall_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+        StatisticCard(
+            title = stringResource(R.string.statistics_total_trainings),
+            value = state.overall.trainingCount.toString(),
+        )
+        Spacer(Modifier.height(12.dp))
+        StatisticCard(
+            title = stringResource(R.string.statistics_last_seven_days),
+            value = state.overall.weeklyTrainingCount.toString(),
+        )
+        Spacer(Modifier.height(12.dp))
+        StatisticCard(
+            title = stringResource(R.string.statistics_current_streak),
+            value = stringResource(R.string.statistics_days_count, state.currentStreakDays),
+        )
+        Spacer(Modifier.height(12.dp))
+        StatisticCard(
+            title = stringResource(R.string.statistics_best_streak),
+            value = stringResource(R.string.statistics_days_count, state.bestStreakDays),
+        )
+        Spacer(Modifier.height(12.dp))
+        StatisticCard(
+            title = stringResource(R.string.statistics_total_duration),
+            value = formatDuration(state.overall.totalDurationMs),
+        )
+
+        Spacer(Modifier.height(20.dp))
+
         TabRow(selectedTabIndex = selectedTab) {
-            tabs.forEachIndexed { index, title ->
+            tabs.forEachIndexed { index, tab ->
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
-                    text = { Text(title) },
+                    icon = {
+                        Icon(
+                            imageVector = tab.first,
+                            contentDescription = stringResource(tab.second),
+                        )
+                    },
                 )
             }
         }
@@ -111,54 +153,41 @@ fun StatisticsScreen(
             value = stats.weeklyTrainingCount.toString(),
         )
 
-        if (selectedTab != 0) {
-            Spacer(Modifier.height(20.dp))
-            Text(
-                text = stringResource(R.string.statistics_progress_chart),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold,
-            )
-            Spacer(Modifier.height(8.dp))
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                ChartPeriod.values().forEach { period ->
-                    OutlinedButton(
-                        onClick = { viewModel.selectChartPeriod(period) },
-                        modifier = Modifier.weight(1f),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp, vertical = 4.dp),
-                    ) {
-                        Text(
-                            text = when (period) {
-                                ChartPeriod.WEEK -> stringResource(R.string.statistics_period_week)
-                                ChartPeriod.MONTH -> stringResource(R.string.statistics_period_month)
-                                ChartPeriod.HALF_YEAR -> stringResource(R.string.statistics_period_half_year)
-                                ChartPeriod.YEAR -> stringResource(R.string.statistics_period_year)
-                                ChartPeriod.ALL_TIME -> stringResource(R.string.statistics_period_all)
-                            },
-                            style = MaterialTheme.typography.labelSmall,
-                        )
-                    }
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = stringResource(R.string.statistics_progress_chart),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            ChartPeriod.values().forEach { period ->
+                OutlinedButton(
+                    onClick = { viewModel.selectChartPeriod(period) },
+                    modifier = Modifier.weight(1f),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+                ) {
+                    Text(
+                        text = when (period) {
+                            ChartPeriod.WEEK -> stringResource(R.string.statistics_period_week)
+                            ChartPeriod.MONTH -> stringResource(R.string.statistics_period_month)
+                            ChartPeriod.HALF_YEAR -> stringResource(R.string.statistics_period_half_year)
+                            ChartPeriod.YEAR -> stringResource(R.string.statistics_period_year)
+                            ChartPeriod.ALL_TIME -> stringResource(R.string.statistics_period_all)
+                        },
+                        style = MaterialTheme.typography.labelSmall,
+                    )
                 }
             }
-            Spacer(Modifier.height(8.dp))
-            DailyResultChart(
-                rows = state.dailyResults,
-                selectedTab = selectedTab,
-                modifier = Modifier.fillMaxWidth().height(220.dp),
-            )
         }
+        Spacer(Modifier.height(8.dp))
+        DailyResultChart(
+            rows = state.dailyResults,
+            selectedTab = selectedTab,
+            modifier = Modifier.fillMaxWidth().height(220.dp),
+        )
 
         if (selectedTab == 0) {
-            Spacer(Modifier.height(12.dp))
-            StatisticCard(
-                title = stringResource(R.string.statistics_current_streak),
-                value = stringResource(R.string.statistics_days_count, state.currentStreakDays),
-            )
-            Spacer(Modifier.height(12.dp))
-            StatisticCard(
-                title = stringResource(R.string.statistics_best_streak),
-                value = stringResource(R.string.statistics_days_count, state.bestStreakDays),
-            )
-        } else if (selectedTab == 1) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_best_time_95_accuracy),
@@ -166,18 +195,18 @@ fun StatisticsScreen(
                     formatDuration(duration)
                 } ?: stringResource(R.string.statistics_no_record),
             )
-        } else if (selectedTab == 2) {
+        } else if (selectedTab == 1) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_memory_record),
                 value = state.memoryBestCorrectCount?.toString()
                     ?: stringResource(R.string.statistics_no_record),
             )
-        } else if (selectedTab == 3 || selectedTab == 4) {
-            val bestDuration = if (selectedTab == 3) {
-                state.countingBestDurationMs
-            } else {
+        } else {
+            val bestDuration = if (selectedTab == 2) {
                 state.stroopBestDurationMs
+            } else {
+                state.countingBestDurationMs
             }
             Spacer(Modifier.height(12.dp))
             StatisticCard(
@@ -190,7 +219,7 @@ fun StatisticsScreen(
             )
         }
 
-        if (selectedTab != 2) {
+        if (selectedTab != 1) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_total_duration),
@@ -198,7 +227,7 @@ fun StatisticsScreen(
             )
         }
 
-        if (selectedTab != 0 && selectedTab != 2) {
+        if (selectedTab != 1) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_average_duration),
@@ -206,7 +235,7 @@ fun StatisticsScreen(
             )
         }
 
-        if (selectedTab == 1) {
+        if (selectedTab == 0) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_average_accuracy),
@@ -276,13 +305,13 @@ private fun DailyResultChart(
     selectedTab: Int,
     modifier: Modifier = Modifier,
 ) {
-    val isMemory = selectedTab == 2
+    val isMemory = selectedTab == 1
     val datedValues = rows.mapNotNull { row ->
         val value = when (selectedTab) {
-            1 -> row.arithmeticBestTimeMs?.toFloat()
-            2 -> row.memoryBestCorrectCount?.toFloat()
+            0 -> row.arithmeticBestTimeMs?.toFloat()
+            1 -> row.memoryBestCorrectCount?.toFloat()
+            2 -> row.stroopBestTimeMs?.toFloat()
             3 -> row.countingBestTimeMs?.toFloat()
-            4 -> row.stroopBestTimeMs?.toFloat()
             else -> null
         }
         value?.let {
