@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.rewards.data
 
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
+import com.jaroapps.dailybrain.feature.rewards.domain.model.WeeklyAchievementRules
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
@@ -164,38 +165,40 @@ object RewardRecalculator {
             )
         }
 
-        // A training of any type maintains a daily streak. Each complete seven-day block
-        // grants a repeatable weekly badge and its rewards.
-        var streakLength = 0
-        var previousDate: LocalDate? = null
+        // Weekly streak: arithmetic must be completed on seven consecutive dates.
+        // Extra exercise types do not start, extend, or complete this streak.
+        val arithmeticSessionsByDate = dated
+            .filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
+            .groupBy({ it.first }, { it.second })
         var firstStreakCompletedAt: Long? = null
-        sessionsByDate.toSortedMap().forEach { (date, daySessions) ->
-            streakLength = if (previousDate?.plusDays(1) == date) streakLength + 1 else 1
-            previousDate = date
-            if (streakLength % 7 == 0) {
-                val trigger = daySessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
-                val periodKey = date.toString()
-                val key = "weekly_streak:$periodKey"
-                addReward(key, 100, EndorphinEconomy.WEEKLY_STREAK_REWARD, "WEEKLY_STREAK", trigger, periodKey)
-                addBadge(key, "WEEKLY_STREAK", periodKey, trigger)
-                addEvent(key, "WEEKLY_STREAK", trigger, periodKey)
-                if (firstStreakCompletedAt == null) firstStreakCompletedAt = trigger.finishedAtEpochMs
-            }
+        WeeklyAchievementRules.weeklyStreakCompletionDates(arithmeticSessionsByDate.keys).forEach { date ->
+            val trigger = arithmeticSessionsByDate[date]?.maxByOrNull { it.finishedAtEpochMs }
+                ?: return@forEach
+            val periodKey = date.toString()
+            val key = "weekly_streak:$periodKey"
+            addReward(key, 100, EndorphinEconomy.WEEKLY_STREAK_REWARD, "WEEKLY_STREAK", trigger, periodKey)
+            addBadge(key, "WEEKLY_STREAK", periodKey, trigger)
+            addEvent(key, "WEEKLY_STREAK", trigger, periodKey)
+            if (firstStreakCompletedAt == null) firstStreakCompletedAt = trigger.finishedAtEpochMs
         }
 
-        // Weekly assignment: arithmetic each day of the ISO week and all three other exercise types.
+        // Weekly assignment: arithmetic every day of the ISO week plus at least one
+        // of the three additional exercise types on any date in that same week.
         val sessionsByWeek = dated.groupBy { (date, _) ->
             date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         }
         sessionsByWeek.forEach { (weekStart, weekItems) ->
-            val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }.toSet()
             val arithmeticDates = weekItems.filter {
                 ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC
             }.map { it.first }.toSet()
-            val otherTypes = weekItems.mapNotNull { (_, session) ->
-                session.exerciseType.takeIf { it in knownNonArithmeticTypes }
-            }.toSet()
-            if (arithmeticDates.containsAll(weekDates) && otherTypes.containsAll(knownNonArithmeticTypes)) {
+            val additionalTypes = weekItems.map { (_, session) -> session.exerciseType }.toSet()
+            val hasWeeklyChallenge = WeeklyAchievementRules.isWeeklyChallengeCompleted(
+                weekStart = weekStart,
+                arithmeticDates = arithmeticDates,
+                completedExerciseTypes = additionalTypes,
+                additionalExerciseTypes = knownNonArithmeticTypes,
+            )
+            if (hasWeeklyChallenge) {
                 val trigger = weekItems.maxByOrNull { it.second.finishedAtEpochMs }?.second ?: return@forEach
                 val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
                 val key = "weekly_challenge:$weekKey"
