@@ -54,8 +54,6 @@ import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 
-private val editorTabs = AvatarEditorTab.values().toList()
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AvatarEditorScreen(
@@ -193,7 +191,7 @@ fun AvatarEditorScreen(
 
                     AvatarEditorTab.BACKGROUND -> BackgroundOptions(
                         selectedId = avatar.backgroundId,
-                        onSelected = { viewModel.updateConfiguration(avatar.copy(backgroundId = it)) },
+                        onSelected = { viewModel.updateConfiguration(avatar.copy(backgroundId = it, backgroundSceneId = null)) },
                     )
 
                     AvatarEditorTab.COSTUMES -> AvatarCosmeticOptions(

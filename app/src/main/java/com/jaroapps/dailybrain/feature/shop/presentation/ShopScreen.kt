@@ -66,8 +66,11 @@ fun ShopScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
+        var skipInitialResume = true
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) viewModel.refreshGiftData()
+            if (event == Lifecycle.Event.ON_RESUME) {
+                if (skipInitialResume) skipInitialResume = false else viewModel.refreshGiftData()
+            }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
@@ -299,7 +302,7 @@ private fun CosmeticProductCard(
             AvatarAssetPreview(
                 assetPath = item.assetPath,
                 contentDescription = item.displayName,
-                centerCrop = item.type == AvatarCosmeticType.BACKGROUND,
+                centerCrop = false,
                 modifier = Modifier.size(104.dp),
             )
             Text(item.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1)
