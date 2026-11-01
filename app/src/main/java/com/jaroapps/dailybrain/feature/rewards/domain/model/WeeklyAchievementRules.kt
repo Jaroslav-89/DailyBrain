@@ -5,13 +5,13 @@ import java.time.LocalDate
 /**
  * Completion rules shared by the weekly calendar streak and weekly challenge.
  *
- * The streak is based on active calendar dates, regardless of exercise type. Its
- * caller supplies dates from the training_days table, which is the same day index
- * used by the calendar UI.
+ * The streak is a rolling sequence of active calendar dates, regardless of
+ * ISO-week boundaries or exercise type. The first active date is day one, and a
+ * reward is completed on every seventh consecutive active date.
  *
- * The weekly challenge is stricter: arithmetic must be completed on each of the
- * seven dates in the ISO week, and all three additional exercise types must also
- * be completed during that same week.
+ * The weekly challenge is calendar-based: arithmetic must be completed on each
+ * of the seven dates from Monday through Sunday, and all three additional
+ * exercise types must also be completed during that same ISO week.
  */
 object WeeklyAchievementRules {
 

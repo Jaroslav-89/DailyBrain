@@ -51,6 +51,30 @@ class WeeklyAchievementRulesTest {
     }
 
     @Test
+    fun streakStartingOnWednesdayCrossesMondayAndRewardsEverySeventhActiveDate() {
+        val wednesdayStart = LocalDate.of(2026, 10, 28)
+        // Eight active dates: Wednesday through the following Wednesday.
+        // Day seven is Tuesday; Monday does not reset the rolling streak.
+        val dates = (0..7).map { wednesdayStart.plusDays(it.toLong()) }
+
+        assertEquals(
+            listOf(wednesdayStart.plusDays(6)),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(dates),
+        )
+    }
+
+    @Test
+    fun streakStartingOnWednesdayRepeatsAfterAnotherSevenActiveDates() {
+        val wednesdayStart = LocalDate.of(2026, 10, 28)
+        val fifteenDates = (0..14).map { wednesdayStart.plusDays(it.toLong()) }
+
+        assertEquals(
+            listOf(wednesdayStart.plusDays(6), wednesdayStart.plusDays(13)),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(fifteenDates),
+        )
+    }
+
+    @Test
     fun weeklyChallengeRequiresArithmeticEveryDayAndAllThreeAdditionalExercises() {
         assertTrue(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
@@ -67,7 +91,8 @@ class WeeklyAchievementRulesTest {
         assertFalse(
             WeeklyAchievementRules.isWeeklyChallengeCompleted(
                 weekStart = weekStart,
-                arithmeticTrainingDates = weekDates - weekStart.plusDays(4),
+                // The following Monday cannot replace a missing day inside this Monday-Sunday week.
+                arithmeticTrainingDates = weekDates - weekStart.plusDays(4) + weekStart.plusDays(7),
                 completedExerciseTypes = additionalTypes,
                 requiredAdditionalExerciseTypes = additionalTypes,
             ),
