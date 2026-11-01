@@ -304,7 +304,11 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             }
 
             composable(Route.FEED) {
-                FeedScreen()
+                FeedScreen(
+                    onOpenUserProfile = { userId ->
+                        navController.navigate(Route.userProfile(userId))
+                    },
+                )
             }
 
             composable(Route.CALENDAR) {

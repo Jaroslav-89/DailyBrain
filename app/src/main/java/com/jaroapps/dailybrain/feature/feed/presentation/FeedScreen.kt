@@ -4,6 +4,7 @@ import android.graphics.BitmapFactory
 
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,7 +58,10 @@ private const val BADGE_CELL_WIDTH = 192
 private const val BADGE_CELL_HEIGHT = 228
 
 @Composable
-fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
+fun FeedScreen(
+    onOpenUserProfile: (String) -> Unit,
+    viewModel: FeedViewModel = koinViewModel(),
+) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val context = LocalContext.current
@@ -132,7 +136,11 @@ fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
                 items(state.events, key = { it.eventId }) { event ->
-                    FeedEventCard(event = event, badgeSheets = badgeSheets)
+                    FeedEventCard(
+                        event = event,
+                        badgeSheets = badgeSheets,
+                        onOpenUserProfile = onOpenUserProfile,
+                    )
                 }
                 if (state.hasMore) {
                     item(key = "feed-loading-more") {
@@ -152,8 +160,13 @@ fun FeedScreen(viewModel: FeedViewModel = koinViewModel()) {
 }
 
 @Composable
-private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap?>) {
+private fun FeedEventCard(
+    event: FeedEvent,
+    badgeSheets: List<ImageBitmap?>,
+    onOpenUserProfile: (String) -> Unit,
+) {
     val author = if (event.isOwn) "Вы" else event.authorName
+    val authorUid = event.authorFirebaseUid?.takeIf(String::isNotBlank)
     val username = event.authorUsername?.takeIf(String::isNotBlank)?.let { "@$it" }
     val badgeLocation = event.badgeSpriteLocation()
 
@@ -165,7 +178,10 @@ private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap?>) {
         ) {
             Box(
                 modifier = Modifier.size(42.dp).clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.secondaryContainer),
+                    .background(MaterialTheme.colorScheme.secondaryContainer)
+                    .clickable(enabled = authorUid != null) {
+                        authorUid?.let(onOpenUserProfile)
+                    },
                 contentAlignment = Alignment.Center,
             ) {
                 Text(
@@ -176,7 +192,15 @@ private fun FeedEventCard(event: FeedEvent, badgeSheets: List<ImageBitmap?>) {
             }
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                    Text(author, fontWeight = FontWeight.SemiBold)
+                    Text(
+                        text = author,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (authorUid != null) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.clickable(enabled = authorUid != null) {
+                            authorUid?.let(onOpenUserProfile)
+                        },
+                    )
                     if (!username.isNullOrBlank()) {
                         Text(
                             text = "  " + username,
