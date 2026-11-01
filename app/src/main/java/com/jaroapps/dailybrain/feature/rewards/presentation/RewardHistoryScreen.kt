@@ -64,6 +64,10 @@ fun RewardHistoryScreen(
         RewardBalanceType.XP -> R.string.reward_history_title_xp
         RewardBalanceType.ENDORPHINS -> R.string.reward_history_title_endorphins
     }
+    val unitRes = when (state.balanceType) {
+        RewardBalanceType.XP -> R.string.reward_history_unit_xp
+        RewardBalanceType.ENDORPHINS -> R.string.reward_history_unit_endorphins
+    }
 
     Scaffold(
         topBar = {
