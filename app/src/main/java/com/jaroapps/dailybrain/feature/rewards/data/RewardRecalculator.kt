@@ -125,6 +125,8 @@ object RewardRecalculator {
             )
         }
 
+        // Ordinary exercise completions award XP only; their endorphin delta is always zero.
+        // Endorphins are reserved for eligible achievements (weekly/monthly milestones and records).
         // Arithmetic: 50 XP for the first result of each local day, 10 XP for later results.
         dated.filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
             .groupBy({ it.first }, { it.second })
@@ -182,21 +184,24 @@ object RewardRecalculator {
             if (firstStreakCompletedAt == null) firstStreakCompletedAt = trigger.finishedAtEpochMs
         }
 
-        // Weekly assignment: arithmetic every day of the ISO week plus at least one
-        // of the three additional exercise types on any date in that same week.
+        // Weekly challenge: at least seven arithmetic sessions during this ISO week
+        // (they need not be on separate dates), plus all three additional exercise types.
+        // This single predicate gates both the XP and endorphin reward ledger entries.
         val sessionsByWeek = dated.groupBy { (date, _) ->
             date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
         }
         sessionsByWeek.forEach { (weekStart, weekItems) ->
-            val arithmeticDates = weekItems.filter {
+            val arithmeticSessionCount = weekItems.count {
                 ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC
-            }.map { it.first }.toSet()
-            val additionalTypes = weekItems.map { (_, session) -> session.exerciseType }.toSet()
+            }
+            val completedAdditionalTypes = weekItems
+                .map { (_, session) -> session.exerciseType }
+                .filter { it in knownNonArithmeticTypes }
+                .toSet()
             val hasWeeklyChallenge = WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticDates = arithmeticDates,
-                completedExerciseTypes = additionalTypes,
-                additionalExerciseTypes = knownNonArithmeticTypes,
+                arithmeticSessionCount = arithmeticSessionCount,
+                completedExerciseTypes = completedAdditionalTypes,
+                requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
             )
             if (hasWeeklyChallenge) {
                 val trigger = weekItems.maxByOrNull { it.second.finishedAtEpochMs }?.second ?: return@forEach

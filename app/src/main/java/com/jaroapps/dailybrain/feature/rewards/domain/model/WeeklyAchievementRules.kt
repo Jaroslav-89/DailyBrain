@@ -3,13 +3,19 @@ package com.jaroapps.dailybrain.feature.rewards.domain.model
 import java.time.LocalDate
 
 /**
- * Pure eligibility rules for the two weekly achievements.
+ * Shared completion rules for weekly streak and weekly challenge.
  *
- * A weekly streak is a rolling sequence of seven consecutive dates with at least one
- * arithmetic session per date. The weekly challenge is scoped to an ISO Monday-Sunday
- * week: arithmetic on every date plus at least one of the configured additional exercises.
+ * A weekly streak is seven consecutive calendar dates with at least one arithmetic
+ * session on each date. The weekly challenge is intentionally different: it requires
+ * at least seven arithmetic sessions anywhere in the ISO week, plus all three
+ * additional exercise types at least once.
+ *
+ * RewardRecalculator uses these same predicates before creating the XP and endorphin
+ * ledger entries, so the two currencies cannot disagree about achievement eligibility.
  */
 object WeeklyAchievementRules {
+
+    const val REQUIRED_WEEKLY_ARITHMETIC_SESSIONS = 7
 
     fun weeklyStreakCompletionDates(
         arithmeticTrainingDates: Collection<LocalDate>,
@@ -24,24 +30,21 @@ object WeeklyAchievementRules {
         dates.forEach { date ->
             streakLength = if (previousDate?.plusDays(1) == date) streakLength + 1 else 1
             previousDate = date
-            if (streakLength % 7 == 0) completions += date
+            if (streakLength % REQUIRED_WEEKLY_ARITHMETIC_SESSIONS == 0) {
+                completions += date
+            }
         }
 
         return completions
     }
 
     fun isWeeklyChallengeCompleted(
-        weekStart: LocalDate,
-        arithmeticDates: Set<LocalDate>,
+        arithmeticSessionCount: Int,
         completedExerciseTypes: Set<String>,
-        additionalExerciseTypes: Set<String>,
+        requiredAdditionalExerciseTypes: Set<String>,
     ): Boolean {
-        val hasArithmeticEveryDay = (0..6).all { offset ->
-            weekStart.plusDays(offset.toLong()) in arithmeticDates
-        }
-        val hasAtLeastOneAdditionalExercise =
-            additionalExerciseTypes.any { it in completedExerciseTypes }
-
-        return hasArithmeticEveryDay && hasAtLeastOneAdditionalExercise
+        if (arithmeticSessionCount < REQUIRED_WEEKLY_ARITHMETIC_SESSIONS) return false
+        if (requiredAdditionalExerciseTypes.isEmpty()) return false
+        return completedExerciseTypes.containsAll(requiredAdditionalExerciseTypes)
     }
 }

@@ -546,4 +546,11 @@ object DatabaseMigrations {
         }
     }
 
+    /** Re-evaluate weekly reward eligibility after the corrected weekly achievement rules. */
+    val MIGRATION_15_16 = object : Migration(15, 16) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
+        }
+    }
+
 }
