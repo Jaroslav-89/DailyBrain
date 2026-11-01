@@ -13,11 +13,13 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import com.jaroapps.dailybrain.feature.rewards.data.RewardRecalculator
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.suspendCancellableCoroutine
-import java.util.Locale
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
@@ -58,73 +60,99 @@ class FeedRepositoryImpl(
             return
         }
 
-        val app = configuredApp() ?: return
+        val app = requireNotNull(configuredApp()) {
+            "FIREBASE_NOT_CONFIGURED: check app/google-services.json and Firebase initialization."
+        }
         requireCurrentFirebaseUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
 
-        // Refresh event author metadata and ensure newly linked profiles can publish their history.
+        // Recalculate locally before network access; this does not depend on the friends feed.
         database.withTransaction {
             RewardRecalculator.recalculate(database, localAccountId)
         }
-        syncOwnEvents(localAccountId, firebaseUid, firestore)
 
-        val followingSnapshot = firestore.collection(PUBLIC_FOLLOWING)
-            .document(firebaseUid)
-            .collection(CONNECTIONS)
+        // Read the canonical follow graph. publicFollowing is a denormalized projection and
+        // may be absent for older follows created before that projection was introduced.
+        val followingSnapshot = firestore.collection(FOLLOWS)
+            .whereEqualTo("followerUid", firebaseUid)
             .get()
             .awaitResult()
         val followingUids = followingSnapshot.documents
-            .mapNotNull { it.getString("uid") ?: it.id }
+            .mapNotNull { it.getString("followingUid") }
             .filter { it.isNotBlank() && it != firebaseUid }
             .distinct()
 
-        if (followingUids.isEmpty()) {
-            database.feedEventDao().deleteCachedFriendEvents(localAccountId)
-            return
+        val friendEvents = if (followingUids.isEmpty()) {
+            emptyList()
+        } else {
+            loadFollowedAuthorsEvents(
+                firestore = firestore,
+                localAccountId = localAccountId,
+                followingUids = followingUids,
+            )
         }
 
-        // Retention is ten documents per author. A chunk query retrieves the full retained
-        // history for all authors in that chunk without issuing one request per author.
-        val friendEvents = followingUids.chunked(MAX_AUTHORS_PER_QUERY).flatMap { authorIds ->
-            firestore.collection(FEED_EVENTS)
-                .whereIn("authorUid", authorIds)
-                .orderBy("occurredAtEpochMs", Query.Direction.DESCENDING)
-                .limit((MAX_PUBLIC_EVENTS * authorIds.size).toLong())
-                .get()
-                .awaitResult()
-                .documents
-                .mapNotNull { document ->
-                    val authorUid = document.getString("authorUid") ?: return@mapNotNull null
-                    if (authorUid !in followingUids) return@mapNotNull null
-                    val eventType = document.getString("eventType") ?: return@mapNotNull null
-                    val occurredAt = document.getLong("occurredAtEpochMs") ?: return@mapNotNull null
-                    FeedEventEntity(
-                        localAccountId = localAccountId,
-                        eventId = document.id,
-                        authorFirebaseUid = authorUid,
-                        authorName = document.getString("authorName")?.takeIf(String::isNotBlank)
-                            ?: "Пользователь",
-                        authorUsername = document.getString("authorUsername"),
-                        eventType = eventType,
-                        occurredAtEpochMs = occurredAt,
-                        periodKey = document.getString("periodKey"),
-                        exerciseType = document.getString("exerciseType"),
-                        valueLong = document.getLong("valueLong"),
-                        valueInt = document.getLong("valueInt")?.toInt(),
-                        accuracyPercent = document.getDouble("accuracyPercent"),
-                        isLocal = false,
-                        isRevoked = false,
-                        syncState = SYNCED,
-                    )
-                }
-        }
-
-        // Only replace the friend cache after every Firestore query completed successfully.
-        // If network access fails, Room keeps showing the last successfully loaded friend feed.
+        // Replace the friend cache only after all per-author queries completed successfully.
+        // A failed query leaves the last successfully loaded cache intact.
         database.withTransaction {
             database.feedEventDao().deleteCachedFriendEvents(localAccountId)
             if (friendEvents.isNotEmpty()) database.feedEventDao().upsertAll(friendEvents)
         }
+
+        // Uploading our own publications is independent from reading followed authors.
+        // A failed own-event write must not hide friends' events from the feed.
+        try {
+            syncOwnEvents(localAccountId, firebaseUid, firestore)
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            android.util.Log.w(LOG_TAG, "Could not sync own feed events; friends feed was refreshed.", error)
+        }
+    }
+
+    private suspend fun loadFollowedAuthorsEvents(
+        firestore: FirebaseFirestore,
+        localAccountId: String,
+        followingUids: List<String>,
+    ): List<FeedEventEntity> = coroutineScope {
+        // Query one author at a time so Firestore rules can verify an exact author UID
+        // against the canonical follows/{viewerUid_authorUid} relationship document.
+        // At most nine independent reads run concurrently; each returns at most ten events.
+        followingUids.chunked(MAX_CONCURRENT_AUTHOR_QUERIES).flatMap { authorChunk ->
+            authorChunk.map { authorUid ->
+                async {
+                    firestore.collection(FEED_EVENTS)
+                        .whereEqualTo("authorUid", authorUid)
+                        .orderBy("occurredAtEpochMs", Query.Direction.DESCENDING)
+                        .limit(MAX_PUBLIC_EVENTS.toLong())
+                        .get()
+                        .awaitResult()
+                        .documents
+                        .mapNotNull { document ->
+                            val eventType = document.getString("eventType") ?: return@mapNotNull null
+                            val occurredAt = document.getLong("occurredAtEpochMs") ?: return@mapNotNull null
+                            FeedEventEntity(
+                                localAccountId = localAccountId,
+                                eventId = document.id,
+                                authorFirebaseUid = authorUid,
+                                authorName = document.getString("authorName")?.takeIf(String::isNotBlank)
+                                    ?: "Пользователь",
+                                authorUsername = document.getString("authorUsername"),
+                                eventType = eventType,
+                                occurredAtEpochMs = occurredAt,
+                                periodKey = document.getString("periodKey"),
+                                exerciseType = document.getString("exerciseType"),
+                                valueLong = document.getLong("valueLong"),
+                                valueInt = document.getLong("valueInt")?.toInt(),
+                                accuracyPercent = document.getDouble("accuracyPercent"),
+                                isLocal = false,
+                                isRevoked = false,
+                                syncState = SYNCED,
+                            )
+                        }
+                }
+            }.awaitAll().flatten()
+        }.distinctBy { it.eventId }
     }
 
     override suspend fun syncOwnEvents() {
@@ -238,10 +266,10 @@ class FeedRepositoryImpl(
         }
 
     private companion object {
-        const val PUBLIC_FOLLOWING = "publicFollowing"
-        const val CONNECTIONS = "users"
+        const val FOLLOWS = "follows"
         const val FEED_EVENTS = "feedEvents"
-        const val MAX_AUTHORS_PER_QUERY = 9
+        const val MAX_CONCURRENT_AUTHOR_QUERIES = 9
+        const val LOG_TAG = "DailyBrainFeed"
         const val MAX_PUBLIC_EVENTS = 10
         const val FEED_PAGE_SIZE = 30
         const val PENDING_UPSERT = "PENDING_UPSERT"

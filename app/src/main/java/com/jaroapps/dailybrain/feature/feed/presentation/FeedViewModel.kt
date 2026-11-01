@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.feed.presentation
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
+import com.google.firebase.firestore.FirebaseFirestoreException
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
@@ -82,8 +84,18 @@ class FeedViewModel(
                 withContext(Dispatchers.IO) { repository.refresh() }
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
-                errorMessage.value = "Не удалось обновить ленту. Показываем сохранённые новости."
+            } catch (error: Exception) {
+                Log.e(LOG_TAG, "Feed refresh failed.", error)
+                val firestoreError = generateSequence(error) { it.cause }
+                    .filterIsInstance<FirebaseFirestoreException>()
+                    .firstOrNull()
+                val diagnosticCode = firestoreError?.code?.name
+                    ?: (error.message?.substringBefore(':')?.takeIf { it.matches(Regex("[A-Z0-9_]+")) })
+                errorMessage.value = if (diagnosticCode != null) {
+                    "Не удалось обновить ленту ($diagnosticCode). Показываем сохранённые новости."
+                } else {
+                    "Не удалось обновить ленту. Показываем сохранённые новости."
+                }
             } finally {
                 isRefreshing.value = false
             }
@@ -109,7 +121,8 @@ class FeedViewModel(
                 hasMore.value = pageWithLookahead.size > PAGE_SIZE && page.isNotEmpty()
             } catch (cancelled: CancellationException) {
                 throw cancelled
-            } catch (_: Exception) {
+            } catch (error: Exception) {
+                Log.e(LOG_TAG, "Loading older feed events failed.", error)
                 hasMore.value = false
                 errorMessage.value = "Не удалось загрузить следующие новости из сохранённой истории."
             } finally {
@@ -120,5 +133,6 @@ class FeedViewModel(
 
     private companion object {
         const val PAGE_SIZE = 30
+        const val LOG_TAG = "DailyBrainFeed"
     }
 }
