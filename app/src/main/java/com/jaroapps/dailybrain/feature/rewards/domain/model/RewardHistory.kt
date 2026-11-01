@@ -15,6 +15,8 @@ data class RewardHistoryEntry(
     val amount: Int,
     val reason: String,
     val occurredAtEpochMs: Long,
+    val exerciseType: String? = null,
+    val resultDurationMs: Long? = null,
 )
 
 data class RewardHistorySnapshot(

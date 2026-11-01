@@ -244,6 +244,11 @@
     <string name="reward_reason_weekly_challenge">Выполнено недельное задание</string>
     <string name="reward_reason_monthly_streak">Месяц ежедневных тренировок</string>
     <string name="reward_reason_personal_record">Новый личный рекорд в арифметике</string>
+    <string name="reward_reason_personal_record_with_time">Новый личный рекорд в арифметике — %1$s</string>
+    <string name="reward_history_exercise">Упражнение: %1$s</string>
+    <string name="reward_history_duration_hours">%1$d ч %2$d мин %3$d сек</string>
+    <string name="reward_history_duration_minutes">%1$d мин %2$d сек</string>
+    <string name="reward_history_duration_seconds">%1$d сек</string>
     <string name="reward_reason_patch_purchase">Покупка защиты пропуска (патча)</string>
     <string name="reward_reason_gift_purchase">Покупка подарка</string>
     <string name="reward_reason_costume_purchase">Покупка костюма</string>

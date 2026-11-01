@@ -238,6 +238,25 @@ private fun RewardHistoryEntryCard(
         "GIFT_RECEIVED_CAKE" -> R.string.reward_reason_gift_cake
         else -> R.string.reward_history_reason_other
     }
+    val exerciseRes = when (entry.exerciseType) {
+        "ARITHMETIC" -> R.string.exercise_arithmetic
+        "MEMORY_WORDS" -> R.string.exercise_memory
+        "STROOP_TEST" -> R.string.exercise_stroop
+        "COUNTING_TRAINING" -> R.string.exercise_counting
+        else -> null
+    }
+    val recordDurationText = if (
+        entry.reason == "ARITHMETIC_PERSONAL_RECORD" && entry.resultDurationMs != null
+    ) {
+        rewardRecordDurationText(entry.resultDurationMs)
+    } else {
+        null
+    }
+    val reasonText = if (recordDurationText != null) {
+        stringResource(R.string.reward_reason_personal_record_with_time, recordDurationText)
+    } else {
+        stringResource(reasonRes)
+    }
     val dateText = runCatching {
         Instant.ofEpochMilli(entry.occurredAtEpochMs)
             .atZone(ZoneId.systemDefault())
@@ -251,7 +270,14 @@ private fun RewardHistoryEntryCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(stringResource(reasonRes), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                Text(reasonText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                if (exerciseRes != null) {
+                    Text(
+                        stringResource(R.string.reward_history_exercise, stringResource(exerciseRes)),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Text(dateText, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
             Text(
@@ -265,5 +291,29 @@ private fun RewardHistoryEntryCard(
                 },
             )
         }
+    }
+}
+
+
+@Composable
+private fun rewardRecordDurationText(durationMs: Long): String {
+    val totalSeconds = durationMs.coerceAtLeast(0L) / 1_000L
+    val hours = totalSeconds / 3_600L
+    val minutes = (totalSeconds % 3_600L) / 60L
+    val seconds = totalSeconds % 60L
+
+    return when {
+        hours > 0L -> stringResource(
+            R.string.reward_history_duration_hours,
+            hours.toInt(),
+            minutes.toInt(),
+            seconds.toInt(),
+        )
+        totalSeconds >= 60L -> stringResource(
+            R.string.reward_history_duration_minutes,
+            minutes.toInt(),
+            seconds.toInt(),
+        )
+        else -> stringResource(R.string.reward_history_duration_seconds, seconds.toInt())
     }
 }

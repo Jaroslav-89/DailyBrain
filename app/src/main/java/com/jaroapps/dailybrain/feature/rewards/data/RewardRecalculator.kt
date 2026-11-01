@@ -8,9 +8,9 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
 import com.jaroapps.dailybrain.core.database.entity.UserBadgeEntity
+import com.jaroapps.dailybrain.core.utils.localDateAtEpochMillis
 import java.time.LocalDate
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.temporal.TemporalAdjusters
 import java.time.DayOfWeek
 import java.time.temporal.WeekFields
@@ -36,26 +36,20 @@ object RewardRecalculator {
     suspend fun recalculate(database: AppDatabase, localAccountId: String) {
         val sessions = database.trainingSessionDao().getAll(localAccountId)
         val profile = database.userProfileDao().getProfile(localAccountId) ?: return
-        val ordered = sessions.sortedWith(compareBy<TrainingSessionEntity>({ it.date }, { it.finishedAtEpochMs }, { it.id }))
-        val dated = ordered.mapNotNull { session ->
-            runCatching {
-                LocalDate.parse(session.date.toString(), DateTimeFormatter.BASIC_ISO_DATE) to session
-            }.getOrNull()
+        // Derive reward days from the actual completion timestamp in the device's current
+        // local zone. This also repairs legacy rows whose stored date used a different zone.
+        val ordered = sessions.sortedWith(compareBy<TrainingSessionEntity>({ it.finishedAtEpochMs }, { it.id }))
+        val dated = ordered.map { session ->
+            localDateAtEpochMillis(session.finishedAtEpochMs) to session
         }
 
         val drafts = mutableListOf<RewardDraft>()
         val desiredBadges = linkedMapOf<String, UserBadgeEntity>()
         val desiredEvents = linkedMapOf<String, FeedEventEntity>()
         val sessionsByDate = dated.groupBy({ it.first }, { it.second })
-        // training_days is the calendar's source of truth: any completed exercise type
-        // makes the date active and therefore contributes to the day streak.
-        val activeTrainingDates = database.trainingDayDao().getAll(localAccountId)
-            .mapNotNull { day ->
-                runCatching {
-                    LocalDate.parse(day.date.toString(), DateTimeFormatter.BASIC_ISO_DATE)
-                }.getOrNull()
-            }
-            .toSet()
+        // Every completed workout has a session row. Use the same local timestamp dates
+        // for active days, daily XP, streaks, and monthly achievements.
+        val activeTrainingDates = dated.mapTo(mutableSetOf()) { it.first }
         val existingLocalEvents = database.feedEventDao().getLocalEvents(localAccountId).associateBy { it.eventId }
 
         fun addReward(

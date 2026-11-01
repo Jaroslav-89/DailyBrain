@@ -22,7 +22,9 @@ class RewardHistoryRepositoryImpl(
             combine(
                 database.userProfileDao().observeProfile(localAccountId),
                 database.rewardLedgerDao().observeForUser(localAccountId),
-            ) { profile, ledger ->
+                database.trainingSessionDao().observeAll(localAccountId),
+            ) { profile, ledger, sessions ->
+                val sessionsById = sessions.associateBy { it.id }
                 val entries = ledger.asSequence()
                     .filter { it.isActive }
                     .mapNotNull { operation ->
@@ -30,12 +32,23 @@ class RewardHistoryRepositoryImpl(
                             RewardBalanceType.XP -> operation.deltaXp
                             RewardBalanceType.ENDORPHINS -> operation.deltaEndorphins
                         }
-                        if (amount == 0) null else RewardHistoryEntry(
-                            id = operation.rewardKey,
-                            amount = amount,
-                            reason = operation.reason,
-                            occurredAtEpochMs = operation.occurredAtEpochMs,
-                        )
+                        if (amount == 0) {
+                            null
+                        } else {
+                            val sourceSession = operation.sourceId?.let { sessionsById[it] }
+                            RewardHistoryEntry(
+                                id = operation.rewardKey,
+                                amount = amount,
+                                reason = operation.reason,
+                                occurredAtEpochMs = operation.occurredAtEpochMs,
+                                exerciseType = sourceSession?.exerciseType,
+                                resultDurationMs = if (operation.reason == "ARITHMETIC_PERSONAL_RECORD") {
+                                    sourceSession?.durationMs
+                                } else {
+                                    null
+                                },
+                            )
+                        }
                     }
                     .sortedWith(
                         compareByDescending<RewardHistoryEntry> { it.occurredAtEpochMs }

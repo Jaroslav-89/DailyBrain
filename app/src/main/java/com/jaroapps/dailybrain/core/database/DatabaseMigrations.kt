@@ -560,4 +560,10 @@ object DatabaseMigrations {
         }
     }
 
+    /** Recalculate reward eligibility using completion timestamps in the device's local time zone. */
+    val MIGRATION_17_18 = object : Migration(17, 18) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("UPDATE user_profile SET rewardsInitialized = 0")
+        }
+    }
 }
