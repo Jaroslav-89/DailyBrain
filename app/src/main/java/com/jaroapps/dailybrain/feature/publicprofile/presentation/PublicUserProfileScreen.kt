@@ -48,6 +48,8 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarJsonCodec
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicBestExerciseResult
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileCollectibleSection
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -60,6 +62,8 @@ fun PublicUserProfileScreen(
     profileFirebaseUid: String,
     onBack: () -> Unit,
     onOpenConnections: (String, String) -> Unit,
+    onOpenCollectibles: (String, ProfileCollectibleKind) -> Unit,
+    onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     viewModel: PublicUserProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -222,6 +226,25 @@ fun PublicUserProfileScreen(
                             )
                         }
                     }
+                    ProfileCollectibleSection(
+                        title = "Подарки",
+                        ownerUid = user.firebaseUid,
+                        items = state.collectibles.filter { it.kind == ProfileCollectibleKind.GIFT },
+                        kind = ProfileCollectibleKind.GIFT,
+                        onOpenCollection = onOpenCollectibles,
+                        onOpenItem = onOpenCollectible,
+                    )
+                    if (state.collectibles.any { it.kind == ProfileCollectibleKind.GIFT }) {
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    ProfileCollectibleSection(
+                        title = "Бейджики",
+                        ownerUid = user.firebaseUid,
+                        items = state.collectibles.filter { it.kind == ProfileCollectibleKind.BADGE },
+                        kind = ProfileCollectibleKind.BADGE,
+                        onOpenCollection = onOpenCollectibles,
+                        onOpenItem = onOpenCollectible,
+                    )
                     if (stats != null) {
                         Spacer(Modifier.height(22.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

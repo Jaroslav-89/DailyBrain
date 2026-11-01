@@ -24,6 +24,8 @@ data class FeedEventEntity(
     val valueLong: Long? = null,
     val valueInt: Int? = null,
     val accuracyPercent: Double? = null,
+    val relatedUserFirebaseUid: String? = null,
+    val relatedUserName: String? = null,
     val isLocal: Boolean,
     val isRevoked: Boolean = false,
     /** LOCAL_ONLY, PENDING_UPSERT, PENDING_DELETE, or SYNCED. */

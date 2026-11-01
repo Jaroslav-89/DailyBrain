@@ -611,4 +611,14 @@ object DatabaseMigrations {
             )
         }
     }
+
+    /** Keep gift sender details and sender metadata required by public gift feed events. */
+    val MIGRATION_20_21 = object : Migration(20, 21) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL("ALTER TABLE user_gifts ADD COLUMN senderName TEXT")
+            database.execSQL("ALTER TABLE feed_events ADD COLUMN relatedUserFirebaseUid TEXT")
+            database.execSQL("ALTER TABLE feed_events ADD COLUMN relatedUserName TEXT")
+        }
+    }
+
 }

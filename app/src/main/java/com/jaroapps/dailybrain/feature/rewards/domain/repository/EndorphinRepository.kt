@@ -24,5 +24,6 @@ interface EndorphinRepository {
         giftId: String,
         giftType: EndorphinGiftType,
         senderUserId: String? = null,
+        senderName: String? = null,
     ): GiftReceiptResult
 }

@@ -46,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
+import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import kotlinx.coroutines.flow.distinctUntilChanged
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
@@ -60,6 +62,7 @@ private const val BADGE_CELL_HEIGHT = 228
 @Composable
 fun FeedScreen(
     onOpenUserProfile: (String) -> Unit,
+    onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     viewModel: FeedViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -140,6 +143,7 @@ fun FeedScreen(
                         event = event,
                         badgeSheets = badgeSheets,
                         onOpenUserProfile = onOpenUserProfile,
+                        onOpenCollectible = onOpenCollectible,
                     )
                 }
                 if (state.hasMore) {
@@ -164,9 +168,11 @@ private fun FeedEventCard(
     event: FeedEvent,
     badgeSheets: List<ImageBitmap?>,
     onOpenUserProfile: (String) -> Unit,
+    onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
 ) {
     val author = if (event.isOwn) "Вы" else event.authorName
     val authorUid = event.authorFirebaseUid?.takeIf(String::isNotBlank)
+    val collectibleOwnerUid = authorUid ?: if (event.isOwn) "local" else null
     val username = event.authorUsername?.takeIf(String::isNotBlank)?.let { "@$it" }
     val badgeLocation = event.badgeSpriteLocation()
 
@@ -221,20 +227,47 @@ private fun FeedEventCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            val giftType = if (event.eventType == "GIFT_RECEIVED") {
+                EndorphinGiftType.entries.firstOrNull { it.name == event.periodKey }
+            } else null
+            val collectibleId = event.badgeCollectibleId()
             val badgeBitmap = badgeLocation?.let { (sheetIndex, _) ->
                 badgeSheets.getOrNull(sheetIndex)
             }
-            if (badgeLocation != null && badgeBitmap != null) {
-                val (_, cellIndex) = badgeLocation
-                Image(
-                    painter = BitmapPainter(
-                        image = badgeBitmap,
-                        srcOffset = IntOffset(cellIndex * BADGE_CELL_WIDTH, 0),
-                        srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
-                    ),
-                    contentDescription = event.badgeDescription(),
-                    modifier = Modifier.size(width = 68.dp, height = 80.dp),
-                )
+            when {
+                giftType != null && collectibleOwnerUid != null -> {
+                    Image(
+                        painter = androidx.compose.ui.res.painterResource(
+                            when (giftType) {
+                                EndorphinGiftType.CANDY -> R.drawable.gift_candy
+                                EndorphinGiftType.COFFEE -> R.drawable.gift_coffee
+                                EndorphinGiftType.CROISSANT -> R.drawable.gift_croissant
+                                EndorphinGiftType.HAMBURGER -> R.drawable.gift_hamburger
+                                EndorphinGiftType.CAKE -> R.drawable.gift_cake
+                            },
+                        ),
+                        contentDescription = "Подарок: ${giftType.displayName}",
+                        modifier = Modifier.size(width = 68.dp, height = 80.dp)
+                            .clickable {
+                                onOpenCollectible(collectibleOwnerUid, ProfileCollectibleKind.GIFT, event.eventId.removePrefix("gift_received:"))
+                            },
+                    )
+                }
+                badgeLocation != null && badgeBitmap != null && collectibleId != null && collectibleOwnerUid != null -> {
+                    val (_, cellIndex) = badgeLocation
+                    Image(
+                        painter = BitmapPainter(
+                            image = badgeBitmap,
+                            srcOffset = IntOffset(cellIndex * BADGE_CELL_WIDTH, 0),
+                            srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
+                        ),
+                        contentDescription = event.badgeDescription(),
+                        modifier = Modifier.size(width = 68.dp, height = 80.dp)
+                            .clickable {
+                                onOpenCollectible(collectibleOwnerUid, ProfileCollectibleKind.BADGE, collectibleId)
+                            },
+                    )
+                }
             }
         }
     }
@@ -247,6 +280,14 @@ private fun FeedEvent.badgeSpriteLocation(): Pair<Int, Int>? = when (eventType) 
         val month = (valueInt ?: periodKey?.substringAfterLast("-")?.toIntOrNull() ?: 1).coerceIn(1, 12)
         (1 + (month - 1) / 4) to ((month - 1) % 4)
     }
+    else -> null
+}
+
+
+private fun FeedEvent.badgeCollectibleId(): String? = when (eventType) {
+    "WEEKLY_STREAK" -> periodKey?.let { "weekly_streak:$it" }
+    "WEEKLY_CHALLENGE" -> periodKey?.let { "weekly_challenge:$it" }
+    "MONTHLY_STREAK" -> periodKey?.let { "monthly_streak:$it" }
     else -> null
 }
 
@@ -269,6 +310,10 @@ private fun FeedEvent.message(): String = when (eventType) {
         "Установил новый личный рекорд в арифметике" + time + accuracy
     }
     "WEEKLY_XP_MILESTONE" -> "Набрал " + (valueInt ?: 0) + " очков за текущую неделю"
+    "GIFT_RECEIVED" -> {
+        val giftName = EndorphinGiftType.entries.firstOrNull { it.name == periodKey }?.displayName ?: "подарок"
+        "Получил подарок «$giftName» от " + (relatedUserName?.takeIf(String::isNotBlank) ?: "пользователя DailyBrain")
+    }
     else -> "Получил новое достижение"
 }
 

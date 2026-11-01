@@ -61,6 +61,9 @@ import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionScreen
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileCollectiblesScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.CollectibleDetailScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
@@ -234,6 +237,12 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
                     onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                    onOpenCollectibles = { ownerUid, kind ->
+                        navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
+                    },
+                    onOpenCollectible = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
                 )
             }
 
@@ -273,6 +282,12 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onOpenConnections = { profileUid, connectionType ->
                         navController.navigate(Route.userProfileConnections(profileUid, connectionType))
                     },
+                    onOpenCollectibles = { ownerUid, kind ->
+                        navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
+                    },
+                    onOpenCollectible = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
                 )
             }
 
@@ -291,6 +306,32 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onBack = { navController.popBackStack() },
                     onOpenUser = { nestedUserId -> navController.navigate(Route.userProfile(nestedUserId)) },
                 )
+            }
+
+            composable(
+                route = Route.PROFILE_COLLECTIBLES,
+                arguments = listOf(
+                    navArgument("ownerUid") { type = NavType.StringType },
+                    navArgument("kind") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                ProfileCollectiblesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenItem = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
+                )
+            }
+
+            composable(
+                route = Route.COLLECTIBLE_DETAIL,
+                arguments = listOf(
+                    navArgument("ownerUid") { type = NavType.StringType },
+                    navArgument("kind") { type = NavType.StringType },
+                    navArgument("itemId") { type = NavType.StringType },
+                ),
+            ) {
+                CollectibleDetailScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.EDIT_PROFILE) {
@@ -319,6 +360,9 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 FeedScreen(
                     onOpenUserProfile = { userId ->
                         navController.navigate(Route.userProfile(userId))
+                    },
+                    onOpenCollectible = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
                     },
                 )
             }

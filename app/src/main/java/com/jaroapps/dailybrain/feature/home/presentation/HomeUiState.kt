@@ -10,6 +10,7 @@ enum class ArithmeticDayStatus {
     FUTURE,
     AVAILABLE_TODAY,
     COMPLETED,
+    BEFORE_FIRST_TRAINING,
     MISSED,
 }
 
@@ -39,6 +40,7 @@ data class HomeUiState(
         !isTrainingHistoryLoaded -> ArithmeticDayStatus.LOADING
         date in completedExerciseDatesByType[ExerciseType.ARITHMETIC.storageValue].orEmpty() ->
             ArithmeticDayStatus.COMPLETED
+        date.isBefore(completedDates.minOrNull() ?: today) -> ArithmeticDayStatus.BEFORE_FIRST_TRAINING
         date.isBefore(today) -> ArithmeticDayStatus.MISSED
         else -> ArithmeticDayStatus.AVAILABLE_TODAY
     }

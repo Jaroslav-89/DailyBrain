@@ -26,7 +26,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -165,10 +164,9 @@ fun HomeScreen(
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
                 )
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.ic_endorphin_molecule),
                     contentDescription = null,
-                    tint = Color(0xFF8E24AA),
                     modifier = Modifier.padding(start = 5.dp).size(24.dp),
                 )
             }
@@ -328,6 +326,8 @@ fun HomeScreen(
                                                 "$dateLabel: начать арифметику"
                                             ArithmeticDayStatus.COMPLETED ->
                                                 "$dateLabel: тренировка выполнена"
+                                            ArithmeticDayStatus.BEFORE_FIRST_TRAINING ->
+                                                "$dateLabel: тренировки ещё не начались"
                                             ArithmeticDayStatus.MISSED ->
                                                 "$dateLabel: пропущенный день"
                                         }
@@ -384,6 +384,7 @@ fun HomeScreen(
 
 private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (status) {
     ArithmeticDayStatus.LOADING,
+    ArithmeticDayStatus.BEFORE_FIRST_TRAINING,
     ArithmeticDayStatus.AVAILABLE_TODAY,
     ArithmeticDayStatus.FUTURE -> UnavailableGray
     ArithmeticDayStatus.COMPLETED -> BrainOrange

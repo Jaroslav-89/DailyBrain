@@ -17,7 +17,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -51,6 +50,7 @@ import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarAssetPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.rewards.presentation.EndorphinAmount
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopCosmeticOwnership
@@ -88,12 +88,11 @@ fun ShopScreen(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
-                        Text(
-                            (state.profile?.endorphinBalance ?: 0).toString(),
-                            style = MaterialTheme.typography.titleMedium,
-                            fontWeight = FontWeight.Bold,
+                        EndorphinAmount(
+                            text = (state.profile?.endorphinBalance ?: 0).toString(),
+                            textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            iconSize = 20.dp,
                         )
-                        Icon(Icons.Filled.Favorite, contentDescription = "Эндорфины", tint = MaterialTheme.colorScheme.primary)
                     }
                 },
             )
@@ -132,7 +131,7 @@ fun ShopScreen(
                             )
                         }
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            Text(EndorphinEconomy.PATCH_PRICE.toString() + " ❤️", fontWeight = FontWeight.Bold)
+                            EndorphinAmount(EndorphinEconomy.PATCH_PRICE.toString(), textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                             Button(
                                 onClick = viewModel::purchasePatch,
                                 enabled = !state.isPurchasing &&
@@ -275,7 +274,7 @@ private fun GiftProductCard(giftType: EndorphinGiftType, enabled: Boolean, onGif
                 modifier = Modifier.size(88.dp),
             )
             Text(giftType.displayName, fontWeight = FontWeight.SemiBold)
-            Text(giftType.price.toString() + " ❤️", style = MaterialTheme.typography.bodyMedium)
+            EndorphinAmount(giftType.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
             Button(onClick = onGift, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
                 Text("Подарить")
             }
@@ -309,7 +308,7 @@ private fun CosmeticProductCard(
             if (owned) {
                 Text("Куплено", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             } else {
-                Text(item.price.toString() + " ❤️", style = MaterialTheme.typography.bodyMedium)
+                EndorphinAmount(item.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
                 Button(onClick = onBuy, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
                     Text("Купить")
                 }
@@ -335,7 +334,7 @@ private fun ReceivedGiftCard(gift: ShopReceivedGift, onClick: () -> Unit) {
                 modifier = Modifier.size(76.dp),
             )
             Text(gift.giftType.displayName, fontWeight = FontWeight.SemiBold)
-            Text("+" + gift.giftType.price + " ❤️")
+            EndorphinAmount("+" + gift.giftType.price)
             Text(if (gift.isOpened) "Получено" else "Новое", color = MaterialTheme.colorScheme.primary)
         }
     }

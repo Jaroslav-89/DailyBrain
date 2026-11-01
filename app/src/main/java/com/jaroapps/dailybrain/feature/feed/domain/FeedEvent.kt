@@ -13,4 +13,6 @@ data class FeedEvent(
     val valueLong: Long? = null,
     val valueInt: Int? = null,
     val accuracyPercent: Double? = null,
+    val relatedUserFirebaseUid: String? = null,
+    val relatedUserName: String? = null,
 )

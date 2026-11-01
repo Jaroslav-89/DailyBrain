@@ -145,6 +145,8 @@ class FeedRepositoryImpl(
                                 valueLong = document.getLong("valueLong"),
                                 valueInt = document.getLong("valueInt")?.toInt(),
                                 accuracyPercent = document.getDouble("accuracyPercent"),
+                                relatedUserFirebaseUid = document.getString("relatedUserFirebaseUid"),
+                                relatedUserName = document.getString("relatedUserName"),
                                 isLocal = false,
                                 isRevoked = false,
                                 syncState = SYNCED,
@@ -225,6 +227,8 @@ class FeedRepositoryImpl(
         valueLong?.let { put("valueLong", it) }
         valueInt?.let { put("valueInt", it) }
         accuracyPercent?.let { put("accuracyPercent", it) }
+        relatedUserFirebaseUid?.let { put("relatedUserFirebaseUid", it) }
+        relatedUserName?.let { put("relatedUserName", it) }
     }
 
     private fun FeedEventEntity.toDomain() = FeedEvent(
@@ -240,6 +244,8 @@ class FeedRepositoryImpl(
         valueLong = valueLong,
         valueInt = valueInt,
         accuracyPercent = accuracyPercent,
+        relatedUserFirebaseUid = relatedUserFirebaseUid,
+        relatedUserName = relatedUserName,
     )
 
     private fun configuredApp(): FirebaseApp? =

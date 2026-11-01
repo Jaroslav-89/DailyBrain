@@ -32,13 +32,16 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
@@ -47,15 +50,22 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
+import org.koin.androidx.compose.koinInject
+import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.LocalDate
 import java.time.Period
@@ -68,11 +78,27 @@ fun ProfileScreen(
     onEditAvatar: () -> Unit,
     onOpenFriends: () -> Unit,
     onOpenUserProfile: (String) -> Unit,
+    onOpenCollectibles: (String, ProfileCollectibleKind) -> Unit,
+    onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val collectiblesRepository: ProfileCollectiblesRepository = koinInject()
+    val collectibles by collectiblesRepository.observeOwn().collectAsStateWithLifecycle(initialValue = emptyList())
+    val giftDeliveryRepository: GiftDeliveryRepository = koinInject()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
+    DisposableEffect(lifecycleOwner, giftDeliveryRepository) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                coroutineScope.launch { runCatching { giftDeliveryRepository.syncIncoming() } }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
@@ -263,6 +289,32 @@ fun ProfileScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(10.dp))
+            ProfileStatCard(
+                "Эндорфиновые пластыри",
+                "${profile?.patchCount ?: 0}/5",
+                Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(18.dp))
+            val collectibleOwnerUid = profile?.firebaseUid ?: "local"
+            ProfileCollectibleSection(
+                title = "Подарки",
+                ownerUid = collectibleOwnerUid,
+                items = collectibles.filter { it.kind == ProfileCollectibleKind.GIFT },
+                kind = ProfileCollectibleKind.GIFT,
+                onOpenCollection = onOpenCollectibles,
+                onOpenItem = onOpenCollectible,
+            )
+            if (collectibles.any { it.kind == ProfileCollectibleKind.GIFT }) Spacer(Modifier.height(14.dp))
+            ProfileCollectibleSection(
+                title = "Бейджики",
+                ownerUid = collectibleOwnerUid,
+                items = collectibles.filter { it.kind == ProfileCollectibleKind.BADGE },
+                kind = ProfileCollectibleKind.BADGE,
+                onOpenCollection = onOpenCollectibles,
+                onOpenItem = onOpenCollectible,
+            )
 
             Spacer(Modifier.height(22.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

@@ -13,6 +13,7 @@ data class UserGiftEntity(
     val giftId: String,
     val giftType: String,
     val senderUserId: String? = null,
+    val senderName: String? = null,
     val receivedAtEpochMs: Long,
     val isOpened: Boolean = false,
 )

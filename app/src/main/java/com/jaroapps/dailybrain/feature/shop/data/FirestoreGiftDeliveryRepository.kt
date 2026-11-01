@@ -7,7 +7,9 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.FirebaseFirestore
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
+import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
+import com.jaroapps.dailybrain.common.domain.service.FeedSyncTrigger
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.rewards.domain.model.GiftReceiptResult
 import com.jaroapps.dailybrain.feature.rewards.domain.repository.EndorphinRepository
@@ -21,6 +23,7 @@ class FirestoreGiftDeliveryRepository(
     private val database: AppDatabase,
     private val activeUserProvider: ActiveUserProvider,
     private val endorphinRepository: EndorphinRepository,
+    private val feedSyncTrigger: FeedSyncTrigger,
 ) : GiftDeliveryRepository {
     private val appContext = context.applicationContext
 
@@ -72,6 +75,7 @@ class FirestoreGiftDeliveryRepository(
             .awaitResult()
 
         var creditedCount = 0
+        var feedEventsUpdated = false
         for (document in snapshot.documents) {
             val giftId = document.getString("giftId") ?: document.id
             if (giftId != document.id || document.getString("recipientUid") != firebaseUid) continue
@@ -79,11 +83,50 @@ class FirestoreGiftDeliveryRepository(
             val giftType = EndorphinGiftType.entries.firstOrNull { it.name == giftTypeName } ?: continue
             if (document.getLong("amount")?.toInt() != giftType.price) continue
             val senderUid = document.getString("senderUid") ?: continue
-            when (endorphinRepository.receiveGift(giftId, giftType, senderUid)) {
+            val senderName = document.getString("senderName")?.take(80)
+            when (endorphinRepository.receiveGift(giftId, giftType, senderUid, senderName)) {
                 is GiftReceiptResult.Credited -> creditedCount++
                 is GiftReceiptResult.AlreadyCredited -> Unit
             }
+
+            // Backfill metadata on gifts received by older app versions as well.
+            val storedGift = database.userGiftDao().getForUser(localUserId, giftId) ?: continue
+            val resolvedSenderName = storedGift.senderName ?: senderName
+            database.userGiftDao().updateSenderInfo(localUserId, giftId, senderUid, resolvedSenderName)
+            val receiverProfile = database.userProfileDao().getProfile(localUserId) ?: continue
+            val eventId = "gift_received:$giftId"
+            val publicSenderName = resolvedSenderName?.takeIf(String::isNotBlank) ?: "Пользователь DailyBrain"
+            val existingEvent = database.feedEventDao().getEvent(localUserId, eventId)
+            val needsFeedSync = existingEvent == null ||
+                existingEvent.relatedUserFirebaseUid != senderUid ||
+                existingEvent.relatedUserName != publicSenderName ||
+                existingEvent.syncState != SYNCED
+            if (needsFeedSync) {
+                database.feedEventDao().upsertAll(
+                    listOf(
+                        FeedEventEntity(
+                            localAccountId = localUserId,
+                            eventId = eventId,
+                            authorFirebaseUid = firebaseUid,
+                            authorName = receiverProfile.displayName?.trim()?.takeIf(String::isNotEmpty)
+                                ?: receiverProfile.generatedAlias,
+                            authorUsername = receiverProfile.username,
+                            eventType = GIFT_RECEIVED,
+                            occurredAtEpochMs = storedGift.receivedAtEpochMs,
+                            periodKey = giftType.name,
+                            valueInt = giftType.price,
+                            relatedUserFirebaseUid = senderUid,
+                            relatedUserName = publicSenderName,
+                            isLocal = true,
+                            isRevoked = false,
+                            syncState = PENDING_UPSERT,
+                        ),
+                    ),
+                )
+                feedEventsUpdated = true
+            }
         }
+        if (feedEventsUpdated) feedSyncTrigger.requestSync()
         return creditedCount
     }
 
@@ -107,6 +150,9 @@ class FirestoreGiftDeliveryRepository(
         }
 
     private companion object {
+        const val GIFT_RECEIVED = "GIFT_RECEIVED"
+        const val PENDING_UPSERT = "PENDING_UPSERT"
+        const val SYNCED = "SYNCED"
         const val GIFT_DELIVERIES = "giftDeliveries"
         const val ITEMS = "items"
     }

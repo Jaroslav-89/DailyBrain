@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -104,18 +103,20 @@ fun RewardHistoryScreen(
                             lineHeight = 54.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        Icon(
-                            imageVector = when (state.balanceType) {
-                                RewardBalanceType.XP -> Icons.Filled.Star
-                                RewardBalanceType.ENDORPHINS -> Icons.Filled.Favorite
-                            },
-                            contentDescription = null,
-                            tint = when (state.balanceType) {
-                                RewardBalanceType.XP -> Color(0xFF43A047)
-                                RewardBalanceType.ENDORPHINS -> Color(0xFF8E24AA)
-                            },
-                            modifier = Modifier.padding(start = 10.dp).size(34.dp),
-                        )
+                        if (state.balanceType == RewardBalanceType.XP) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = Color(0xFF43A047),
+                                modifier = Modifier.padding(start = 10.dp).size(34.dp),
+                            )
+                        } else {
+                            androidx.compose.foundation.Image(
+                                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_endorphin_molecule),
+                                contentDescription = "Эндорфины",
+                                modifier = Modifier.padding(start = 10.dp).size(34.dp),
+                            )
+                        }
                     }
                     Text(
                         stringResource(
