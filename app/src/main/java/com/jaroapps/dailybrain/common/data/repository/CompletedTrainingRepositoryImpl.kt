@@ -12,6 +12,7 @@ import com.jaroapps.dailybrain.core.database.entity.OverallStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
 import com.jaroapps.dailybrain.core.utils.formatMillisToDate
+import com.jaroapps.dailybrain.feature.rewards.data.RewardRecalculator
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flatMapLatest
@@ -54,9 +55,20 @@ class CompletedTrainingRepositoryImpl(
             updateOverallStatistics(session, date, userId)
             updateExerciseStatistics(session, userId)
             updateDailyExerciseResult(session, date, userId)
+            RewardRecalculator.recalculate(database, userId)
         }
     }
 
+
+    override suspend fun initializeRewardState() {
+        val userId = activeUserProvider.currentUserId()
+        database.withTransaction {
+            val profile = database.userProfileDao().getProfile(userId)
+            if (profile?.rewardsInitialized != true) {
+                RewardRecalculator.recalculate(database, userId)
+            }
+        }
+    }
 
     override suspend fun recalculateDailyExerciseResult(date: Int) {
         val userId = activeUserProvider.currentUserId()
@@ -101,6 +113,7 @@ class CompletedTrainingRepositoryImpl(
             }
 
             recalculateDailyExerciseResultInTransaction(deletedSession.date, userId)
+            RewardRecalculator.recalculate(database, userId)
 
             true
         }

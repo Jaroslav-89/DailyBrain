@@ -227,6 +227,16 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             if (inviteReservation?.exists() == true) transaction.delete(requireNotNull(inviteRef))
             true
         }.awaitResult()
+
+        // Feed events are stored in a top-level collection, so profile unlinking must
+        // explicitly remove the author's bounded public history as well.
+        firestore.collection("feedEvents")
+            .whereEqualTo("authorUid", firebaseUid)
+            .limit(10)
+            .get()
+            .awaitResult()
+            .documents
+            .forEach { it.reference.delete().awaitResult() }
     }
 
     override suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile? {

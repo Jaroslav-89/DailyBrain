@@ -7,6 +7,10 @@ import com.jaroapps.dailybrain.core.database.dao.TrainingDayDao
 import com.jaroapps.dailybrain.core.database.dao.TrainingSessionDao
 import com.jaroapps.dailybrain.core.database.dao.StatisticsDao
 import com.jaroapps.dailybrain.core.database.dao.UserProfileDao
+import com.jaroapps.dailybrain.core.database.dao.RewardLedgerDao
+import com.jaroapps.dailybrain.core.database.dao.UserBadgeDao
+import com.jaroapps.dailybrain.core.database.dao.UserGiftDao
+import com.jaroapps.dailybrain.core.database.dao.FeedEventDao
 import com.jaroapps.dailybrain.core.database.dao.OnboardingProgressDao
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
@@ -16,6 +20,10 @@ import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
 import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
 import com.jaroapps.dailybrain.core.database.entity.OnboardingProgressEntity
+import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
+import com.jaroapps.dailybrain.core.database.entity.UserBadgeEntity
+import com.jaroapps.dailybrain.core.database.entity.UserGiftEntity
+import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 
 @Database(
     entities = [
@@ -27,8 +35,12 @@ import com.jaroapps.dailybrain.core.database.entity.OnboardingProgressEntity
         UserProfileEntity::class,
         AppSettingsEntity::class,
         OnboardingProgressEntity::class,
+        RewardLedgerEntity::class,
+        UserBadgeEntity::class,
+        UserGiftEntity::class,
+        FeedEventEntity::class,
     ],
-    version = 13,
+    version = 17,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -39,4 +51,8 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userProfileDao(): UserProfileDao
     abstract fun appSettingsDao(): com.jaroapps.dailybrain.core.database.dao.AppSettingsDao
     abstract fun onboardingProgressDao(): OnboardingProgressDao
+    abstract fun rewardLedgerDao(): RewardLedgerDao
+    abstract fun userBadgeDao(): UserBadgeDao
+    abstract fun userGiftDao(): UserGiftDao
+    abstract fun feedEventDao(): FeedEventDao
 }

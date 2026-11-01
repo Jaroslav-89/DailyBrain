@@ -54,10 +54,60 @@ class HomeUiStateTest {
         assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST))
     }
 
+
     @Test
-    fun onlyTodayIsAvailableAsAnArithmeticDay() {
+    fun additionalExerciseDoesNotMarkArithmeticAsCompletedButStillCountsForStreak() {
+        val today = LocalDate.of(2026, 10, 27)
+        val state = HomeUiState(
+            today = today,
+            completedDates = setOf(today, today.minusDays(1)),
+            isTrainingHistoryLoaded = true,
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.MEMORY_WORDS.storageValue to setOf(today),
+                ExerciseType.STROOP_TEST.storageValue to setOf(today.minusDays(1)),
+            ),
+        )
+
+        assertEquals(ArithmeticDayStatus.AVAILABLE_TODAY, state.arithmeticDayStatus(today))
+        assertEquals(ArithmeticDayStatus.MISSED, state.arithmeticDayStatus(today.minusDays(1)))
+        assertEquals(2, state.currentStreakDays)
+        assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS))
+        assertFalse(state.hasCompletedExerciseThisWeek(ExerciseType.ARITHMETIC))
+    }
+
+    @Test
+    fun arithmeticIsMarkedCompletedOnlyWhenArithmeticWasCompleted() {
+        val today = LocalDate.of(2026, 10, 27)
+        val state = HomeUiState(
+            today = today,
+            completedDates = setOf(today),
+            isTrainingHistoryLoaded = true,
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.ARITHMETIC.storageValue to setOf(today),
+                ExerciseType.COUNTING_TRAINING.storageValue to setOf(today),
+            ),
+        )
+
+        assertEquals(ArithmeticDayStatus.COMPLETED, state.arithmeticDayStatus(today))
+    }
+
+    @Test
+    fun daysStayNeutralUntilTrainingHistoryHasLoaded() {
         val today = LocalDate.of(2026, 10, 27)
         val state = HomeUiState(today = today)
+
+        assertEquals(ArithmeticDayStatus.LOADING, state.arithmeticDayStatus(today))
+        assertEquals(ArithmeticDayStatus.LOADING, state.arithmeticDayStatus(today.minusDays(1)))
+        assertEquals(ArithmeticDayStatus.FUTURE, state.arithmeticDayStatus(today.plusDays(1)))
+    }
+
+    @Test
+    fun missingPastDaysBecomeMissedOnlyAfterTrainingHistoryLoads() {
+        val today = LocalDate.of(2026, 10, 27)
+        val state = HomeUiState(
+            today = today,
+            isTrainingHistoryLoaded = true,
+        )
 
         assertEquals(ArithmeticDayStatus.AVAILABLE_TODAY, state.arithmeticDayStatus(today))
         assertEquals(ArithmeticDayStatus.MISSED, state.arithmeticDayStatus(today.minusDays(1)))

@@ -25,6 +25,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -97,32 +99,78 @@ fun HomeScreen(
                 .padding(horizontal = 16.dp, vertical = 10.dp),
         ) {
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(CircleShape)
-                .clickable(onClick = onOpenCalendar)
-                .semantics {
-                    contentDescription =
-                        "Серия тренировочных дней: ${state.currentStreakDays}. Открыть календарь"
-                }
-                .padding(horizontal = 4.dp, vertical = 2.dp),
+            modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text(
-                text = state.currentStreakDays.toString(),
-                style = MaterialTheme.typography.titleLarge,
-                fontSize = 22.sp,
-                fontWeight = FontWeight.Bold,
-            )
-            androidx.compose.foundation.Image(
-                painter = painterResource(R.drawable.ic_notification_brain),
-                contentDescription = null,
-                modifier = Modifier.size(24.dp),
-                colorFilter = ColorFilter.tint(
-                    if (state.currentStreakDays > 0) BrainOrange else ZeroStreakGray,
-                ),
-            )
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .clip(CircleShape)
+                    .clickable(onClick = onOpenCalendar)
+                    .semantics {
+                        contentDescription =
+                            "Серия тренировочных дней: ${state.currentStreakDays}. Открыть календарь"
+                    }
+                    .padding(horizontal = 4.dp, vertical = 2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.Center,
+            ) {
+                Text(
+                    text = state.currentStreakDays.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.ic_notification_brain),
+                    contentDescription = null,
+                    modifier = Modifier.padding(start = 5.dp).size(24.dp),
+                    colorFilter = ColorFilter.tint(
+                        if (state.currentStreakDays > 0) BrainOrange else ZeroStreakGray,
+                    ),
+                )
+            }
+            Row(
+                modifier = Modifier.weight(1f).semantics {
+                    contentDescription = "Очки опыта: ${state.xpPoints}"
+                },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = state.xpPoints.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Icon(
+                    imageVector = Icons.Filled.Star,
+                    contentDescription = null,
+                    tint = Color(0xFF43A047),
+                    modifier = Modifier.padding(start = 5.dp).size(24.dp),
+                )
+            }
+            Row(
+                modifier = Modifier.weight(1f).semantics {
+                    contentDescription = "Эндорфины: ${state.endorphinBalance}"
+                },
+                horizontalArrangement = Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text(
+                    text = state.endorphinBalance.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontSize = 22.sp,
+                    fontWeight = FontWeight.Bold,
+                )
+                Icon(
+                    imageVector = Icons.Filled.Favorite,
+                    contentDescription = null,
+                    tint = Color(0xFF8E24AA),
+                    modifier = Modifier.padding(start = 5.dp).size(24.dp),
+                )
+            }
         }
 
         Spacer(Modifier.height(12.dp))
@@ -271,6 +319,8 @@ fun HomeScreen(
                                     )
                                     .semantics {
                                         contentDescription = when (status) {
+                                            ArithmeticDayStatus.LOADING ->
+                                                "$dateLabel: загрузка истории тренировок"
                                             ArithmeticDayStatus.FUTURE ->
                                                 "$dateLabel: ещё не доступно"
                                             ArithmeticDayStatus.AVAILABLE_TODAY ->
@@ -332,10 +382,11 @@ fun HomeScreen(
 }
 
 private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (status) {
-    ArithmeticDayStatus.COMPLETED -> BrainOrange
-    ArithmeticDayStatus.MISSED -> MissedBlue
+    ArithmeticDayStatus.LOADING,
     ArithmeticDayStatus.AVAILABLE_TODAY,
     ArithmeticDayStatus.FUTURE -> UnavailableGray
+    ArithmeticDayStatus.COMPLETED -> BrainOrange
+    ArithmeticDayStatus.MISSED -> MissedBlue
 }
 
 private fun depthColor(color: Color): Color = Color(

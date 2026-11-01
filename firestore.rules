@@ -228,5 +228,59 @@ service cloud.firestore {
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
+    match /feedEvents/{eventId} {
+      // Each author is queried separately with a maximum of ten events. This lets the
+      // equality filter and the canonical follows/{viewerUid_authorUid} document jointly
+      // satisfy the rule without broad whereIn queries.
+      function isFollowingAuthor(authorUid) {
+        // The follows document is the canonical relationship source; publicFollowing is
+        // only a projection used for profile UI and may lag behind older relationship data.
+        let followId = request.auth.uid + '_' + authorUid;
+        return signedIn()
+          && exists(/databases/$(database)/documents/follows/$(followId));
+      }
+
+      function validFeedEvent() {
+        return request.resource.data.keys().hasOnly([
+          'authorUid', 'authorName', 'authorUsername', 'eventType',
+          'occurredAtEpochMs', 'periodKey', 'exerciseType',
+          'valueLong', 'valueInt', 'accuracyPercent'
+        ])
+          && request.resource.data.authorUid is string
+          && request.resource.data.authorUid == request.auth.uid
+          && request.resource.data.authorName is string
+          && request.resource.data.authorName.size() <= 80
+          && request.resource.data.eventType in [
+            'WEEKLY_STREAK', 'WEEKLY_CHALLENGE', 'MONTHLY_STREAK',
+            'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE'
+          ]
+          && request.resource.data.occurredAtEpochMs is int
+          && (!request.resource.data.keys().hasAny(['authorUsername']) || request.resource.data.authorUsername is string)
+          && (!request.resource.data.keys().hasAny(['periodKey']) || request.resource.data.periodKey is string)
+          && (!request.resource.data.keys().hasAny(['exerciseType']) || request.resource.data.exerciseType is string)
+          && (!request.resource.data.keys().hasAny(['valueLong']) || request.resource.data.valueLong is int)
+          && (!request.resource.data.keys().hasAny(['valueInt']) || request.resource.data.valueInt is int)
+          && (!request.resource.data.keys().hasAny(['accuracyPercent']) || request.resource.data.accuracyPercent is number);
+      }
+
+      allow get: if signedIn()
+        && (
+          resource.data.authorUid == request.auth.uid
+          || isFollowingAuthor(resource.data.authorUid)
+        );
+
+      allow list: if signedIn()
+        && request.query.limit <= 10
+        && (
+          resource.data.authorUid == request.auth.uid
+          || isFollowingAuthor(resource.data.authorUid)
+        );
+
+      allow create: if signedIn() && validFeedEvent();
+      allow update: if signedIn()
+        && resource.data.authorUid == request.auth.uid
+        && validFeedEvent();
+      allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
+    }
   }
 }

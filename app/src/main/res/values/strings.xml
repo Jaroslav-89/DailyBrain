@@ -53,6 +53,7 @@
 
     <!-- Statistics screen -->
     <string name="statistics_title">Статистика</string>
+    <string name="feed_title">Лента</string>
     <string name="statistics_tagline">Твой прогресс в Daily Brain</string>
     <string name="statistics_tab_overall">Общая</string>
     <string name="statistics_total_trainings">Всего тренировок</string>

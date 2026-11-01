@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -46,6 +47,7 @@ import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingScr
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
+import com.jaroapps.dailybrain.feature.feed.presentation.FeedScreen
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.AppOnboardingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.BrainTrainingArticleScreen
@@ -75,6 +77,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     val showBottomNavigation = currentRoute in setOf(
         Route.HOME,
         Route.STATISTICS,
+        Route.FEED,
         Route.PROFILE,
     )
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
@@ -300,6 +303,14 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 StatisticsScreen()
             }
 
+            composable(Route.FEED) {
+                FeedScreen(
+                    onOpenUserProfile = { userId ->
+                        navController.navigate(Route.userProfile(userId))
+                    },
+                )
+            }
+
             composable(Route.CALENDAR) {
                 CalendarScreen(
                     onBack = { navController.popBackStack() },
@@ -361,6 +372,11 @@ private fun AppBottomNavigation(
             route = Route.STATISTICS,
             label = stringResource(R.string.statistics_title),
             icon = Icons.Filled.BarChart,
+        ),
+        BottomNavigationDestination(
+            route = Route.FEED,
+            label = stringResource(R.string.feed_title),
+            icon = Icons.Filled.Newspaper,
         ),
         BottomNavigationDestination(
             route = Route.PROFILE,

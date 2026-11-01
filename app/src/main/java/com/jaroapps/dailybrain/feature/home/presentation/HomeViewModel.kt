@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -13,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
 import java.time.LocalDate
@@ -22,8 +25,16 @@ import java.time.ZoneId
 class HomeViewModel(
     observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
     observeTotalTrainingCount: ObserveTotalTrainingCountUseCase,
+    observeUserProfile: ObserveUserProfileUseCase,
+    initializeRewardState: InitializeRewardStateUseCase,
 ) : ViewModel() {
     private val zone = ZoneId.systemDefault()
+
+    init {
+        viewModelScope.launch {
+            runCatching { initializeRewardState() }
+        }
+    }
 
     private val todayFlow = flow {
         while (true) {
@@ -38,7 +49,8 @@ class HomeViewModel(
         todayFlow,
         observeAllCompletedTrainings(),
         observeTotalTrainingCount(),
-    ) { today, sessions, totalCount ->
+        observeUserProfile(),
+    ) { today, sessions, totalCount, profile ->
         val completedDates = sessions.mapNotNull { session ->
             runCatching {
                 Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
@@ -56,7 +68,10 @@ class HomeViewModel(
             today = today,
             completedDates = completedDates,
             completedExerciseDatesByType = typedDates,
+            isTrainingHistoryLoaded = true,
             totalTrainingCount = totalCount,
+            xpPoints = profile.xpPoints,
+            endorphinBalance = profile.endorphinBalance,
         )
     }.stateIn(
         scope = viewModelScope,

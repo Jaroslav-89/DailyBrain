@@ -113,6 +113,14 @@ class UserProfileRepositoryImpl(
             database.statisticsDao().deleteOverall(localAccountId)
             database.statisticsDao().deleteAllExerciseStatistics(localAccountId)
             database.onboardingProgressDao().deleteProgress(localAccountId)
+            database.rewardLedgerDao().deleteForUser(localAccountId)
+            database.userBadgeDao().deleteForUser(localAccountId)
+            database.userGiftDao().deleteForUser(localAccountId)
+            profile.firebaseUid?.let { firebaseUid ->
+                database.userBadgeDao().deleteForUser(firebaseUid)
+                database.userGiftDao().deleteForUser(firebaseUid)
+            }
+            database.feedEventDao().deleteForLocalAccount(localAccountId)
             val deleted = profileDao.deleteByLocalAccountId(profile.localAccountId)
             check(deleted == 1) { "Failed to delete local profile" }
         }
@@ -256,5 +264,8 @@ class UserProfileRepositoryImpl(
         googleDisplayName = googleDisplayName,
         googlePhotoUrl = googlePhotoUrl,
         inviteCode = inviteCode,
+        xpPoints = xpPoints,
+        endorphinBalance = endorphinBalance,
+        patchCount = patchCount,
     )
 }

@@ -88,6 +88,7 @@ class ArithmeticViewModelTest {
         override suspend fun deleteCompletedTraining(id: Long): Boolean = false
 
         override suspend fun recalculateDailyExerciseResult(date: Int) = Unit
+        override suspend fun initializeRewardState() = Unit
 
         override fun observeTrainingDaysBetween(startDate: Int, endDate: Int): Flow<Set<Int>> = emptyFlow()
 
