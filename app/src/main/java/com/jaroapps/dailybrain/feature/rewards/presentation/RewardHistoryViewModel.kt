@@ -20,6 +20,7 @@ data class RewardHistoryUiState(
     val isLoading: Boolean = true,
 )
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class RewardHistoryViewModel(
     savedStateHandle: SavedStateHandle,
     repository: RewardHistoryRepository,
