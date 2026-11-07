@@ -171,6 +171,7 @@ class HomeUiStateTest {
         val today = LocalDate.of(2026, 11, 8)
         val state = HomeUiState(
             today = today,
+            completedDates = setOf(firstWorkout, today),
             isTrainingHistoryLoaded = true,
             completedExerciseDatesByType = mapOf(
                 ExerciseType.ARITHMETIC.storageValue to setOf(firstWorkout, today),
