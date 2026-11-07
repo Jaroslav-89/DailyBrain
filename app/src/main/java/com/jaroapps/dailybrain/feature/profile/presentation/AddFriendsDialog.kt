@@ -64,8 +64,13 @@ fun AddFriendsDialog(
         )
     }
     val activeProfile = profileState.profile ?: directoryState.profile
-    val cloudSessionReady = profileState.cloudSessionStatus == ProfileCloudSessionStatus.READY
-    val requiresReauthentication = profileState.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED
+    val cloudSessionStatus = if (profileState.profile != null) {
+        profileState.cloudSessionStatus
+    } else {
+        directoryState.cloudSessionStatus
+    }
+    val cloudSessionReady = cloudSessionStatus == ProfileCloudSessionStatus.READY
+    val requiresReauthentication = cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED
 
     fun connectGoogle() {
         coroutineScope.launch {
