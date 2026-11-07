@@ -56,12 +56,12 @@ import com.jaroapps.dailybrain.feature.rewards.presentation.EndorphinAmount
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopCosmeticOwnership
-import com.jaroapps.dailybrain.feature.shop.domain.model.ShopReceivedGift
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
+    onOpenPurchaseHistory: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ShopViewModel = koinViewModel(),
 ) {
@@ -79,6 +79,7 @@ fun ShopScreen(
     }
     var selectedGift by remember { mutableStateOf<EndorphinGiftType?>(null) }
     var selectedCosmetic by remember { mutableStateOf<AvatarCosmeticItem?>(null) }
+    var pendingPurchase by remember { mutableStateOf<PendingShopPurchase?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -87,7 +88,7 @@ fun ShopScreen(
                 title = { Text("Магазин") },
                 actions = {
                     Row(
-                        modifier = Modifier.padding(end = 16.dp),
+                        modifier = Modifier.padding(end = 16.dp).clickable(onClick = onOpenPurchaseHistory),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(5.dp),
                     ) {
@@ -136,7 +137,7 @@ fun ShopScreen(
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                             EndorphinAmount(EndorphinEconomy.PATCH_PRICE.toString(), textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
                             Button(
-                                onClick = viewModel::purchasePatch,
+                                onClick = { pendingPurchase = PendingShopPurchase.Patch },
                                 enabled = !state.isPurchasing &&
                                     (state.profile?.patchCount ?: 0) < EndorphinEconomy.MAX_PATCH_COUNT,
                                 colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent)),
@@ -173,7 +174,7 @@ fun ShopScreen(
                             item = item,
                             owned = state.inventory.owns(item),
                             enabled = !state.isPurchasing,
-                            onBuy = { viewModel.purchaseCosmetic(AvatarCosmeticType.COSTUME, item.id) },
+                            onBuy = { pendingPurchase = PendingShopPurchase.Cosmetic(item) },
                             onGift = { selectedCosmetic = item; viewModel.refreshRecipients() },
                         )
                     }
@@ -191,23 +192,9 @@ fun ShopScreen(
                             item = item,
                             owned = state.inventory.owns(item),
                             enabled = !state.isPurchasing,
-                            onBuy = { viewModel.purchaseCosmetic(AvatarCosmeticType.BACKGROUND, item.id) },
+                            onBuy = { pendingPurchase = PendingShopPurchase.Cosmetic(item) },
                             onGift = { selectedCosmetic = item; viewModel.refreshRecipients() },
                         )
-                    }
-                }
-            }
-
-            if (state.receivedGifts.isNotEmpty()) {
-                item { SectionTitle("Полученные подарки") }
-                item {
-                    LazyRow(
-                        contentPadding = PaddingValues(horizontal = 16.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        items(state.receivedGifts, key = { it.giftId }) { gift ->
-                            ReceivedGiftCard(gift, onClick = { viewModel.openGift(gift.giftId) })
-                        }
                     }
                 }
             }
@@ -223,6 +210,49 @@ fun ShopScreen(
                 }
             }
         }
+    }
+
+    pendingPurchase?.let { purchase ->
+        val productName = when (purchase) {
+            PendingShopPurchase.Patch -> "пластырь"
+            is PendingShopPurchase.Cosmetic -> purchase.item.displayName
+        }
+        val price = when (purchase) {
+            PendingShopPurchase.Patch -> EndorphinEconomy.PATCH_PRICE
+            is PendingShopPurchase.Cosmetic -> purchase.item.price
+        }
+        AlertDialog(
+            onDismissRequest = { if (!state.isPurchasing) pendingPurchase = null },
+            title = { Text("Подтверждение покупки") },
+            text = { Text("Купить $productName за $price эндорфинов?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        when (purchase) {
+                            PendingShopPurchase.Patch -> viewModel.purchasePatch()
+                            is PendingShopPurchase.Cosmetic ->
+                                viewModel.purchaseCosmetic(purchase.item.type, purchase.item.id)
+                        }
+                        pendingPurchase = null
+                    },
+                    enabled = !state.isPurchasing,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.color_button_green),
+                        contentColor = colorResource(R.color.color_on_accent),
+                    ),
+                ) {
+                    Text("Купить")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { pendingPurchase = null },
+                    enabled = !state.isPurchasing,
+                ) {
+                    Text("Отмена")
+                }
+            },
+        )
     }
 
     selectedCosmetic?.let { item ->
@@ -364,29 +394,6 @@ private fun CosmeticProductCard(
 }
 
 @Composable
-private fun ReceivedGiftCard(gift: ShopReceivedGift, onClick: () -> Unit) {
-    Card(
-        modifier = Modifier.width(138.dp).clickable(onClick = onClick),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-    ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(5.dp),
-        ) {
-            androidx.compose.foundation.Image(
-                painter = painterResource(giftIcon(gift.giftType)),
-                contentDescription = gift.giftType.displayName,
-                modifier = Modifier.size(76.dp),
-            )
-            Text(gift.giftType.displayName, fontWeight = FontWeight.SemiBold)
-            EndorphinAmount("+" + gift.giftType.price)
-            Text(if (gift.isOpened) "Получено" else "Новое", color = MaterialTheme.colorScheme.primary)
-        }
-    }
-}
-
-@Composable
 private fun RecipientRow(user: PublicUserProfile, onClick: () -> Unit) {
     OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
@@ -404,6 +411,11 @@ private fun giftIcon(type: EndorphinGiftType): Int = when (type) {
     EndorphinGiftType.CROISSANT -> R.drawable.gift_croissant
     EndorphinGiftType.HAMBURGER -> R.drawable.gift_hamburger
     EndorphinGiftType.CAKE -> R.drawable.gift_cake
+}
+
+private sealed interface PendingShopPurchase {
+    data object Patch : PendingShopPurchase
+    data class Cosmetic(val item: AvatarCosmeticItem) : PendingShopPurchase
 }
 
 private fun List<ShopCosmeticOwnership>.owns(item: AvatarCosmeticItem): Boolean =

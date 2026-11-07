@@ -11,7 +11,6 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfile
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopCosmeticOwnership
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopPurchaseResult
-import com.jaroapps.dailybrain.feature.shop.domain.model.ShopReceivedGift
 import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.ShopRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +24,6 @@ import java.util.UUID
 data class ShopUiState(
     val profile: UserProfile? = null,
     val inventory: List<ShopCosmeticOwnership> = emptyList(),
-    val receivedGifts: List<ShopReceivedGift> = emptyList(),
     val followingUsers: List<PublicUserProfile> = emptyList(),
     val isLoadingRecipients: Boolean = false,
     val isPurchasing: Boolean = false,
@@ -50,9 +48,8 @@ class ShopViewModel(
     private val baseState = combine(
         observeUserProfile(),
         shopRepository.observeInventory(),
-        shopRepository.observeReceivedGifts(),
-    ) { profile, inventory, gifts ->
-        ShopUiState(profile = profile, inventory = inventory, receivedGifts = gifts)
+    ) { profile, inventory ->
+        ShopUiState(profile = profile, inventory = inventory)
     }
 
     val uiState: StateFlow<ShopUiState> = combine(baseState, actions) { base, action ->
