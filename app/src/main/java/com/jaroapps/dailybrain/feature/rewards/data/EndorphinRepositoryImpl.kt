@@ -91,7 +91,7 @@ class EndorphinRepositoryImpl(
             if (existing != null) {
                 check(
                     existing.category == CATEGORY_GIFT_RECEIVED &&
-                        existing.deltaEndorphins == giftType.price &&
+                        existing.deltaEndorphins == giftType.recipientEndorphins &&
                         existing.reason == "GIFT_RECEIVED_${giftType.name}" &&
                         existing.isActive
                 ) {
@@ -107,7 +107,7 @@ class EndorphinRepositoryImpl(
                         userId = userId,
                         rewardKey = rewardKey,
                         deltaXp = 0,
-                        deltaEndorphins = giftType.price,
+                        deltaEndorphins = giftType.recipientEndorphins,
                         category = CATEGORY_GIFT_RECEIVED,
                         reason = "GIFT_RECEIVED_${giftType.name}",
                         occurredAtEpochMs = now,

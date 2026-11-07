@@ -7,6 +7,10 @@ enum class EndorphinGiftType(
     val price: Int,
     val displayName: String,
 ) {
+    /** The sender pays the full price; five endorphins are retained by the service. */
+    val recipientEndorphins: Int get() = price - 5
+
+
     CANDY(price = 10, displayName = "Конфета"),
     COFFEE(price = 20, displayName = "Кофе"),
     CROISSANT(price = 30, displayName = "Круассан"),
