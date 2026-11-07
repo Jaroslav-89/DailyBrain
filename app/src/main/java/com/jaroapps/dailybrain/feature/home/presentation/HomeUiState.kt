@@ -10,13 +10,16 @@ enum class ArithmeticDayStatus {
     FUTURE,
     AVAILABLE_TODAY,
     COMPLETED,
+    PATCHED,
     BEFORE_FIRST_TRAINING,
     MISSED,
 }
 
 data class HomeUiState(
     val today: LocalDate = LocalDate.now(),
+    /** Real training days combined with days protected by a patch for streak counting. */
     val completedDates: Set<LocalDate> = emptySet(),
+    val patchedDates: Set<LocalDate> = emptySet(),
     val completedExerciseDatesByType: Map<String, Set<LocalDate>> = emptyMap(),
     val isTrainingHistoryLoaded: Boolean = false,
     val totalTrainingCount: Int = 0,
@@ -24,7 +27,7 @@ data class HomeUiState(
     val endorphinBalance: Int = 0,
 ) {
     val isTrainingCompletedToday: Boolean
-        get() = today in completedDates
+        get() = today in completedDates && today !in patchedDates
 
     val currentWeekStart: LocalDate
         get() = today.with(DayOfWeek.MONDAY)
@@ -38,6 +41,7 @@ data class HomeUiState(
     fun arithmeticDayStatus(date: LocalDate): ArithmeticDayStatus = when {
         date.isAfter(today) -> ArithmeticDayStatus.FUTURE
         !isTrainingHistoryLoaded -> ArithmeticDayStatus.LOADING
+        date in patchedDates -> ArithmeticDayStatus.PATCHED
         date in completedExerciseDatesByType[ExerciseType.ARITHMETIC.storageValue].orEmpty() ->
             ArithmeticDayStatus.COMPLETED
         date.isBefore(completedDates.minOrNull() ?: today) -> ArithmeticDayStatus.BEFORE_FIRST_TRAINING
