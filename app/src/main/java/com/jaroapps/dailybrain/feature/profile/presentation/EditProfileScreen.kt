@@ -301,9 +301,13 @@ fun EditProfileScreen(
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            deleteDialogVisible = false
-                            viewModel.clearDeleteError()
+                            if (!state.isDeletingProfile) {
+                                deleteDialogVisible = false
+                                deleteProfileLocalAccountId = null
+                                viewModel.clearDeleteError()
+                            }
                         },
+                        enabled = !state.isDeletingProfile,
                     ) {
                         Text(stringResource(R.string.action_cancel))
                     }
