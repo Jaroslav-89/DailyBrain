@@ -64,6 +64,7 @@ data class ProfileUiState(
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
     val deleteError: Boolean = false,
+    val isDeletingProfile: Boolean = false,
     val isGoogleLinking: Boolean = false,
     val googleLinkError: GoogleLinkError? = null,
     val googleLinkDiagnostic: String? = null,
