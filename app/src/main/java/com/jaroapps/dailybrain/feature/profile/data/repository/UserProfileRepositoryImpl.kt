@@ -151,8 +151,11 @@ class UserProfileRepositoryImpl(
         firebaseUid: String,
     ): PendingProfileDeletion? {
         val dao = database.pendingProfileDeletionDao()
+        // A Google subject can have several pending records after interrupted retries.
+        // Prefer the UID Firebase actually authenticated so its cleanup is never skipped.
+        val byFirebaseUid = dao.getByFirebaseUid(firebaseUid)
         val bySubject = googleSubject?.takeIf(String::isNotBlank)?.let { dao.getByGoogleSubject(it) }
-        return (bySubject ?: dao.getByFirebaseUid(firebaseUid))?.toDomain()
+        return (byFirebaseUid ?: bySubject)?.toDomain()
     }
 
     override suspend fun markPendingProfileDeletionCloudDataDeleted(firebaseUid: String) {

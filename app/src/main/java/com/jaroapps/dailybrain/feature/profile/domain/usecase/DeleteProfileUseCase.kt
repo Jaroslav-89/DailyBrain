@@ -44,43 +44,46 @@ class DeleteProfileUseCase(
         signedInFirebaseUid: String,
         googleIdToken: String,
     ): String {
-        val pending = profileRepository.findPendingProfileDeletion(
-            googleSubject = googleSubject,
-            firebaseUid = signedInFirebaseUid,
-        ) ?: return signedInFirebaseUid
+        var firebaseUid = signedInFirebaseUid
+        while (true) {
+            val pending = profileRepository.findPendingProfileDeletion(
+                googleSubject = googleSubject,
+                firebaseUid = firebaseUid,
+            ) ?: return firebaseUid
 
-        when (resolvePendingProfileDeletionRecoveryAction(pending, signedInFirebaseUid)) {
-            PendingProfileDeletionRecoveryAction.CLEAN_CLOUD_AND_RETIRE_OLD_AUTH -> cleanCloudDataIfNeeded(pending)
-            PendingProfileDeletionRecoveryAction.RETIRE_OLD_AUTH_ONLY -> Unit
-            PendingProfileDeletionRecoveryAction.CONTINUE_WITH_NEW_AUTH -> {
-                profileRepository.completePendingProfileDeletion(pending.firebaseUid)
-                return signedInFirebaseUid
+            when (resolvePendingProfileDeletionRecoveryAction(pending, firebaseUid)) {
+                PendingProfileDeletionRecoveryAction.CLEAN_CLOUD_AND_RETIRE_OLD_AUTH ->
+                    cleanCloudDataIfNeeded(pending)
+                PendingProfileDeletionRecoveryAction.RETIRE_OLD_AUTH_ONLY -> Unit
+                PendingProfileDeletionRecoveryAction.CONTINUE_WITH_NEW_AUTH -> {
+                    profileRepository.completePendingProfileDeletion(pending.firebaseUid)
+                    continue
+                }
+                PendingProfileDeletionRecoveryAction.BLOCK_UNSAFE_RECREATION -> throw IllegalStateException(
+                    "Cloud cleanup for the deleted Firebase profile has not completed; a new profile cannot be created yet.",
+                )
             }
-            PendingProfileDeletionRecoveryAction.BLOCK_UNSAFE_RECREATION -> throw IllegalStateException(
-                "Cloud cleanup for the deleted Firebase profile has not completed; a new profile cannot be created yet.",
+
+            firebaseAuthenticationRepository.deleteCurrentUser(pending.firebaseUid)
+            firebaseAuthenticationRepository.signOut()
+
+            val recreated = firebaseAuthenticationRepository.signInWithGoogle(
+                idToken = googleIdToken,
+                expectedGoogleSubject = googleSubject,
             )
+            firebaseUid = when (recreated) {
+                is com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.Success ->
+                    recreated.firebaseUid
+                com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.NotConfigured ->
+                    throw IllegalStateException("Firebase is not configured.")
+                is com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.Failed ->
+                    throw IllegalStateException("Firebase could not create a new identity: ${recreated.diagnosticCode}")
+            }
+            check(firebaseUid != pending.firebaseUid) {
+                "Firebase returned the deleted UID after account deletion; profile creation was stopped."
+            }
+            profileRepository.completePendingProfileDeletion(pending.firebaseUid)
         }
-
-        firebaseAuthenticationRepository.deleteCurrentUser(pending.firebaseUid)
-        firebaseAuthenticationRepository.signOut()
-
-        val recreated = firebaseAuthenticationRepository.signInWithGoogle(
-            idToken = googleIdToken,
-            expectedGoogleSubject = googleSubject,
-        )
-        val newUid = when (recreated) {
-            is com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.Success ->
-                recreated.firebaseUid
-            com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.NotConfigured ->
-                throw IllegalStateException("Firebase is not configured.")
-            is com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.Failed ->
-                throw IllegalStateException("Firebase could not create a new identity: ${recreated.diagnosticCode}")
-        }
-        check(newUid != pending.firebaseUid) {
-            "Firebase returned the deleted UID after account deletion; profile creation was stopped."
-        }
-        profileRepository.completePendingProfileDeletion(pending.firebaseUid)
-        return newUid
     }
 
     private suspend fun completeDeletionWithCurrentSession(pending: PendingProfileDeletion) {
