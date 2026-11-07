@@ -81,6 +81,7 @@ fun EditProfileScreen(
     var birthDateError by remember { mutableStateOf(false) }
     var datePickerVisible by remember { mutableStateOf(false) }
     var deleteDialogVisible by remember { mutableStateOf(false) }
+    var deleteProfileLocalAccountId by remember { mutableStateOf<String?>(null) }
     var unlinkConfirmationVisible by remember { mutableStateOf(false) }
     var googleSignInError by remember { mutableStateOf<String?>(null) }
     var isGoogleSignInInProgress by remember { mutableStateOf(false) }
