@@ -419,51 +419,18 @@ service cloud.firestore {
             || (request.resource.data.giftType == 'HAMBURGER' && request.resource.data.amount == 40)
             || (request.resource.data.giftType == 'CAKE' && request.resource.data.amount == 50)
             || (
-              request.resource.data.giftType.matches('^COSMETIC:COSTUME:(spacesuit|matryoshka|square_sponge|croissant|bear)
-          && request.resource.data.createdAtEpochMs is int;
-      }
-
-      allow get, list: if canAccessOwnData(recipientUid);
-      allow create: if activeUser()
-        && request.auth.uid != recipientUid
-        && validGiftPayload()
-        && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
-        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
-        && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
-        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
-        && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
-      allow update: if activeUser()
-        && resource.data.senderUid == request.auth.uid
-        && request.resource.data == resource.data;
-      allow delete: if canDeleteOwnData(recipientUid);
-    }
-  }
-}
-)
-              && request.resource.data.amount == 100
-            )
-            || (
-              request.resource.data.giftType.matches('^COSMETIC:BACKGROUND:(pyramids|forest|beach|office|snow_mountains)
-          && request.resource.data.createdAtEpochMs is int;
-      }
-
-      allow get, list: if canAccessOwnData(recipientUid);
-      allow create: if activeUser()
-        && request.auth.uid != recipientUid
-        && validGiftPayload()
-        && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
-        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
-        && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
-        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
-        && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
-      allow update: if activeUser()
-        && resource.data.senderUid == request.auth.uid
-        && request.resource.data == resource.data;
-      allow delete: if canDeleteOwnData(recipientUid);
-    }
-  }
-}
-)
+              request.resource.data.giftType in [
+                'COSMETIC:COSTUME:spacesuit',
+                'COSMETIC:COSTUME:matryoshka',
+                'COSMETIC:COSTUME:square_sponge',
+                'COSMETIC:COSTUME:croissant',
+                'COSMETIC:COSTUME:bear',
+                'COSMETIC:BACKGROUND:pyramids',
+                'COSMETIC:BACKGROUND:forest',
+                'COSMETIC:BACKGROUND:beach',
+                'COSMETIC:BACKGROUND:office',
+                'COSMETIC:BACKGROUND:snow_mountains'
+              ]
               && request.resource.data.amount == 100
             )
           )
