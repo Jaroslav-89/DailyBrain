@@ -110,27 +110,15 @@ class UserProfileRepositoryImpl(
             val settingsDao = database.appSettingsDao()
             val activeId = settingsDao.getActiveLocalAccountId()
 
-            // Deleting the active profile must never make ActiveUserProvider recreate it.
-            // Keep the app in profile-selection mode until the user explicitly chooses another one.
+            // Do not activate a neighboring profile as a side effect of deletion.
+            // The selector must remain the only route to choosing the next active profile.
             if (activeId == localAccountId) {
-                val replacement = profileDao.getProfiles().firstOrNull {
-                    it.localAccountId != localAccountId
-                }
-                if (replacement != null) {
-                    settingsDao.setActiveAccount(
-                        AppSettingsEntity(
-                            activeLocalAccountId = replacement.localAccountId,
-                            profileSelectionRequired = true,
-                        ),
-                    )
-                } else {
-                    settingsDao.setActiveAccount(
-                        AppSettingsEntity(
-                            activeLocalAccountId = "",
-                            profileSelectionRequired = true,
-                        ),
-                    )
-                }
+                settingsDao.setActiveAccount(
+                    AppSettingsEntity(
+                        activeLocalAccountId = "",
+                        profileSelectionRequired = true,
+                    ),
+                )
             }
 
             database.trainingSessionDao().deleteAll(localAccountId)
