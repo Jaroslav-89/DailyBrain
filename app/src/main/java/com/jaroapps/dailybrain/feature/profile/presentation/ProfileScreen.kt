@@ -290,7 +290,7 @@ fun ProfileScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Добавить друзей")
                 }
-                if (profile?.firebaseUid != null) {
+                if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
                     Surface(
                         modifier = Modifier.size(48.dp),
                         shape = CircleShape,
