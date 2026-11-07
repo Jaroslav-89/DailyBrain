@@ -175,6 +175,10 @@ class FeedRepositoryImpl(
         firebaseUid: String,
         firestore: FirebaseFirestore,
     ) {
+        val app = requireNotNull(configuredApp()) {
+            "FIREBASE_NOT_CONFIGURED: check app/google-services.json and Firebase initialization."
+        }
+        requireCurrentFirebaseUser(app, firebaseUid)
         val dao = database.feedEventDao()
         val localEvents = dao.getLocalEvents(localAccountId)
 
