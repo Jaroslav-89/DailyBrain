@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -29,9 +30,7 @@ import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
-import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -503,45 +502,68 @@ private fun AppBottomNavigation(
         ),
     )
 
-    NavigationBar(
-        modifier = Modifier.height(56.dp),
-        containerColor = MaterialTheme.colorScheme.surface,
-        contentColor = MaterialTheme.colorScheme.onSurface,
+    Surface(
+        modifier = Modifier.navigationBarsPadding(),
+        color = MaterialTheme.colorScheme.surface,
         tonalElevation = 4.dp,
     ) {
-        destinations.forEach { destination ->
-            val selected = currentRoute == destination.route
-            val iconScale by animateFloatAsState(
-                targetValue = if (selected) 1.12f else 1f,
-                animationSpec = tween(
-                    durationMillis = 180,
-                    easing = FastOutSlowInEasing,
-                ),
-                label = "bottomNavIconScale",
-            )
-            NavigationBarItem(
-                selected = selected,
-                onClick = {
-                    if (!selected) onDestinationSelected(destination.route)
-                },
-                icon = {
-                    Icon(
-                        imageVector = destination.icon,
-                        contentDescription = destination.label,
-                        modifier = Modifier.graphicsLayer {
-                            scaleX = iconScale
-                            scaleY = iconScale
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            destinations.forEach { destination ->
+                val selected = currentRoute == destination.route
+                val iconScale by animateFloatAsState(
+                    targetValue = if (selected) 1.12f else 1f,
+                    animationSpec = tween(
+                        durationMillis = 180,
+                        easing = FastOutSlowInEasing,
+                    ),
+                    label = "bottomNavIconScale",
+                )
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clip(CircleShape)
+                        .clickable {
+                            if (!selected) onDestinationSelected(destination.route)
+                        }
+                        .semantics {
+                            role = Role.Tab
+                            contentDescription = destination.label
                         },
-                    )
-                },
-                label = null,
-                alwaysShowLabel = false,
-                colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
-                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                ),
-            )
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(width = 56.dp, height = 40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.secondaryContainer
+                                else Color.Transparent,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = null,
+                            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                },
+                        )
+                    }
+                }
+            }
         }
     }
 }
