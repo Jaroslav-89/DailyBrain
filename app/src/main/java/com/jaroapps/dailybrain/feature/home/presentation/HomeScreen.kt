@@ -101,7 +101,6 @@ fun HomeScreen(
     val selectedWeekStart = state.weekStartAtPage(selectedPage)
     val selectedWeekDates = state.weekDates(selectedWeekStart)
     val isHistoricalWeek = selectedPage < state.currentWeekPageIndex
-    val isHistoricalWeek = selectedPage < state.currentWeekPageIndex
     val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
     val homeTextColor = when {
         dynamicBackgroundEnabled && AppThemePreference.isDarkTheme -> Color.White
@@ -267,7 +266,7 @@ fun HomeScreen(
                 x = maxWidth - additionalRingSize,
                 y = maxHeight * 0.5f - additionalRingSize / 2,
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST, weekStart),
-                enabled = !isHistoricalWeek,
+                enabled = !isHistoricalPage,
                 onClick = onStartStroopTest,
             ) {
                 Row(
@@ -297,7 +296,7 @@ fun HomeScreen(
                 x = 0.dp,
                 y = maxHeight * 0.75f - additionalRingSize / 2,
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.COUNTING_TRAINING, weekStart),
-                enabled = !isHistoricalWeek,
+                enabled = !isHistoricalPage,
                 onClick = onStartCountingTraining,
             )
 
