@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.ObservePatchedDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveTotalTrainingCountUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
@@ -27,6 +28,7 @@ import java.time.ZoneId
 class HomeViewModel(
     observeAllCompletedTrainings: ObserveAllCompletedTrainingsUseCase,
     observeActiveTrainingDates: ObserveActiveTrainingDatesUseCase,
+    observePatchedDates: ObservePatchedDatesUseCase,
     observeTotalTrainingCount: ObserveTotalTrainingCountUseCase,
     observeUserProfile: ObserveUserProfileUseCase,
     initializeRewardState: InitializeRewardStateUseCase,
@@ -48,14 +50,23 @@ class HomeViewModel(
         }
     }
 
-    val uiState: StateFlow<HomeUiState> = combine(
+    private val dateSources = combine(
         todayFlow,
         observeActiveTrainingDates(),
+        observePatchedDates(),
+    ) { today, activeDateKeys, patchedDateKeys ->
+        Triple(today, activeDateKeys, patchedDateKeys)
+    }
+
+    val uiState: StateFlow<HomeUiState> = combine(
+        dateSources,
         observeAllCompletedTrainings(),
         observeTotalTrainingCount(),
         observeUserProfile(),
-    ) { today, activeDateKeys, sessions, totalCount, profile ->
-        val completedDates = TrainingStreakCalculator.parseDateKeys(activeDateKeys)
+    ) { (today, activeDateKeys, patchedDateKeys), sessions, totalCount, profile ->
+        val trainingDates = TrainingStreakCalculator.parseDateKeys(activeDateKeys)
+        val patchedDates = TrainingStreakCalculator.parseDateKeys(patchedDateKeys)
+        val streakDates = trainingDates + patchedDates
         val typedDates = sessions.mapNotNull { session ->
             val date = runCatching {
                 Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
@@ -66,7 +77,8 @@ class HomeViewModel(
 
         HomeUiState(
             today = today,
-            completedDates = completedDates,
+            completedDates = streakDates,
+            patchedDates = patchedDates,
             completedExerciseDatesByType = typedDates,
             isTrainingHistoryLoaded = true,
             totalTrainingCount = totalCount,
