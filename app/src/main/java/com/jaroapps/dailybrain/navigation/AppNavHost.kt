@@ -86,6 +86,7 @@ import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProf
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.shop.presentation.ShopScreen
+import com.jaroapps.dailybrain.feature.shop.presentation.ShopPurchaseHistoryScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import org.koin.androidx.compose.koinViewModel
 import org.koin.compose.koinInject
@@ -411,7 +412,13 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             }
 
             composable(Route.SHOP) {
-                ShopScreen()
+                ShopScreen(
+                    onOpenPurchaseHistory = { navController.navigate(Route.SHOP_PURCHASE_HISTORY) },
+                )
+            }
+
+            composable(Route.SHOP_PURCHASE_HISTORY) {
+                ShopPurchaseHistoryScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.CALENDAR) {
