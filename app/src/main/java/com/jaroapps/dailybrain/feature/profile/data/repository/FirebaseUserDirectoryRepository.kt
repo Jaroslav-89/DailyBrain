@@ -250,7 +250,19 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         requireCurrentUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
         val deletedProfileRef = firestore.collection(DELETED_PROFILES).document(firebaseUid)
-        if (deletedProfileRef.get().awaitResult().exists()) return
+        val deletionMarker = deletedProfileRef.get().awaitResult()
+        if (deletionMarker.exists() && deletionMarker.getBoolean("cleanupComplete") == true) return
+        if (!deletionMarker.exists()) {
+            // Publish the tombstone first so all still-valid sessions for this UID stop
+            // creating or mutating records while the client removes the remaining data.
+            deletedProfileRef.set(
+                mapOf(
+                    "uid" to firebaseUid,
+                    "deletedAt" to FieldValue.serverTimestamp(),
+                    "cleanupComplete" to false,
+                ),
+            ).awaitResult()
+        }
 
         deleteDocumentsInBatches(
             firestore,
@@ -272,8 +284,11 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         // Sent gifts live under other recipients' paths and are intentionally untouched.
         unlinkProfile(firebaseUid)
 
-        deletedProfileRef.set(
-            mapOf("uid" to firebaseUid, "deletedAt" to FieldValue.serverTimestamp()),
+        deletedProfileRef.update(
+            mapOf(
+                "cleanupComplete" to true,
+                "cleanedAt" to FieldValue.serverTimestamp(),
+            ),
         ).awaitResult()
     }
 
