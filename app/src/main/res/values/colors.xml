@@ -73,6 +73,7 @@
     <color name="color_endorphin_molecule">#FF8E24AA</color>
     <color name="color_training_completed">#FFFB7730</color>
     <color name="color_training_missed">#FF378FC5</color>
+    <color name="color_training_patched">#FF9855D8</color>
     <color name="color_training_neutral">#FF858B94</color>
     <color name="color_success">#FF3B8A61</color>
     <color name="color_danger">#FFC94F4B</color>
