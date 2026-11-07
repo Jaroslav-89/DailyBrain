@@ -46,6 +46,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
+import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarAssetPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -227,15 +230,29 @@ private fun FeedEventCard(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val giftType = if (event.eventType == "GIFT_RECEIVED") {
+            val giftType = if (event.eventType == "GIFT_RECEIVED" || event.eventType == "GIFT_SENT") {
                 EndorphinGiftType.entries.firstOrNull { it.name == event.periodKey }
             } else null
+            val cosmeticItem = event.cosmeticGiftItem()
             val collectibleId = event.badgeCollectibleId()
             val badgeBitmap = badgeLocation?.let { (sheetIndex, _) ->
                 badgeSheets.getOrNull(sheetIndex)
             }
             when {
-                giftType != null && collectibleOwnerUid != null -> {
+                giftType != null -> {
+                    val giftModifier = if (
+                        event.eventType == "GIFT_RECEIVED" && collectibleOwnerUid != null
+                    ) {
+                        Modifier.clickable {
+                            onOpenCollectible(
+                                collectibleOwnerUid,
+                                ProfileCollectibleKind.GIFT,
+                                event.eventId.removePrefix("gift_received:"),
+                            )
+                        }
+                    } else {
+                        Modifier
+                    }
                     Image(
                         painter = androidx.compose.ui.res.painterResource(
                             when (giftType) {
@@ -247,10 +264,15 @@ private fun FeedEventCard(
                             },
                         ),
                         contentDescription = "Подарок: ${giftType.displayName}",
-                        modifier = Modifier.size(width = 68.dp, height = 80.dp)
-                            .clickable {
-                                onOpenCollectible(collectibleOwnerUid, ProfileCollectibleKind.GIFT, event.eventId.removePrefix("gift_received:"))
-                            },
+                        modifier = Modifier.size(width = 68.dp, height = 80.dp).then(giftModifier),
+                    )
+                }
+                cosmeticItem != null -> {
+                    AvatarAssetPreview(
+                        assetPath = cosmeticItem.assetPath,
+                        contentDescription = cosmeticItem.displayName,
+                        centerCrop = false,
+                        modifier = Modifier.size(width = 68.dp, height = 80.dp),
                     )
                 }
                 badgeLocation != null && badgeBitmap != null && collectibleId != null && collectibleOwnerUid != null -> {
@@ -272,6 +294,10 @@ private fun FeedEventCard(
         }
     }
 }
+
+private fun FeedEvent.cosmeticGiftItem() =
+    AvatarCosmeticType.entries.firstOrNull { it.name == exerciseType }
+        ?.let { type -> periodKey?.let { AvatarCosmeticCatalog.find(type, it) } }
 
 private fun FeedEvent.badgeSpriteLocation(): Pair<Int, Int>? = when (eventType) {
     "WEEKLY_STREAK" -> 0 to 0
@@ -313,6 +339,21 @@ private fun FeedEvent.message(): String = when (eventType) {
     "GIFT_RECEIVED" -> {
         val giftName = EndorphinGiftType.entries.firstOrNull { it.name == periodKey }?.displayName ?: "подарок"
         "Получил подарок «$giftName» от " + (relatedUserName?.takeIf(String::isNotBlank) ?: "пользователя DailyBrain")
+    }
+    "GIFT_SENT" -> {
+        val giftName = EndorphinGiftType.entries.firstOrNull { it.name == periodKey }?.displayName ?: "подарок"
+        "Отправил подарок «$giftName»"
+    }
+    "COSMETIC_GIFT_SENT" -> {
+        val name = cosmeticGiftItem()?.displayName ?: "предмет"
+        val kind = if (exerciseType == AvatarCosmeticType.COSTUME.name) "костюм" else "фон"
+        "Подарил $kind «$name»"
+    }
+    "COSMETIC_GIFT_RECEIVED" -> {
+        val name = cosmeticGiftItem()?.displayName ?: "предмет"
+        val kind = if (exerciseType == AvatarCosmeticType.COSTUME.name) "костюм" else "фон"
+        "Получил $kind «$name» от " +
+            (relatedUserName?.takeIf(String::isNotBlank) ?: "пользователя DailyBrain")
     }
     else -> "Получил новое достижение"
 }

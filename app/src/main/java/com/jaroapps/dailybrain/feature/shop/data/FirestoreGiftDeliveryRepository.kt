@@ -8,6 +8,11 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
+import com.jaroapps.dailybrain.core.database.entity.UserInventoryEntity
+import com.jaroapps.dailybrain.core.database.entity.GiftOutboxEntity
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import com.jaroapps.dailybrain.common.domain.service.FeedSyncTrigger
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
@@ -37,6 +42,7 @@ class FirestoreGiftDeliveryRepository(
         val firestore = FirebaseFirestore.getInstance(app)
         val pending = database.giftOutboxDao().getPendingForUser(localUserId)
         var sentCount = 0
+        var feedEventsUpdated = false
         for (gift in pending) {
             if (gift.senderFirebaseUid != firebaseUid) continue
             val payload = mapOf(
@@ -55,8 +61,20 @@ class FirestoreGiftDeliveryRepository(
                 .set(payload)
                 .awaitResult()
             database.giftOutboxDao().markSent(localUserId, gift.giftId)
+            if (addOutgoingFeedEvent(
+                    localUserId = localUserId,
+                    firebaseUid = firebaseUid,
+                    senderName = profile.displayName?.trim()?.takeIf(String::isNotEmpty)
+                        ?: profile.generatedAlias,
+                    senderUsername = profile.username,
+                    gift = gift,
+                )
+            ) {
+                feedEventsUpdated = true
+            }
             sentCount++
         }
+        if (feedEventsUpdated) feedSyncTrigger.requestSync()
         return sentCount
     }
 
@@ -80,10 +98,63 @@ class FirestoreGiftDeliveryRepository(
             val giftId = document.getString("giftId") ?: document.id
             if (giftId != document.id || document.getString("recipientUid") != firebaseUid) continue
             val giftTypeName = document.getString("giftType") ?: continue
-            val giftType = EndorphinGiftType.entries.firstOrNull { it.name == giftTypeName } ?: continue
-            if (document.getLong("amount")?.toInt() != giftType.price) continue
             val senderUid = document.getString("senderUid") ?: continue
             val senderName = document.getString("senderName")?.take(80)
+            val createdAt = document.getLong("createdAtEpochMs") ?: System.currentTimeMillis()
+
+            val cosmeticGift = decodeCosmeticGift(giftTypeName)
+            if (cosmeticGift != null) {
+                val (itemType, item) = cosmeticGift
+                if (document.getLong("amount")?.toInt() != item.price) continue
+
+                val inserted = database.userInventoryDao().insert(
+                    UserInventoryEntity(
+                        ownerUserId = localUserId,
+                        itemId = item.id,
+                        itemType = itemType.name,
+                        acquiredAtEpochMs = createdAt,
+                    ),
+                )
+                if (inserted != -1L) creditedCount++
+
+                val receiverProfile = database.userProfileDao().getProfile(localUserId) ?: continue
+                val eventId = "cosmetic_gift_received:$giftId"
+                val publicSenderName = senderName?.takeIf(String::isNotBlank) ?: "Пользователь DailyBrain"
+                val existingEvent = database.feedEventDao().getEvent(localUserId, eventId)
+                val needsFeedSync = existingEvent == null ||
+                    existingEvent.relatedUserFirebaseUid != senderUid ||
+                    existingEvent.relatedUserName != publicSenderName ||
+                    existingEvent.syncState != SYNCED
+                if (needsFeedSync) {
+                    database.feedEventDao().upsertAll(
+                        listOf(
+                            FeedEventEntity(
+                                localAccountId = localUserId,
+                                eventId = eventId,
+                                authorFirebaseUid = firebaseUid,
+                                authorName = receiverProfile.displayName?.trim()?.takeIf(String::isNotEmpty)
+                                    ?: receiverProfile.generatedAlias,
+                                authorUsername = receiverProfile.username,
+                                eventType = COSMETIC_GIFT_RECEIVED,
+                                occurredAtEpochMs = createdAt,
+                                periodKey = item.id,
+                                exerciseType = itemType.name,
+                                valueInt = item.price,
+                                relatedUserFirebaseUid = senderUid,
+                                relatedUserName = publicSenderName,
+                                isLocal = true,
+                                isRevoked = false,
+                                syncState = PENDING_UPSERT,
+                            ),
+                        ),
+                    )
+                    feedEventsUpdated = true
+                }
+                continue
+            }
+
+            val giftType = EndorphinGiftType.entries.firstOrNull { it.name == giftTypeName } ?: continue
+            if (document.getLong("amount")?.toInt() != giftType.price) continue
             when (endorphinRepository.receiveGift(giftId, giftType, senderUid, senderName)) {
                 is GiftReceiptResult.Credited -> creditedCount++
                 is GiftReceiptResult.AlreadyCredited -> Unit
@@ -130,6 +201,67 @@ class FirestoreGiftDeliveryRepository(
         return creditedCount
     }
 
+    private suspend fun addOutgoingFeedEvent(
+        localUserId: String,
+        firebaseUid: String,
+        senderName: String,
+        senderUsername: String?,
+        gift: GiftOutboxEntity,
+    ): Boolean {
+        val regularGift = EndorphinGiftType.entries.firstOrNull { it.name == gift.giftType }
+        val cosmeticGift = decodeCosmeticGift(gift.giftType)
+        if (regularGift == null && cosmeticGift == null) return false
+
+        val eventId = "gift_sent:${gift.giftId}"
+        val existingEvent = database.feedEventDao().getEvent(localUserId, eventId)
+        if (existingEvent?.syncState == SYNCED) return false
+
+        val event = if (cosmeticGift != null) {
+            FeedEventEntity(
+                localAccountId = localUserId,
+                eventId = eventId,
+                authorFirebaseUid = firebaseUid,
+                authorName = senderName,
+                authorUsername = senderUsername,
+                eventType = COSMETIC_GIFT_SENT,
+                occurredAtEpochMs = gift.createdAtEpochMs,
+                periodKey = cosmeticGift.second.id,
+                exerciseType = cosmeticGift.first.name,
+                valueInt = gift.amount,
+                relatedUserFirebaseUid = gift.recipientFirebaseUid,
+                isLocal = true,
+                isRevoked = false,
+                syncState = PENDING_UPSERT,
+            )
+        } else {
+            FeedEventEntity(
+                localAccountId = localUserId,
+                eventId = eventId,
+                authorFirebaseUid = firebaseUid,
+                authorName = senderName,
+                authorUsername = senderUsername,
+                eventType = GIFT_SENT,
+                occurredAtEpochMs = gift.createdAtEpochMs,
+                periodKey = requireNotNull(regularGift).name,
+                valueInt = gift.amount,
+                relatedUserFirebaseUid = gift.recipientFirebaseUid,
+                isLocal = true,
+                isRevoked = false,
+                syncState = PENDING_UPSERT,
+            )
+        }
+        database.feedEventDao().upsertAll(listOf(event))
+        return true
+    }
+
+    private fun decodeCosmeticGift(value: String): Pair<AvatarCosmeticType, AvatarCosmeticItem>? {
+        val parts = value.split(":")
+        if (parts.size != 3 || parts[0] != COSMETIC_GIFT_PREFIX) return null
+        val itemType = AvatarCosmeticType.entries.firstOrNull { it.name == parts[1] } ?: return null
+        val item = AvatarCosmeticCatalog.find(itemType, parts[2]) ?: return null
+        return itemType to item
+    }
+
     private fun configuredApp(): FirebaseApp? = FirebaseApp.getApps(appContext).firstOrNull()
 
     private fun requireCurrentFirebaseUser(app: FirebaseApp, firebaseUid: String) {
@@ -149,6 +281,10 @@ class FirestoreGiftDeliveryRepository(
 
     private companion object {
         const val GIFT_RECEIVED = "GIFT_RECEIVED"
+        const val GIFT_SENT = "GIFT_SENT"
+        const val COSMETIC_GIFT_SENT = "COSMETIC_GIFT_SENT"
+        const val COSMETIC_GIFT_RECEIVED = "COSMETIC_GIFT_RECEIVED"
+        const val COSMETIC_GIFT_PREFIX = "COSMETIC"
         const val PENDING_UPSERT = "PENDING_UPSERT"
         const val SYNCED = "SYNCED"
         const val GIFT_DELIVERIES = "giftDeliveries"

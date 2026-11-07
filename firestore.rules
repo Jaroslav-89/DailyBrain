@@ -340,7 +340,9 @@ service cloud.firestore {
           && request.resource.data.authorName.size() <= 80
           && request.resource.data.eventType in [
             'WEEKLY_STREAK', 'WEEKLY_CHALLENGE', 'MONTHLY_STREAK',
-            'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE', 'GIFT_RECEIVED'
+            'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE',
+            'GIFT_RECEIVED', 'GIFT_SENT',
+            'COSMETIC_GIFT_SENT', 'COSMETIC_GIFT_RECEIVED'
           ]
           && request.resource.data.occurredAtEpochMs is int
           && (!request.resource.data.keys().hasAny(['authorUsername']) || request.resource.data.authorUsername is string)
@@ -358,7 +360,21 @@ service cloud.firestore {
             && request.resource.data.relatedUserFirebaseUid is string
             && request.resource.data.relatedUserName is string
             && request.resource.data.valueInt is int
-          ));
+          ))
+          && (request.resource.data.eventType != 'GIFT_SENT' || (
+            request.resource.data.periodKey in ['CANDY', 'COFFEE', 'CROISSANT', 'HAMBURGER', 'CAKE']
+            && request.resource.data.relatedUserFirebaseUid is string
+            && request.resource.data.valueInt is int
+          ))
+          && (request.resource.data.eventType != 'COSMETIC_GIFT_SENT'
+            && request.resource.data.eventType != 'COSMETIC_GIFT_RECEIVED' || (
+              request.resource.data.periodKey is string
+              && request.resource.data.exerciseType in ['COSTUME', 'BACKGROUND']
+              && request.resource.data.relatedUserFirebaseUid is string
+              && request.resource.data.valueInt == 100
+            ))
+          && (request.resource.data.eventType != 'COSMETIC_GIFT_RECEIVED'
+            || request.resource.data.relatedUserName is string);
       }
 
       allow get: if signedIn()
@@ -394,7 +410,7 @@ service cloud.firestore {
           && request.resource.data.senderName is string
           && request.resource.data.senderName.size() <= 80
           && request.resource.data.recipientUid == recipientUid
-          && request.resource.data.giftType in ['CANDY', 'COFFEE', 'CROISSANT', 'HAMBURGER', 'CAKE']
+          && request.resource.data.giftType is string
           && request.resource.data.amount is int
           && (
             (request.resource.data.giftType == 'CANDY' && request.resource.data.amount == 10)
@@ -402,6 +418,54 @@ service cloud.firestore {
             || (request.resource.data.giftType == 'CROISSANT' && request.resource.data.amount == 30)
             || (request.resource.data.giftType == 'HAMBURGER' && request.resource.data.amount == 40)
             || (request.resource.data.giftType == 'CAKE' && request.resource.data.amount == 50)
+            || (
+              request.resource.data.giftType.matches('^COSMETIC:COSTUME:(spacesuit|matryoshka|square_sponge|croissant|bear)
+          && request.resource.data.createdAtEpochMs is int;
+      }
+
+      allow get, list: if canAccessOwnData(recipientUid);
+      allow create: if activeUser()
+        && request.auth.uid != recipientUid
+        && validGiftPayload()
+        && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
+        && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
+      allow update: if activeUser()
+        && resource.data.senderUid == request.auth.uid
+        && request.resource.data == resource.data;
+      allow delete: if canDeleteOwnData(recipientUid);
+    }
+  }
+}
+)
+              && request.resource.data.amount == 100
+            )
+            || (
+              request.resource.data.giftType.matches('^COSMETIC:BACKGROUND:(pyramids|forest|beach|office|snow_mountains)
+          && request.resource.data.createdAtEpochMs is int;
+      }
+
+      allow get, list: if canAccessOwnData(recipientUid);
+      allow create: if activeUser()
+        && request.auth.uid != recipientUid
+        && validGiftPayload()
+        && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
+        && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
+      allow update: if activeUser()
+        && resource.data.senderUid == request.auth.uid
+        && request.resource.data == resource.data;
+      allow delete: if canDeleteOwnData(recipientUid);
+    }
+  }
+}
+)
+              && request.resource.data.amount == 100
+            )
           )
           && request.resource.data.createdAtEpochMs is int;
       }
