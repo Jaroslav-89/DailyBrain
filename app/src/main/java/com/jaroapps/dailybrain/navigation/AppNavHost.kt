@@ -218,7 +218,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
                 ExerciseIntroScreen(
                     exerciseKey = exerciseKey,
-                    onBack = { navController.popBackStack(Route.HOME, false) },
+                    onBack = { navController.popBackStack() },
                     onContinue = {
                         onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
                             navController.navigate(Route.exerciseRules(exerciseKey)) {
