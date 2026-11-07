@@ -42,6 +42,7 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -167,7 +168,9 @@ fun ShopScreen(
                             )
                             Text(
                                 "В наличии: ${state.profile?.patchCount ?: 0}/${EndorphinEconomy.MAX_PATCH_COUNT}",
-                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                style = androidx.compose.material3.MaterialTheme.typography.titleSmall,
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 16.sp,
                             )
                         }
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
@@ -546,7 +549,7 @@ fun ShopScreen(
     state.message?.let { message ->
         AlertDialog(
             onDismissRequest = viewModel::dismissMessage,
-            title = { Text("Магазин") },
+            title = { Text(state.messageTitle) },
             text = { Text(message) },
             confirmButton = {
                 Button(onClick = viewModel::dismissMessage, colors = shopButtonColors()) {
