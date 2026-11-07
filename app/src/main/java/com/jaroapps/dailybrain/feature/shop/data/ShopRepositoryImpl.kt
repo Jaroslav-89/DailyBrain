@@ -12,10 +12,13 @@ import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinSpendReason
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopCosmeticOwnership
+import com.jaroapps.dailybrain.feature.shop.domain.model.ShopPurchaseHistoryEntry
+import com.jaroapps.dailybrain.feature.shop.domain.model.ShopPurchaseItemType
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopPurchaseResult
 import com.jaroapps.dailybrain.feature.shop.domain.model.ShopReceivedGift
 import com.jaroapps.dailybrain.feature.shop.domain.repository.ShopRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 
@@ -45,6 +48,67 @@ class ShopRepositoryImpl(
                         ?: return@mapNotNull null
                     ShopReceivedGift(gift.giftId, type, gift.senderUserId, gift.receivedAtEpochMs, gift.isOpened)
                 }
+            }
+        }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override fun observePurchaseHistory(): Flow<List<ShopPurchaseHistoryEntry>> =
+        activeUserProvider.observeUserId().flatMapLatest { userId ->
+            combine(
+                database.rewardLedgerDao().observeForUser(userId),
+                database.giftOutboxDao().observeForUser(userId),
+            ) { ledger, outgoingGifts ->
+                val directPurchases = ledger.asSequence()
+                    .filter { it.isActive && it.deltaEndorphins < 0 }
+                    .mapNotNull { operation ->
+                        val itemType = when (operation.reason) {
+                            EndorphinSpendReason.PATCH_PURCHASE.name -> ShopPurchaseItemType.PATCH
+                            EndorphinSpendReason.COSTUME_PURCHASE.name -> ShopPurchaseItemType.COSTUME
+                            EndorphinSpendReason.BACKGROUND_PURCHASE.name -> ShopPurchaseItemType.BACKGROUND
+                            else -> null
+                        } ?: return@mapNotNull null
+                        val itemId = when (itemType) {
+                            ShopPurchaseItemType.PATCH -> "patch"
+                            ShopPurchaseItemType.COSTUME,
+                            ShopPurchaseItemType.BACKGROUND -> operation.periodKey ?: return@mapNotNull null
+                            ShopPurchaseItemType.GIFT -> return@mapNotNull null
+                        }
+                        ShopPurchaseHistoryEntry(
+                            id = operation.rewardKey,
+                            itemType = itemType,
+                            itemId = itemId,
+                            isGift = false,
+                            price = -operation.deltaEndorphins,
+                            occurredAtEpochMs = operation.occurredAtEpochMs,
+                        )
+                    }
+                    .toList()
+
+                val sentGifts = outgoingGifts.mapNotNull { gift ->
+                    val encodedType = gift.giftType.split(":")
+                    val itemType = when {
+                        gift.giftType.startsWith("COSMETIC:COSTUME:") -> ShopPurchaseItemType.COSTUME
+                        gift.giftType.startsWith("COSMETIC:BACKGROUND:") -> ShopPurchaseItemType.BACKGROUND
+                        EndorphinGiftType.entries.any { it.name == gift.giftType } -> ShopPurchaseItemType.GIFT
+                        else -> null
+                    } ?: return@mapNotNull null
+                    val itemId = when (itemType) {
+                        ShopPurchaseItemType.COSTUME,
+                        ShopPurchaseItemType.BACKGROUND -> encodedType.getOrNull(2) ?: return@mapNotNull null
+                        ShopPurchaseItemType.GIFT -> gift.giftType
+                        ShopPurchaseItemType.PATCH -> return@mapNotNull null
+                    }
+                    ShopPurchaseHistoryEntry(
+                        id = "gift:${gift.giftId}",
+                        itemType = itemType,
+                        itemId = itemId,
+                        isGift = true,
+                        price = gift.amount,
+                        occurredAtEpochMs = gift.createdAtEpochMs,
+                        recipientFirebaseUid = gift.recipientFirebaseUid,
+                    )
+                }
+                (directPurchases + sentGifts).sortedByDescending(ShopPurchaseHistoryEntry::occurredAtEpochMs)
             }
         }
 
@@ -93,7 +157,13 @@ class ShopRepositoryImpl(
             } else {
                 EndorphinSpendReason.BACKGROUND_PURCHASE
             }
-            when (val spend = recordSpend(userId, catalogItem.price, transactionId, reason)) {
+            when (val spend = recordSpend(
+                userId,
+                catalogItem.price,
+                transactionId,
+                reason,
+                periodKey = catalogItem.id,
+            )) {
                 is SpendAttempt.Insufficient -> ShopPurchaseResult.InsufficientFunds(spend.balance, spend.required)
                 SpendAttempt.AlreadyProcessed -> ShopPurchaseResult.AlreadyProcessed(database.rewardLedgerDao().getEndorphinBalance(userId))
                 is SpendAttempt.Completed -> {
@@ -223,6 +293,7 @@ class ShopRepositoryImpl(
         amount: Int,
         transactionId: String,
         reason: EndorphinSpendReason,
+        periodKey: String? = null,
     ): SpendAttempt {
         val ledgerDao = database.rewardLedgerDao()
         val rewardKey = "spend:" + transactionId.trim()
@@ -249,6 +320,7 @@ class ShopRepositoryImpl(
                     deltaEndorphins = -amount,
                     category = CATEGORY_SPENT,
                     reason = reason.name,
+                    periodKey = periodKey,
                     occurredAtEpochMs = System.currentTimeMillis(),
                     isActive = true,
                 ),
