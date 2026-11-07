@@ -132,7 +132,10 @@
     <string name="counting_instruction">Count aloud from 1 to 120 as quickly as you can.</string>
 
     <!-- Stroop exercise screen -->
-    <string name="stroop_instruction">Name the color of the text, not the word itself</string>
+    <string name="stroop_instruction">Name the background color, not the word itself</string>
+    <string name="stroop_example_title">Example. Name the background color:</string>
+    <string name="stroop_example_answer">Answer: %1$s</string>
+    <string name="exercise_full_information">Full exercise information</string>
 
     <!-- Profile screens -->
     <string name="profile_title">My profile</string>
