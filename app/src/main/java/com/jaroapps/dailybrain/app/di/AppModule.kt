@@ -85,6 +85,7 @@ import com.jaroapps.dailybrain.feature.profile.data.repository.ProfileStatistics
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveSelectedProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
