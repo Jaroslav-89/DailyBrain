@@ -17,6 +17,9 @@ interface GiftOutboxDao {
     @Query("SELECT EXISTS(SELECT 1 FROM gift_outbox WHERE ownerUserId = :ownerUserId AND giftId = :giftId)")
     suspend fun exists(ownerUserId: String, giftId: String): Boolean
 
+    @Query("SELECT * FROM gift_outbox WHERE ownerUserId = :ownerUserId AND giftId = :giftId LIMIT 1")
+    suspend fun getById(ownerUserId: String, giftId: String): GiftOutboxEntity?
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insert(item: GiftOutboxEntity): Long
 
