@@ -220,10 +220,14 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     exerciseKey = exerciseKey,
                     onBack = { navController.popBackStack() },
                     onContinue = {
-                        onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
-                            navController.navigate(Route.exerciseRules(exerciseKey)) {
-                                popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
-                                launchSingleTop = true
+                        if (navController.previousBackStackEntry?.destination?.route == Route.EXERCISE_RULES) {
+                            navController.popBackStack()
+                        } else {
+                            onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
+                                navController.navigate(Route.exerciseRules(exerciseKey)) {
+                                    popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             }
                         }
                     },
