@@ -21,7 +21,7 @@ import kotlinx.coroutines.launch
  * Only DailyBrain-entered profile details, the custom avatar and aggregate statistics are published.
  */
 class PublicProfileSyncViewModel(
-    observeUserProfile: ObserveUserProfileUseCase,
+    observeSelectedProfile: ObserveSelectedProfileUseCase,
     observeProfileStatistics: ObserveProfileStatisticsUseCase,
     observeAvatar: ObserveAvatarUseCase,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
