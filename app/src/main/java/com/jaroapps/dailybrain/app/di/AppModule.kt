@@ -236,6 +236,7 @@ val appModule = module {
             profileRepository = get(),
             userDirectoryRepository = get(),
             firebaseAuthenticationRepository = get(),
+            applicationScope = get(named("profileDeletionScope")),
         )
     }
     factory {
