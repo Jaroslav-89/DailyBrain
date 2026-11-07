@@ -16,6 +16,8 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepo
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.util.UUID
