@@ -12,6 +12,7 @@ import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryReposi
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 
