@@ -85,9 +85,12 @@ fun PublicUserProfileScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(user?.username?.let { "@$it" } ?: "Профиль пользователя") },
+                title = { Text("Профиль пользователя") },
                 navigationIcon = {
-                    IconButton(onClick = onBack) {
+                    IconButton(
+                        onClick = onBack,
+                        modifier = Modifier.padding(bottom = 4.dp),
+                    ) {
                         Icon(Icons.Filled.Close, contentDescription = "Назад")
                     }
                 },
@@ -96,7 +99,7 @@ fun PublicUserProfileScreen(
     ) { padding ->
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 8.dp),
+                .padding(horizontal = 24.dp, vertical = 0.dp),
         ) {
             when {
                 state.isLoading && user == null -> {

@@ -316,6 +316,14 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 )
             }
 
+            composable(Route.FRIENDS_SEARCH) {
+                FriendsScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                    openAddFriendsOnStart = true,
+                )
+            }
+
             composable(
                 route = Route.USER_PROFILE,
                 arguments = listOf(navArgument("userId") { type = NavType.StringType }),
@@ -458,6 +466,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             composable(Route.SHOP) {
                 ShopScreen(
                     onOpenPurchaseHistory = { navController.navigate(Route.SHOP_PURCHASE_HISTORY) },
+                    onOpenFriendsSearch = { navController.navigate(Route.FRIENDS_SEARCH) },
                 )
             }
 

@@ -58,6 +58,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.ui.theme.AppThemePreference
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
@@ -85,15 +86,15 @@ fun HomeScreen(
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayButtonsDescription = state.currentWeekDates.zip(WeekdayLabels)
     val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
-    val homeTextColor = if (dynamicBackgroundEnabled) {
-        colorResource(R.color.color_home_dynamic_text)
-    } else {
-        MaterialTheme.colorScheme.onSurface
+    val homeTextColor = when {
+        dynamicBackgroundEnabled && AppThemePreference.isDarkTheme -> Color.White
+        dynamicBackgroundEnabled -> colorResource(R.color.color_home_dynamic_text)
+        else -> MaterialTheme.colorScheme.onSurface
     }
-    val homeSecondaryTextColor = if (dynamicBackgroundEnabled) {
-        colorResource(R.color.color_home_dynamic_text_secondary)
-    } else {
-        MaterialTheme.colorScheme.onSurfaceVariant
+    val homeSecondaryTextColor = when {
+        dynamicBackgroundEnabled && AppThemePreference.isDarkTheme -> Color.White.copy(alpha = 0.82f)
+        dynamicBackgroundEnabled -> colorResource(R.color.color_home_dynamic_text_secondary)
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val homeBackground = if (dynamicBackgroundEnabled) {
         dynamicWeekBackground(state)

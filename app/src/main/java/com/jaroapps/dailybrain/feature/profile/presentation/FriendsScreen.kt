@@ -55,13 +55,16 @@ import org.koin.androidx.compose.koinViewModel
 fun FriendsScreen(
     onBack: () -> Unit,
     onOpenUserProfile: (String) -> Unit,
+    openAddFriendsOnStart: Boolean = false,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
-    var showAddFriendsDialog by remember { mutableStateOf(false) }
+    var showAddFriendsDialog by remember(openAddFriendsOnStart) {
+        mutableStateOf(openAddFriendsOnStart)
+    }
     var pendingUnfollowUser by remember { mutableStateOf<PublicUserProfile?>(null) }
     val firebaseUid = directoryState.profile?.firebaseUid
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -131,7 +134,14 @@ fun FriendsScreen(
                     },
                     style = MaterialTheme.typography.bodyLarge,
                 )
-                Button(onClick = { showAddFriendsDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = { showAddFriendsDialog = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.color_button_green),
+                        contentColor = colorResource(R.color.color_on_accent),
+                    ),
+                ) {
                     Text(if (directoryState.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
                         "Восстановить подключение"
                     } else "Подключить Google")

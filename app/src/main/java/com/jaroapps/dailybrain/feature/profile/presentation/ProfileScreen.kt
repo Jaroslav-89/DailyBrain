@@ -172,6 +172,12 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
+                                Text(
+                                    text = profile?.effectiveDisplayName ?: stringResource(R.string.profile_loading),
+                                    modifier = Modifier.weight(1f),
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
                                 if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
                                     Icon(
                                         imageVector = Icons.Filled.CheckCircle,
@@ -180,14 +186,15 @@ fun ProfileScreen(
                                         modifier = Modifier.size(20.dp),
                                     )
                                 }
-                                Text(
-                                    text = profile?.let { profileNameWithAge(it, today) }
-                                        ?: stringResource(R.string.profile_loading),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
-                                )
                             }
                             profile?.let { user ->
+                                profileAgeLabel(user, today)?.let { age ->
+                                    Text(
+                                        age,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                                 user.country?.takeIf(String::isNotBlank)?.let {
                                     Text(it, style = MaterialTheme.typography.bodyMedium)
                                 }
@@ -451,12 +458,11 @@ fun ProfileScreen(
 }
 
 @Composable
-private fun profileNameWithAge(profile: UserProfile, today: LocalDate): String {
+private fun profileAgeLabel(profile: UserProfile, today: LocalDate): String? {
     val age = profile.birthDate?.let { birthDate ->
         Period.between(birthDate, today).years.takeIf { !Period.between(birthDate, today).isNegative }
-    }
-    if (age == null) return profile.effectiveDisplayName
-    return profile.effectiveDisplayName + ", " + pluralStringResource(R.plurals.profile_age_years, age, age)
+    } ?: return null
+    return pluralStringResource(R.plurals.profile_age_years, age, age)
 }
 
 @Composable

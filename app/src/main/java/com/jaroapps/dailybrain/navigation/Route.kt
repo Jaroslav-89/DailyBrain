@@ -20,6 +20,7 @@ object Route {
     const val PRIVACY_POLICY = "privacy_policy"
     const val PARAMETERS = "profile_parameters"
     const val FRIENDS = "friends"
+    const val FRIENDS_SEARCH = "friends_search"
     const val USER_PROFILE = "user_profile/{userId}"
     const val USER_PROFILE_CONNECTIONS = "user_profile_connections/{userId}/{connectionType}"
     const val PROFILE_COLLECTIBLES = "profile_collectibles/{ownerUid}/{kind}"

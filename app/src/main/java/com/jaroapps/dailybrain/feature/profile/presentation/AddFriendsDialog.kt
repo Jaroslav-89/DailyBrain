@@ -10,6 +10,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.ui.unit.dp
 import com.google.mlkit.vision.barcode.common.Barcode
 import com.google.mlkit.vision.codescanner.GmsBarcodeScannerOptions
@@ -167,6 +170,10 @@ fun AddFriendsDialog(
                             !profileState.isGoogleReauthenticating
                         } else !isGoogleSignInInProgress && !profileState.isGoogleLinking,
                         modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.color_button_green),
+                            contentColor = colorResource(R.color.color_on_accent),
+                        ),
                     ) {
                         if (profileState.isGoogleReauthenticating ||
                             isGoogleSignInInProgress || profileState.isGoogleLinking
@@ -210,6 +217,10 @@ fun AddFriendsDialog(
                             UsernamePolicy.isValid(query)
                         } else InviteCodePolicy.isValid(query),
                         modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.color_button_green),
+                            contentColor = colorResource(R.color.color_on_accent),
+                        ),
                     ) {
                         Text(if (directoryState.isSearching) "Ищем..." else "Найти пользователя")
                     }
@@ -251,6 +262,10 @@ fun AddFriendsDialog(
                                         onClick = directoryViewModel::followSearchResult,
                                         enabled = !directoryState.isFollowingAction,
                                         modifier = Modifier.fillMaxWidth(),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = colorResource(R.color.color_button_green),
+                                            contentColor = colorResource(R.color.color_on_accent),
+                                        ),
                                     ) {
                                         Text(if (directoryState.isFollowingAction) "Подписываемся..." else "Подписаться")
                                     }
