@@ -300,14 +300,11 @@ fun CalendarScreen(
                                             .border(1.5.dp, ringColor, CircleShape),
                                     )
                                 }
-                                if (date in state.patchedDates) {
-                                    Text(text = "🩹", fontSize = 18.sp)
-                                } else {
-                                    Text(
-                                        text = date.dayOfMonth.toString(),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                }
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = if (date in state.patchedDates) FontWeight.SemiBold else FontWeight.Normal,
+                                )
                             }
                         }
                     }
