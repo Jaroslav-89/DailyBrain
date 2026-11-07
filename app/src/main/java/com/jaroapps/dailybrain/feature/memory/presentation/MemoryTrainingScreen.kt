@@ -31,6 +31,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.colorResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -143,7 +144,7 @@ private fun LoadingContent() {
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        CircularProgressIndicator()
+        CircularProgressIndicator(color = colorResource(R.color.color_success))
         Spacer(Modifier.height(16.dp))
         Text(stringResource(R.string.memory_loading))
     }
@@ -188,7 +189,9 @@ private fun MemorizingContent(
 
         LinearProgressIndicator(
             progress = { progress },
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            color = colorResource(R.color.color_success),
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
         )
 
         Spacer(Modifier.height(8.dp))
@@ -316,7 +319,8 @@ private fun RecallContent(
             if (isSaving) {
                 CircularProgressIndicator(
                     modifier = Modifier.height(20.dp),
-                    strokeWidth = 2.dp
+                    strokeWidth = 2.dp,
+                    color = colorResource(R.color.color_success),
                 )
                 Text(
                     text = stringResource(R.string.status_saving),

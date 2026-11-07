@@ -159,6 +159,8 @@ private fun TrainingContent(
                 LinearProgressIndicator(
                     progress = { state.progress },
                     modifier = Modifier.fillMaxWidth(),
+                    color = colorResource(R.color.color_success),
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
                 )
                 ArithmeticProblemAndAnswer(
                     state = state,
@@ -186,6 +188,8 @@ private fun TrainingContent(
             LinearProgressIndicator(
                 progress = { state.progress },
                 modifier = Modifier.fillMaxWidth(),
+                color = colorResource(R.color.color_success),
+                trackColor = MaterialTheme.colorScheme.surfaceVariant,
             )
             ArithmeticProblemAndAnswer(
                 state = state,
