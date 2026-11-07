@@ -169,12 +169,12 @@ fun StatisticsScreen(
                 ) {
                     Text(
                         text = when (period) {
-                            ChartPeriod.DAY -> stringResource(R.string.statistics_period_day)
-                            ChartPeriod.WEEK -> stringResource(R.string.statistics_period_week)
-                            ChartPeriod.MONTH -> stringResource(R.string.statistics_period_month)
-                            ChartPeriod.HALF_YEAR -> stringResource(R.string.statistics_period_half_year)
-                            ChartPeriod.YEAR -> stringResource(R.string.statistics_period_year)
-                            ChartPeriod.ALL_TIME -> stringResource(R.string.statistics_period_all)
+                            ChartPeriod.DAY -> "д"
+                            ChartPeriod.WEEK -> "н"
+                            ChartPeriod.MONTH -> "м"
+                            ChartPeriod.HALF_YEAR -> "6м"
+                            ChartPeriod.YEAR -> "г"
+                            ChartPeriod.ALL_TIME -> "все"
                         },
                         style = MaterialTheme.typography.labelSmall,
                     )
