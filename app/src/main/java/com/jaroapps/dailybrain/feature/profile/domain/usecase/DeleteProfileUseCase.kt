@@ -49,17 +49,18 @@ class DeleteProfileUseCase(
             firebaseUid = signedInFirebaseUid,
         ) ?: return signedInFirebaseUid
 
-        if (signedInFirebaseUid != pending.firebaseUid) {
-            if (pending.status == PendingProfileDeletionStatus.CLOUD_DATA_DELETED) {
+        when (resolvePendingProfileDeletionRecoveryAction(pending, signedInFirebaseUid)) {
+            PendingProfileDeletionRecoveryAction.CLEAN_CLOUD_AND_RETIRE_OLD_AUTH -> cleanCloudDataIfNeeded(pending)
+            PendingProfileDeletionRecoveryAction.RETIRE_OLD_AUTH_ONLY -> Unit
+            PendingProfileDeletionRecoveryAction.CONTINUE_WITH_NEW_AUTH -> {
                 profileRepository.completePendingProfileDeletion(pending.firebaseUid)
                 return signedInFirebaseUid
             }
-            throw IllegalStateException(
+            PendingProfileDeletionRecoveryAction.BLOCK_UNSAFE_RECREATION -> throw IllegalStateException(
                 "Cloud cleanup for the deleted Firebase profile has not completed; a new profile cannot be created yet.",
             )
         }
 
-        cleanCloudDataIfNeeded(pending)
         firebaseAuthenticationRepository.deleteCurrentUser(pending.firebaseUid)
         firebaseAuthenticationRepository.signOut()
 
