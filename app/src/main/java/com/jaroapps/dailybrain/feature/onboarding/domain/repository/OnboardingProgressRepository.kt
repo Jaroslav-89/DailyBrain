@@ -5,6 +5,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface OnboardingProgressRepository {
     fun observeActiveProgress(): Flow<OnboardingProgress>
+    fun observeProfileSelectionRequired(): Flow<Boolean?>
     suspend fun getActiveProgress(): OnboardingProgress
     suspend fun markAppIntroComplete()
     suspend fun markExerciseIntroComplete(exerciseKey: String)
