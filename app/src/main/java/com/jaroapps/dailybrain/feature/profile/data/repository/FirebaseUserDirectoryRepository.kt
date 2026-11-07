@@ -274,6 +274,8 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         )
         deleteFollowRelationships(firestore, firebaseUid, "followerUid")
         deleteFollowRelationships(firestore, firebaseUid, "followingUid")
+        deleteOwnFollowProjections(firestore, firebaseUid, PUBLIC_FOLLOWING, PUBLIC_FOLLOWERS)
+        deleteOwnFollowProjections(firestore, firebaseUid, PUBLIC_FOLLOWERS, PUBLIC_FOLLOWING)
         deleteDocumentsInBatches(
             firestore,
             firestore.collection(BLOCKED_USERS).document(firebaseUid).collection(PUBLIC_CONNECTIONS),
@@ -331,6 +333,33 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
                     .collection(PUBLIC_CONNECTIONS).document(followerUid)
                 if (followingProjection.get().awaitResult().exists()) batch.delete(followingProjection)
                 if (followerProjection.get().awaitResult().exists()) batch.delete(followerProjection)
+            }
+            batch.commit().awaitResult()
+        }
+    }
+
+    private suspend fun deleteOwnFollowProjections(
+        firestore: FirebaseFirestore,
+        firebaseUid: String,
+        ownProjectionCollection: String,
+        counterpartProjectionCollection: String,
+    ) {
+        val ownProjection = firestore.collection(ownProjectionCollection)
+            .document(firebaseUid)
+            .collection(PUBLIC_CONNECTIONS)
+        while (true) {
+            val snapshot = ownProjection.limit(80).get().awaitResult()
+            if (snapshot.isEmpty) return
+
+            val batch = firestore.batch()
+            for (projection in snapshot.documents) {
+                val otherUid = projection.id
+                val counterpart = firestore.collection(counterpartProjectionCollection)
+                    .document(otherUid)
+                    .collection(PUBLIC_CONNECTIONS)
+                    .document(firebaseUid)
+                if (counterpart.get().awaitResult().exists()) batch.delete(counterpart)
+                batch.delete(projection.reference)
             }
             batch.commit().awaitResult()
         }

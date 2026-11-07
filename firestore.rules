@@ -267,6 +267,7 @@ service cloud.firestore {
         && request.resource.data.followingUid != request.auth.uid
         && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid
         && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(request.resource.data.followingUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(request.resource.data.followingUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.resource.data.followingUid)/users/$(request.auth.uid));
       allow update: if false;
@@ -407,6 +408,7 @@ service cloud.firestore {
         && request.auth.uid != recipientUid
         && validGiftPayload()
         && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
         && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
