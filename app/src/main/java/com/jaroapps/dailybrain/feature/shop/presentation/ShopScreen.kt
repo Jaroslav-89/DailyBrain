@@ -1,13 +1,16 @@
 package com.jaroapps.dailybrain.feature.shop.presentation
 
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -16,16 +19,13 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material.icons.Icons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,11 +40,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
@@ -52,16 +52,16 @@ import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarAssetPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
-import com.jaroapps.dailybrain.feature.rewards.presentation.EndorphinAmount
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
-import com.jaroapps.dailybrain.feature.shop.domain.model.ShopCosmeticOwnership
+import com.jaroapps.dailybrain.feature.rewards.presentation.EndorphinAmount
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ShopScreen(
     onOpenPurchaseHistory: () -> Unit,
+    onOpenFriendsSearch: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ShopViewModel = koinViewModel(),
 ) {
@@ -71,15 +71,20 @@ fun ShopScreen(
         var skipInitialResume = true
         val observer = LifecycleEventObserver { _, event ->
             if (event == Lifecycle.Event.ON_RESUME) {
-                if (skipInitialResume) skipInitialResume = false else viewModel.refreshGiftData()
+                if (skipInitialResume) {
+                    skipInitialResume = false
+                } else {
+                    viewModel.refreshGiftData()
+                }
             }
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
-    var selectedGift by remember { mutableStateOf<EndorphinGiftType?>(null) }
-    var selectedCosmetic by remember { mutableStateOf<AvatarCosmeticItem?>(null) }
+
+    var selectedProduct by remember { mutableStateOf<ShopProductDetails?>(null) }
     var pendingPurchase by remember { mutableStateOf<PendingShopPurchase?>(null) }
+    var pendingGift by remember { mutableStateOf<PendingShopGift?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -94,7 +99,9 @@ fun ShopScreen(
                     ) {
                         EndorphinAmount(
                             text = (state.profile?.endorphinBalance ?: 0).toString(),
-                            textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            textStyle = androidx.compose.material3.MaterialTheme.typography.titleMedium.copy(
+                                fontWeight = FontWeight.Bold,
+                            ),
                             iconSize = 20.dp,
                         )
                     }
@@ -110,37 +117,48 @@ fun ShopScreen(
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
                 ) {
                     Row(
                         modifier = Modifier.fillMaxWidth().padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
-                        androidx.compose.foundation.Image(
+                        Image(
                             painter = painterResource(R.drawable.gift_endorphin_patch),
                             contentDescription = "Эндорфиновый пластырь",
                             modifier = Modifier.size(84.dp),
                         )
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text("Пластырь", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.spacedBy(4.dp),
+                        ) {
+                            Text("Пластырь", fontWeight = FontWeight.Bold)
                             Text(
                                 "Сохраняет серию дней при пропуске тренировки.",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                             Text(
-                                "В наличии: " + (state.profile?.patchCount ?: 0) + "/" + EndorphinEconomy.MAX_PATCH_COUNT,
-                                style = MaterialTheme.typography.bodySmall,
+                                "В наличии: ${state.profile?.patchCount ?: 0}/${EndorphinEconomy.MAX_PATCH_COUNT}",
+                                style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
                             )
                         }
                         Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(5.dp)) {
-                            EndorphinAmount(EndorphinEconomy.PATCH_PRICE.toString(), textStyle = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                            EndorphinAmount(
+                                EndorphinEconomy.PATCH_PRICE.toString(),
+                                textStyle = androidx.compose.material3.MaterialTheme.typography.bodyMedium.copy(
+                                    fontWeight = FontWeight.Bold,
+                                ),
+                            )
                             Button(
                                 onClick = { pendingPurchase = PendingShopPurchase.Patch },
                                 enabled = !state.isPurchasing &&
                                     (state.profile?.patchCount ?: 0) < EndorphinEconomy.MAX_PATCH_COUNT,
-                                colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent)),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colorResource(R.color.color_button_green),
+                                    contentColor = colorResource(R.color.color_on_accent),
+                                ),
                             ) { Text("Купить") }
                         }
                     }
@@ -154,11 +172,7 @@ fun ShopScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(EndorphinEconomy.gifts) { gift ->
-                        GiftProductCard(
-                            giftType = gift,
-                            enabled = !state.isPurchasing,
-                            onGift = { selectedGift = gift; viewModel.refreshRecipients() },
-                        )
+                        GiftProductCard(gift) { selectedProduct = ShopProductDetails.Gift(gift) }
                     }
                 }
             }
@@ -172,10 +186,8 @@ fun ShopScreen(
                     items(AvatarCosmeticCatalog.costumes, key = { it.id }) { item ->
                         CosmeticProductCard(
                             item = item,
-                            owned = state.inventory.owns(item),
-                            enabled = !state.isPurchasing,
-                            onBuy = { pendingPurchase = PendingShopPurchase.Cosmetic(item) },
-                            onGift = { selectedCosmetic = item; viewModel.refreshRecipients() },
+                            owned = state.inventory.any { it.itemId == item.id && it.itemType == item.type },
+                            onClick = { selectedProduct = ShopProductDetails.Cosmetic(item) },
                         )
                     }
                 }
@@ -190,26 +202,114 @@ fun ShopScreen(
                     items(AvatarCosmeticCatalog.backgrounds, key = { it.id }) { item ->
                         CosmeticProductCard(
                             item = item,
-                            owned = state.inventory.owns(item),
-                            enabled = !state.isPurchasing,
-                            onBuy = { pendingPurchase = PendingShopPurchase.Cosmetic(item) },
-                            onGift = { selectedCosmetic = item; viewModel.refreshRecipients() },
+                            owned = state.inventory.any { it.itemId == item.id && it.itemType == item.type },
+                            onClick = { selectedProduct = ShopProductDetails.Cosmetic(item) },
                         )
                     }
                 }
             }
-
-            state.message?.let { message ->
-                item {
-                    Text(
-                        message,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                        color = MaterialTheme.colorScheme.primary,
-                        style = MaterialTheme.typography.bodyMedium,
-                    )
-                }
-            }
         }
+    }
+
+    selectedProduct?.let { product ->
+        val title = when (product) {
+            is ShopProductDetails.Gift -> product.item.displayName
+            is ShopProductDetails.Cosmetic -> product.item.displayName
+        }
+        val price = when (product) {
+            is ShopProductDetails.Gift -> product.item.price
+            is ShopProductDetails.Cosmetic -> product.item.price
+        }
+        val owned = product is ShopProductDetails.Cosmetic &&
+            state.inventory.any { it.itemId == product.item.id && it.itemType == product.item.type }
+        AlertDialog(
+            onDismissRequest = { selectedProduct = null },
+            title = { Text(title) },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().heightIn(max = 420.dp).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(10.dp),
+                ) {
+                    Box(
+                        modifier = Modifier.fillMaxWidth().height(230.dp),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        when (product) {
+                            is ShopProductDetails.Gift -> Image(
+                                painter = painterResource(giftIcon(product.item)),
+                                contentDescription = product.item.displayName,
+                                modifier = Modifier.size(210.dp),
+                            )
+                            is ShopProductDetails.Cosmetic -> AvatarAssetPreview(
+                                assetPath = product.item.assetPath,
+                                contentDescription = product.item.displayName,
+                                centerCrop = false,
+                                modifier = Modifier.fillMaxSize().padding(8.dp),
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text("Стоимость: ", fontWeight = FontWeight.SemiBold)
+                        EndorphinAmount(price.toString())
+                    }
+                    if (product is ShopProductDetails.Gift) {
+                        Text(
+                            "Получатель получит: +${product.item.recipientEndorphins} эндорфинов",
+                            style = androidx.compose.material3.MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.SemiBold,
+                            color = colorResource(R.color.color_success),
+                        )
+                    }
+                    if (owned) {
+                        Text("Этот предмет уже есть в вашем инвентаре.")
+                    }
+                }
+            },
+            confirmButton = {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    when (product) {
+                        is ShopProductDetails.Gift -> Button(
+                            onClick = {
+                                pendingGift = PendingShopGift.Gift(product.item)
+                                selectedProduct = null
+                                viewModel.refreshRecipients()
+                            },
+                            enabled = !state.isPurchasing,
+                            colors = shopButtonColors(),
+                        ) { Text("Подарить") }
+                        is ShopProductDetails.Cosmetic -> {
+                            if (!owned) {
+                                Button(
+                                    onClick = {
+                                        pendingPurchase = PendingShopPurchase.Cosmetic(product.item)
+                                        selectedProduct = null
+                                    },
+                                    enabled = !state.isPurchasing,
+                                    colors = shopButtonColors(),
+                                ) { Text("Купить") }
+                            }
+                            Button(
+                                onClick = {
+                                    pendingGift = PendingShopGift.Cosmetic(product.item)
+                                    selectedProduct = null
+                                    viewModel.refreshRecipients()
+                                },
+                                enabled = !state.isPurchasing,
+                                colors = shopButtonColors(),
+                            ) { Text("Подарить") }
+                        }
+                    }
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { selectedProduct = null }) { Text("Закрыть") }
+            },
+        )
     }
 
     pendingPurchase?.let { purchase ->
@@ -236,76 +336,129 @@ fun ShopScreen(
                         pendingPurchase = null
                     },
                     enabled = !state.isPurchasing,
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = colorResource(R.color.color_button_green),
-                        contentColor = colorResource(R.color.color_on_accent),
-                    ),
-                ) {
-                    Text("Купить")
-                }
+                    colors = shopButtonColors(),
+                ) { Text("Купить") }
             },
             dismissButton = {
-                TextButton(
-                    onClick = { pendingPurchase = null },
-                    enabled = !state.isPurchasing,
-                ) {
+                TextButton(onClick = { pendingPurchase = null }, enabled = !state.isPurchasing) {
                     Text("Отмена")
                 }
             },
         )
     }
 
-    selectedCosmetic?.let { item ->
-        AlertDialog(
-            onDismissRequest = { selectedCosmetic = null },
-            title = { Text("Кому подарить «" + item.displayName + "»?") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().height(300.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    when {
-                        state.isLoadingRecipients -> Text("Загрузка подписок…")
-                        state.followingUsers.isEmpty() ->
-                            Text("Нет доступных пользователей. Подпишитесь на пользователя DailyBrain, чтобы отправить ему подарок.")
-                        else -> state.followingUsers.forEach { recipient ->
-                            RecipientRow(recipient) {
-                                viewModel.sendCosmeticGift(item, recipient)
-                                selectedCosmetic = null
+    pendingGift?.let { gift ->
+        if (state.message == null) {
+            when {
+                state.isLoadingRecipients -> AlertDialog(
+                    onDismissRequest = { pendingGift = null },
+                    title = { Text("Загрузка подписок") },
+                    text = { CircularProgressIndicator() },
+                    confirmButton = {
+                        TextButton(onClick = { pendingGift = null }) { Text("Отмена") }
+                    },
+                )
+                state.giftPrompt == ShopGiftPrompt.GOOGLE_AUTH_REQUIRED -> AlertDialog(
+                    onDismissRequest = {
+                        pendingGift = null
+                        viewModel.dismissGiftPrompt()
+                    },
+                    title = { Text("Подключите Google") },
+                    text = {
+                        Text("Чтобы отправлять подарки, подключите Google-аккаунт и найдите друзей DailyBrain.")
+                    },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                pendingGift = null
+                                viewModel.dismissGiftPrompt()
+                                onOpenFriendsSearch()
+                            },
+                            colors = shopButtonColors(),
+                        ) { Text("Продолжить с Google") }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                pendingGift = null
+                                viewModel.dismissGiftPrompt()
+                            },
+                        ) { Text("Отмена") }
+                    },
+                )
+                state.giftPrompt == ShopGiftPrompt.FIND_FRIENDS -> AlertDialog(
+                    onDismissRequest = {
+                        pendingGift = null
+                        viewModel.dismissGiftPrompt()
+                    },
+                    title = { Text("Найдите друзей") },
+                    text = { Text("Вы пока ни на кого не подписаны. Найдите пользователя DailyBrain, чтобы отправить подарок.") },
+                    confirmButton = {
+                        Button(
+                            onClick = {
+                                pendingGift = null
+                                viewModel.dismissGiftPrompt()
+                                onOpenFriendsSearch()
+                            },
+                            colors = shopButtonColors(),
+                        ) { Text("Найти друзей") }
+                    },
+                    dismissButton = {
+                        TextButton(
+                            onClick = {
+                                pendingGift = null
+                                viewModel.dismissGiftPrompt()
+                            },
+                        ) { Text("Закрыть") }
+                    },
+                )
+                else -> AlertDialog(
+                    onDismissRequest = { pendingGift = null },
+                    title = {
+                        Text(
+                            when (gift) {
+                                is PendingShopGift.Gift -> "Кому подарить ${gift.item.displayName.lowercase()}?"
+                                is PendingShopGift.Cosmetic -> "Кому подарить «${gift.item.displayName}»?"
+                            },
+                        )
+                    },
+                    text = {
+                        Column(
+                            modifier = Modifier.fillMaxWidth().height(300.dp).verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.spacedBy(6.dp),
+                        ) {
+                            if (state.followingUsers.isEmpty()) {
+                                Text("Нет доступных пользователей.")
+                            } else {
+                                state.followingUsers.forEach { recipient ->
+                                    RecipientRow(recipient) {
+                                        when (gift) {
+                                            is PendingShopGift.Gift -> viewModel.sendGift(gift.item, recipient)
+                                            is PendingShopGift.Cosmetic -> viewModel.sendCosmeticGift(gift.item, recipient)
+                                        }
+                                        pendingGift = null
+                                    }
+                                }
                             }
                         }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(onClick = { selectedCosmetic = null }) { Text("Закрыть") }
-            },
-        )
+                    },
+                    confirmButton = {
+                        TextButton(onClick = { pendingGift = null }) { Text("Закрыть") }
+                    },
+                )
+            }
+        }
     }
 
-    selectedGift?.let { gift ->
+    state.message?.let { message ->
         AlertDialog(
-            onDismissRequest = { selectedGift = null },
-            title = { Text("Кому подарить " + gift.displayName.lowercase() + "?") },
-            text = {
-                Column(
-                    modifier = Modifier.fillMaxWidth().height(300.dp).verticalScroll(rememberScrollState()),
-                    verticalArrangement = Arrangement.spacedBy(6.dp),
-                ) {
-                    when {
-                        state.isLoadingRecipients -> Text("Загрузка подписок…")
-                        state.followingUsers.isEmpty() -> Text("Нет доступных пользователей. Подпишитесь на пользователя DailyBrain, чтобы отправить ему подарок.")
-                        else -> state.followingUsers.forEach { recipient ->
-                            RecipientRow(recipient) {
-                                viewModel.sendGift(gift, recipient)
-                                selectedGift = null
-                            }
-                        }
-                    }
-                }
-            },
+            onDismissRequest = viewModel::dismissMessage,
+            title = { Text("Магазин") },
+            text = { Text(message) },
             confirmButton = {
-                TextButton(onClick = { selectedGift = null }) { Text("Закрыть") }
+                Button(onClick = viewModel::dismissMessage, colors = shopButtonColors()) {
+                    Text("Понятно")
+                }
             },
         )
     }
@@ -316,32 +469,34 @@ private fun SectionTitle(title: String) {
     Text(
         title,
         modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-        style = MaterialTheme.typography.titleLarge,
+        style = androidx.compose.material3.MaterialTheme.typography.titleLarge,
         fontWeight = FontWeight.Bold,
     )
 }
 
 @Composable
-private fun GiftProductCard(giftType: EndorphinGiftType, enabled: Boolean, onGift: () -> Unit) {
+private fun GiftProductCard(giftType: EndorphinGiftType, onClick: () -> Unit) {
     Card(
-        modifier = Modifier.width(148.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.width(148.dp).clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(5.dp),
         ) {
-            androidx.compose.foundation.Image(
+            Image(
                 painter = painterResource(giftIcon(giftType)),
                 contentDescription = giftType.displayName,
                 modifier = Modifier.size(88.dp),
             )
             Text(giftType.displayName, fontWeight = FontWeight.SemiBold)
-            EndorphinAmount(giftType.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onGift, enabled = enabled, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent))) {
-                Text("Подарить")
-            }
+            EndorphinAmount(giftType.price.toString())
+            Text(
+                "Подробнее",
+                color = colorResource(R.color.color_success),
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }
@@ -350,13 +505,11 @@ private fun GiftProductCard(giftType: EndorphinGiftType, enabled: Boolean, onGif
 private fun CosmeticProductCard(
     item: AvatarCosmeticItem,
     owned: Boolean,
-    enabled: Boolean,
-    onBuy: () -> Unit,
-    onGift: () -> Unit,
+    onClick: () -> Unit,
 ) {
     Card(
-        modifier = Modifier.width(154.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = Modifier.width(154.dp).clickable(onClick = onClick),
+        colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
     ) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
@@ -370,40 +523,40 @@ private fun CosmeticProductCard(
                 modifier = Modifier.size(104.dp),
             )
             Text(item.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1)
-            EndorphinAmount(item.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
             if (owned) {
-                Text("Есть в инвентаре", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text("Куплено", color = androidx.compose.material3.MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             } else {
-                Button(onClick = onBuy, enabled = enabled, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent))) {
-                    Text("Купить")
-                }
+                EndorphinAmount(item.price.toString())
             }
-            Button(
-                onClick = onGift,
-                enabled = enabled,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = colorResource(R.color.color_button_green),
-                    contentColor = colorResource(R.color.color_on_accent),
-                ),
-            ) {
-                Text("Подарить")
-            }
+            Text(
+                "Подробнее",
+                color = colorResource(R.color.color_success),
+                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
+            )
         }
     }
 }
 
 @Composable
 private fun RecipientRow(user: PublicUserProfile, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+    androidx.compose.material3.OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
         Column(modifier = Modifier.fillMaxWidth()) {
             Text(user.displayName?.takeIf(String::isNotBlank) ?: "Пользователь DailyBrain")
             if (user.username.isNotBlank()) {
-                Text("@" + user.username, style = MaterialTheme.typography.bodySmall)
+                Text(
+                    "@" + user.username,
+                    style = androidx.compose.material3.MaterialTheme.typography.bodySmall,
+                )
             }
         }
     }
 }
+
+@Composable
+private fun shopButtonColors() = ButtonDefaults.buttonColors(
+    containerColor = colorResource(R.color.color_button_green),
+    contentColor = colorResource(R.color.color_on_accent),
+)
 
 private fun giftIcon(type: EndorphinGiftType): Int = when (type) {
     EndorphinGiftType.CANDY -> R.drawable.gift_candy
@@ -413,10 +566,17 @@ private fun giftIcon(type: EndorphinGiftType): Int = when (type) {
     EndorphinGiftType.CAKE -> R.drawable.gift_cake
 }
 
+private sealed interface ShopProductDetails {
+    data class Gift(val item: EndorphinGiftType) : ShopProductDetails
+    data class Cosmetic(val item: AvatarCosmeticItem) : ShopProductDetails
+}
+
 private sealed interface PendingShopPurchase {
     data object Patch : PendingShopPurchase
     data class Cosmetic(val item: AvatarCosmeticItem) : PendingShopPurchase
 }
 
-private fun List<ShopCosmeticOwnership>.owns(item: AvatarCosmeticItem): Boolean =
-    any { it.itemId == item.id && it.itemType == item.type }
+private sealed interface PendingShopGift {
+    data class Gift(val item: EndorphinGiftType) : PendingShopGift
+    data class Cosmetic(val item: AvatarCosmeticItem) : PendingShopGift
+}
