@@ -13,6 +13,7 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import com.jaroapps.dailybrain.feature.rewards.data.RewardRecalculator
+import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -56,7 +57,7 @@ class FeedRepositoryImpl(
         val profile = database.userProfileDao().getProfile(localAccountId) ?: return
         val firebaseUid = profile.firebaseUid
         if (firebaseUid.isNullOrBlank()) {
-            database.feedEventDao().deleteCachedFriendEvents(localAccountId)
+            // Keep the last successful cache available offline, even while this local profile is unlinked.
             return
         }
 
@@ -252,9 +253,7 @@ class FeedRepositoryImpl(
         FirebaseApp.getApps(appContext).firstOrNull()
 
     private fun requireCurrentFirebaseUser(app: FirebaseApp, uid: String) {
-        check(FirebaseAuth.getInstance(app).currentUser?.uid == uid) {
-            "FIREBASE_SESSION_MISMATCH: the active Firebase account does not match the selected local profile."
-        }
+        requireMatchingFirebaseSession(uid, FirebaseAuth.getInstance(app).currentUser?.uid)
     }
 
     private suspend fun <T> Task<T>.awaitResult(): T =

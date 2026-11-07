@@ -6,6 +6,7 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -91,10 +92,12 @@ class FeedViewModel(
                     .firstOrNull()
                 val diagnosticCode = firestoreError?.code?.name
                     ?: (error.message?.substringBefore(':')?.takeIf { it.matches(Regex("[A-Z0-9_]+")) })
-                errorMessage.value = if (diagnosticCode != null) {
-                    "Не удалось обновить ленту ($diagnosticCode). Показываем сохранённые новости."
-                } else {
-                    "Не удалось обновить ленту. Показываем сохранённые новости."
+                errorMessage.value = when {
+                    error is FirebaseSessionMismatchException ->
+                        "Войдите в Google-аккаунт, привязанный к этому профилю. Показываем сохранённую ленту."
+                    diagnosticCode != null ->
+                        "Не удалось обновить ленту ($diagnosticCode). Показываем сохранённые новости."
+                    else -> "Не удалось обновить ленту. Показываем сохранённые новости."
                 }
             } finally {
                 isRefreshing.value = false

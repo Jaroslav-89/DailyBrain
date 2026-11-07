@@ -12,7 +12,7 @@ import com.jaroapps.dailybrain.core.database.entity.UserBadgeEntity
 import com.jaroapps.dailybrain.core.database.entity.UserGiftEntity
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectible
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
-import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryNotConfiguredException
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
@@ -164,7 +164,7 @@ class ProfileCollectiblesRepositoryImpl(
         FirebaseApp.getApps(appContext).firstOrNull() ?: throw UserDirectoryNotConfiguredException()
 
     private fun requireCurrentUser(app: FirebaseApp, uid: String) {
-        if (FirebaseAuth.getInstance(app).currentUser?.uid != uid) throw FirebaseSessionMismatchException()
+        requireMatchingFirebaseSession(uid, FirebaseAuth.getInstance(app).currentUser?.uid)
     }
 
     private suspend fun <T> Task<T>.awaitResult(): T =
