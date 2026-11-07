@@ -494,10 +494,12 @@ fun EditProfileScreen(
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = {
+                val localAccountId = profile?.localAccountId ?: return@Button
+                deleteProfileLocalAccountId = localAccountId
                 viewModel.clearDeleteError()
                 deleteDialogVisible = true
             },
-            enabled = !state.isSaving,
+            enabled = !state.isSaving && !state.isDeletingProfile && profile != null,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
