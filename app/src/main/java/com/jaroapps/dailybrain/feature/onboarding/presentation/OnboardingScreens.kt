@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.onboarding.presentation
 
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material3.Icon
 import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
@@ -22,6 +23,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.Color
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -203,6 +207,7 @@ fun ExerciseIntroScreen(
 @Composable
 fun ExerciseRulesScreen(
     exerciseKey: String,
+    onOpenFullInfo: () -> Unit,
     onStart: () -> Unit,
     onBack: () -> Unit,
 ) {
@@ -224,12 +229,21 @@ fun ExerciseRulesScreen(
                     modifier = Modifier.size(24.dp),
                 )
             }
+            Spacer(Modifier.weight(1f))
+            IconButton(onClick = onOpenFullInfo) {
+                Icon(
+                    imageVector = Icons.Filled.Info,
+                    contentDescription = stringResource(R.string.exercise_full_information),
+                    modifier = Modifier.size(24.dp),
+                )
+            }
         }
 
         Column(
             modifier = Modifier
                 .weight(1f)
-                .fillMaxWidth(),
+                .fillMaxWidth()
+                .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
@@ -240,11 +254,60 @@ fun ExerciseRulesScreen(
             )
             Spacer(Modifier.height(20.dp))
             Text(text = stringResource(copy.rules), style = MaterialTheme.typography.bodyLarge)
+            if (exerciseKey == "stroop") {
+                Spacer(Modifier.height(20.dp))
+                StroopRulesExample()
+            }
         }
 
         Spacer(Modifier.height(12.dp))
         Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
             Text(stringResource(R.string.action_start_exercise))
+        }
+    }
+}
+
+
+@Composable
+private fun StroopRulesExample() {
+    val examples = listOf(
+        Triple("КРАСНЫЙ", Color(0xFF1E88E5), "СИНИЙ"),
+        Triple("СИНИЙ", Color(0xFFF9A825), "ЖЁЛТЫЙ"),
+        Triple("ЖЁЛТЫЙ", Color(0xFFE53935), "КРАСНЫЙ"),
+        Triple("ЗЕЛЁНЫЙ", Color(0xFF43A047), "ЗЕЛЁНЫЙ"),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Text(
+            text = stringResource(R.string.stroop_example_title),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+        )
+        examples.chunked(2).forEach { rowExamples ->
+            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                rowExamples.forEach { (word, backgroundColor, answer) ->
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        Text(
+                            text = word,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .background(backgroundColor, RoundedCornerShape(8.dp))
+                                .padding(horizontal = 6.dp, vertical = 12.dp),
+                            color = Color.White,
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                        )
+                        Text(
+                            text = stringResource(R.string.stroop_example_answer, answer),
+                            style = MaterialTheme.typography.bodySmall,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
+                }
+            }
         }
     }
 }
