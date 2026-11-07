@@ -128,6 +128,7 @@ val appModule = module {
             .build()
     }
 
+    single(named("profileDeletionScope")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
     single { ActiveUserProvider(database = get()) }
     single { BrainStateManager(context = androidContext(), database = get(), activeUserProvider = get()) }
     single<TrainingStateChangedNotifier> { AndroidTrainingStateChangedNotifier(brainStateManager = get()) }
