@@ -29,21 +29,27 @@ class UserProfileRepositoryImpl(
 ) : UserProfileRepository {
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeProfile(): Flow<UserProfile> =
-        activeUserProvider.observeUserId().flatMapLatest { userId ->
-            combine(
-                database.userProfileDao().observeProfile(userId),
-                database.trainingSessionDao().observeFirstTrainingStartedAtEpochMs(userId),
-            ) { entity, firstTrainingAt ->
-                val dao = database.userProfileDao()
-                if (entity == null) {
-                    dao.insertIfAbsent(createInitialProfile(userId, firstTrainingAt))
-                    requireNotNull(dao.getProfile(userId)).toDomain()
-                } else if (firstTrainingAt != null && firstTrainingAt != entity.createdAtEpochMs) {
-                    val updated = entity.copy(createdAtEpochMs = firstTrainingAt)
-                    dao.save(updated)
-                    updated.toDomain()
-                } else {
-                    entity.toDomain()
+        observeSelectedProfile().filterNotNull()
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override fun observeSelectedProfile(): Flow<UserProfile?> =
+        activeUserProvider.observeSelectedUserId().flatMapLatest { userId ->
+            if (userId == null) {
+                flowOf(null)
+            } else {
+                combine(
+                    database.userProfileDao().observeProfile(userId),
+                    database.trainingSessionDao().observeFirstTrainingStartedAtEpochMs(userId),
+                ) { entity, firstTrainingAt ->
+                    when {
+                        entity == null -> null
+                        firstTrainingAt != null && firstTrainingAt != entity.createdAtEpochMs -> {
+                            val updated = entity.copy(createdAtEpochMs = firstTrainingAt)
+                            database.userProfileDao().save(updated)
+                            updated.toDomain()
+                        }
+                        else -> entity.toDomain()
+                    }
                 }
             }
         }
