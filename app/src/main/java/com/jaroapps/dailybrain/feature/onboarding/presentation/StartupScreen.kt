@@ -34,6 +34,10 @@ fun StartupScreen(
 
     LaunchedEffect(state) {
         when (state) {
+            StartupUiState.ProfileSelectionRequired -> {
+                onStartupResolved()
+                onDestinationReady("profile_selection")
+            }
             StartupUiState.AppIntroRequired -> {
                 onStartupResolved()
                 onDestinationReady("app_onboarding")
