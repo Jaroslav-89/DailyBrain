@@ -42,7 +42,23 @@ class FeedbackController(context: Context) {
     }
 
     fun onCountdownDigit() {
-        vibrate(shortPulse())
+        val deviceVibrator = vibrator ?: return
+        if (!FeedbackPreferences.vibrationEnabled || !deviceVibrator.hasVibrator()) return
+
+        // A short one-shot pulse is more consistently perceptible across modern Android
+        // devices than a very short waveform segment (38 ms).
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                deviceVibrator.vibrate(
+                    VibrationEffect.createOneShot(85L, VibrationEffect.DEFAULT_AMPLITUDE),
+                )
+            } else {
+                @Suppress("DEPRECATION")
+                deviceVibrator.vibrate(85L)
+            }
+        } catch (_: SecurityException) {
+            // Haptics are optional; an unavailable vibration service must not interrupt the countdown.
+        }
     }
 
     fun onExerciseCompleted() {
@@ -71,11 +87,6 @@ class FeedbackController(context: Context) {
     }
 
     private data class HapticPattern(val timings: LongArray, val amplitudes: IntArray)
-
-    private fun shortPulse() = HapticPattern(
-        timings = longArrayOf(0L, 38L),
-        amplitudes = intArrayOf(0, VibrationEffect.DEFAULT_AMPLITUDE),
-    )
 
     private fun completionPattern() = HapticPattern(
         timings = longArrayOf(0L, 48L, 85L, 175L),
