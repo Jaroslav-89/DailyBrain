@@ -72,6 +72,7 @@ import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.PrivacyPolicyScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionScreen
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileCollectiblesScreen
@@ -237,6 +238,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 ExerciseRulesScreen(
                     exerciseKey = exerciseKey,
                     onBack = { navController.popBackStack(Route.HOME, false) },
+                    onOpenFullInfo = { navController.navigate(Route.exerciseIntro(exerciseKey)) },
                     onStart = {
                         val destination = when (exerciseKey) {
                             "memory" -> Route.MEMORY_TRAINING
@@ -293,6 +295,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onBack = { navController.popBackStack() },
                     onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
                     onOpenParameters = { navController.navigate(Route.PARAMETERS) },
+                    onOpenPrivacyPolicy = { navController.navigate(Route.PRIVACY_POLICY) },
                     onExitProfile = {
                         navController.navigate(Route.PROFILE_SELECTION) {
                             popUpTo(Route.HOME) { inclusive = true }
@@ -304,6 +307,10 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
 
             composable(Route.PARAMETERS) {
                 PreferencesScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Route.PRIVACY_POLICY) {
+                PrivacyPolicyScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.FRIENDS) {
