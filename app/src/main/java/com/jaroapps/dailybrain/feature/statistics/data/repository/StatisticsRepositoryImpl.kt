@@ -25,8 +25,11 @@ class StatisticsRepositoryImpl(
                 database.trainingDayDao().observeAll(userId),
                 database.statisticsDao().observeExerciseStatistics(userId),
                 database.dailyExerciseResultDao().observeAll(userId),
-            ) { trainingDays, exerciseStatistics, dailyResults ->
-                val activeDates = TrainingStreakCalculator.parseDateKeys(trainingDays.map { it.date })
+                database.streakPatchDao().observeDays(userId),
+            ) { trainingDays, exerciseStatistics, dailyResults, patchDays ->
+                val activeDates = TrainingStreakCalculator.parseDateKeys(
+                    trainingDays.map { it.date } + patchDays.map { it.date },
+                )
                 val streak = TrainingStreakCalculator.calculate(activeDates, LocalDate.now())
                 StatisticsAggregate(
                     overall = OverallStatistics(streak.currentDays, streak.bestDays),
