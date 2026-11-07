@@ -165,6 +165,7 @@ private fun TrainingContent(
             if (isLeftHanded) {
                 NumberKeyboard(
                     modifier = Modifier.weight(0.9f).fillMaxHeight(),
+                    isLeftHanded = isLeftHanded,
                     onDigitPressed = onDigitPressed,
                     onDeletePressed = onDeletePressed,
                     onSubmit = onSubmit,
@@ -183,6 +184,7 @@ private fun TrainingContent(
                 )
                 NumberKeyboard(
                     modifier = Modifier.weight(0.9f).fillMaxHeight(),
+                    isLeftHanded = isLeftHanded,
                     onDigitPressed = onDigitPressed,
                     onDeletePressed = onDeletePressed,
                     onSubmit = onSubmit,
@@ -212,6 +214,7 @@ private fun TrainingContent(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(280.dp),
+                isLeftHanded = isLeftHanded,
                 onDigitPressed = onDigitPressed,
                 onDeletePressed = onDeletePressed,
                 onSubmit = onSubmit,
@@ -293,21 +296,23 @@ private fun ArithmeticProblemAndAnswer(
     }
 }
 
+internal fun arithmeticKeyboardRows(isLeftHanded: Boolean): List<List<String>> = listOf(
+    listOf("1", "2", "3"),
+    listOf("4", "5", "6"),
+    listOf("7", "8", "9"),
+    if (isLeftHanded) listOf("submit", "0", "delete") else listOf("delete", "0", "submit"),
+)
+
 @Composable
 private fun NumberKeyboard(
     modifier: Modifier = Modifier,
+    isLeftHanded: Boolean,
     onDigitPressed: (Int) -> Unit,
     onDeletePressed: () -> Unit,
     onSubmit: () -> Unit,
     canSubmit: Boolean,
 ) {
-    // Delete is at the bottom-left and confirmation is at the bottom-right.
-    val keys = listOf(
-        listOf("1", "2", "3"),
-        listOf("4", "5", "6"),
-        listOf("7", "8", "9"),
-        listOf("delete", "0", "submit"),
-    )
+    val keys = arithmeticKeyboardRows(isLeftHanded)
     Column(
         modifier = modifier.padding(horizontal = 2.dp, vertical = 3.dp),
         verticalArrangement = Arrangement.spacedBy(6.dp),
