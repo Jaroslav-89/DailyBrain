@@ -441,7 +441,7 @@ private fun DailyResultChart(
                         Text(
                             text = formatChartValue(averageValue, isMemory, showDecimal = false),
                             style = axisLabelStyle,
-                            color = statisticsTextColor,
+                            color = MaterialTheme.colorScheme.onSurface,
                             modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd).offset(y = maxHeight * (1f - averageFraction) - 8.dp),
                             maxLines = 1,
                         )
