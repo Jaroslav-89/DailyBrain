@@ -192,7 +192,7 @@ fun HomeScreen(
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = "Ваше задание на неделю",
+            text = "Активность за неделю",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
             color = homeTextColor,
