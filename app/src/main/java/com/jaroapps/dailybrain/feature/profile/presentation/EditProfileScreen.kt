@@ -253,8 +253,11 @@ fun EditProfileScreen(
         if (deleteDialogVisible) {
             AlertDialog(
                 onDismissRequest = {
-                    deleteDialogVisible = false
-                    viewModel.clearDeleteError()
+                    if (!state.isDeletingProfile) {
+                        deleteDialogVisible = false
+                        deleteProfileLocalAccountId = null
+                        viewModel.clearDeleteError()
+                    }
                 },
                 title = { Text("Удаление аккаунта?") },
                 text = {
