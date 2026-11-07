@@ -207,7 +207,14 @@ fun ExerciseIntroScreen(
         }
 
         Spacer(Modifier.height(12.dp))
-        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onContinue,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
+        ) {
             Text(stringResource(R.string.action_get_started))
         }
     }

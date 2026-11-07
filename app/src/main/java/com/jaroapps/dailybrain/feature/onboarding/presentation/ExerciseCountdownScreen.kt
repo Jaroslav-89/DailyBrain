@@ -18,6 +18,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,7 +36,7 @@ fun ExerciseCountdownScreen(exerciseName: String, onFinished: () -> Unit) {
             currentNumber = number
             scale.snapTo(0.65f)
             scale.animateTo(
-                targetValue = 1.3f,
+                targetValue = 1.55f,
                 animationSpec = tween(durationMillis = 380, easing = FastOutSlowInEasing),
             )
             delay(160L)
@@ -50,13 +51,16 @@ fun ExerciseCountdownScreen(exerciseName: String, onFinished: () -> Unit) {
             Text(exerciseName, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 text = currentNumber.toString(),
-                fontSize = 116.sp,
-                lineHeight = 124.sp,
+                fontSize = 152.sp,
+                lineHeight = 164.sp,
                 fontWeight = FontWeight.ExtraBold,
-                color = MaterialTheme.colorScheme.primary,
+                color = colorResource(R.color.color_button_green),
                 modifier = Modifier.graphicsLayer {
                     scaleX = scale.value
                     scaleY = scale.value
+                    // Fade the digit as it grows, then restore opacity while it shrinks.
+                    alpha = ((1.55f - scale.value) / (1.55f - 0.65f))
+                        .coerceIn(0.15f, 1f)
                 },
             )
         }

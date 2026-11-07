@@ -244,6 +244,10 @@ private fun StroopTrainingContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
         ) {
             Text(stringResource(R.string.action_finish_test))
         }

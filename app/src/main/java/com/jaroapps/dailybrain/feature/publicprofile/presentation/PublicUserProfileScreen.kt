@@ -84,7 +84,7 @@ fun PublicUserProfileScreen(
         Box(modifier = Modifier.fillMaxSize().padding(padding)) {
             IconButton(
                 onClick = onBack,
-                modifier = Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 0.dp),
+                modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 0.dp),
             ) {
                 Icon(Icons.Filled.Close, contentDescription = "Назад")
             }

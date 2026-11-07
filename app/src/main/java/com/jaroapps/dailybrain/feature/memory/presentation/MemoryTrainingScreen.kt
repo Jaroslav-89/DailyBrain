@@ -31,7 +31,6 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.colorResource
-import androidx.compose.ui.res.colorResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -314,7 +313,11 @@ private fun RecallContent(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(top = 8.dp),
-            enabled = !isSaving
+            enabled = !isSaving,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
         ) {
             if (isSaving) {
                 CircularProgressIndicator(
