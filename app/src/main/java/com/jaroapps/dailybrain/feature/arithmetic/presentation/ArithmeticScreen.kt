@@ -260,27 +260,34 @@ private fun NumberKeyboard(
     onSubmit: () -> Unit,
     canSubmit: Boolean,
 ) {
+    // A compact 3-column / 4-row keypad, following the proportions of the supplied
+    // stopwatch layout. The confirmation action occupies the otherwise empty bottom-left cell.
     val keys = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf("delete", "0", "submit"),
+        listOf("submit", "0", "delete"),
     )
     Column(
-        modifier = modifier.padding(bottom = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier.padding(horizontal = 2.dp, vertical = 3.dp),
+        verticalArrangement = Arrangement.spacedBy(6.dp),
     ) {
         keys.forEach { row ->
             Row(
-                modifier = Modifier.weight(1f).fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 row.forEach { key ->
                     when (key) {
                         "delete" -> OutlinedButton(
                             onClick = onDeletePressed,
-                            modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(2.dp),
+                            shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) {
                             Text("⌫", style = MaterialTheme.typography.headlineSmall)
@@ -288,16 +295,22 @@ private fun NumberKeyboard(
                         "submit" -> Button(
                             onClick = onSubmit,
                             enabled = canSubmit,
-                            modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(2.dp),
+                            shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) {
                             Text("✓", style = MaterialTheme.typography.headlineSmall)
                         }
                         else -> Button(
                             onClick = { onDigitPressed(key.toInt()) },
-                            modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp),
-                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .padding(2.dp),
+                            shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
                         ) {
                             Text(key, style = MaterialTheme.typography.headlineSmall)
