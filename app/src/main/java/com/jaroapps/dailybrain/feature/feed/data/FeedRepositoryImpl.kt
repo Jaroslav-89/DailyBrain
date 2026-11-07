@@ -90,9 +90,9 @@ class FeedRepositoryImpl(
                 ?: return@mapNotNull null
             val occurredAt = relationship.getTimestamp("createdAt")?.toDate()?.time ?: return@mapNotNull null
             val targetCard = firestore.collection(PUBLIC_PROFILE_CARDS).document(targetUid).get().awaitResult()
-            val targetName = targetCard.getString("displayName")?.takeIf(String::isNotBlank)
+            val targetName = (targetCard.getString("displayName")?.takeIf(String::isNotBlank)
                 ?: targetCard.getString("username")?.takeIf(String::isNotBlank)?.let { "@$it" }
-                ?: "пользователя DailyBrain"
+                ?: "пользователя DailyBrain").take(80)
             FeedEventEntity(
                 localAccountId = localAccountId,
                 eventId = "followed_user:$targetUid:$occurredAt",
@@ -122,14 +122,14 @@ class FeedRepositoryImpl(
                 localAccountId = localAccountId,
                 eventId = "new_follower:$followerUid:$occurredAt",
                 authorFirebaseUid = followerUid,
-                authorName = followerCard.getString("displayName")?.takeIf(String::isNotBlank)
+                authorName = (followerCard.getString("displayName")?.takeIf(String::isNotBlank)
                     ?: followerCard.getString("username")?.takeIf(String::isNotBlank)?.let { "@$it" }
-                    ?: "Пользователь DailyBrain",
+                    ?: "Пользователь DailyBrain").take(80),
                 authorUsername = followerCard.getString("username"),
                 eventType = "NEW_FOLLOWER",
                 occurredAtEpochMs = occurredAt,
                 relatedUserFirebaseUid = firebaseUid,
-                relatedUserName = ownName,
+                relatedUserName = ownName.take(80),
                 isLocal = false,
                 isRevoked = false,
                 syncState = LOCAL_ONLY,
