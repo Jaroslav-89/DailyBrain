@@ -182,7 +182,7 @@ private fun CountingResultContent(
 
         when {
             isSaving -> {
-                CircularProgressIndicator()
+                CircularProgressIndicator(color = colorResource(R.color.color_success))
                 Text(
                     text = stringResource(R.string.status_saving),
                     modifier = Modifier.padding(top = 12.dp),
