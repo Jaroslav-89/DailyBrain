@@ -66,6 +66,7 @@ private const val BADGE_CELL_HEIGHT = 228
 fun FeedScreen(
     onOpenUserProfile: (String) -> Unit,
     onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
+    onOpenFeedItem: (FeedEvent) -> Unit,
     viewModel: FeedViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -147,6 +148,7 @@ fun FeedScreen(
                         badgeSheets = badgeSheets,
                         onOpenUserProfile = onOpenUserProfile,
                         onOpenCollectible = onOpenCollectible,
+                        onOpenFeedItem = onOpenFeedItem,
                     )
                 }
                 if (state.hasMore) {
@@ -172,6 +174,7 @@ private fun FeedEventCard(
     badgeSheets: List<ImageBitmap?>,
     onOpenUserProfile: (String) -> Unit,
     onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
+    onOpenFeedItem: (FeedEvent) -> Unit,
 ) {
     val author = if (event.isOwn) "Вы" else event.authorName
     val authorUid = event.authorFirebaseUid?.takeIf(String::isNotBlank)
@@ -240,19 +243,7 @@ private fun FeedEventCard(
             }
             when {
                 giftType != null -> {
-                    val giftModifier = if (
-                        event.eventType == "GIFT_RECEIVED" && collectibleOwnerUid != null
-                    ) {
-                        Modifier.clickable {
-                            onOpenCollectible(
-                                collectibleOwnerUid,
-                                ProfileCollectibleKind.GIFT,
-                                event.eventId.removePrefix("gift_received:"),
-                            )
-                        }
-                    } else {
-                        Modifier
-                    }
+                    val giftModifier = Modifier.clickable { onOpenFeedItem(event) }
                     Image(
                         painter = androidx.compose.ui.res.painterResource(
                             when (giftType) {
@@ -272,7 +263,8 @@ private fun FeedEventCard(
                         assetPath = cosmeticItem.assetPath,
                         contentDescription = cosmeticItem.displayName,
                         centerCrop = false,
-                        modifier = Modifier.size(width = 68.dp, height = 80.dp),
+                        modifier = Modifier.size(width = 68.dp, height = 80.dp)
+                            .clickable { onOpenFeedItem(event) },
                     )
                 }
                 badgeLocation != null && badgeBitmap != null && collectibleId != null && collectibleOwnerUid != null -> {
@@ -342,12 +334,14 @@ private fun FeedEvent.message(): String = when (eventType) {
     }
     "GIFT_SENT" -> {
         val giftName = EndorphinGiftType.entries.firstOrNull { it.name == periodKey }?.displayName ?: "подарок"
-        "Отправил подарок «$giftName»"
+        "Отправил подарок «$giftName»" +
+            (relatedUserName?.takeIf(String::isNotBlank)?.let { " пользователю $it" } ?: "")
     }
     "COSMETIC_GIFT_SENT" -> {
         val name = cosmeticGiftItem()?.displayName ?: "предмет"
         val kind = if (exerciseType == AvatarCosmeticType.COSTUME.name) "костюм" else "фон"
-        "Подарил $kind «$name»"
+        "Подарил $kind «$name»" +
+            (relatedUserName?.takeIf(String::isNotBlank)?.let { " пользователю $it" } ?: "")
     }
     "COSMETIC_GIFT_RECEIVED" -> {
         val name = cosmeticGiftItem()?.displayName ?: "предмет"
@@ -355,6 +349,14 @@ private fun FeedEvent.message(): String = when (eventType) {
         "Получил $kind «$name» от " +
             (relatedUserName?.takeIf(String::isNotBlank) ?: "пользователя DailyBrain")
     }
+    "COSMETIC_PURCHASED" -> {
+        val name = cosmeticGiftItem()?.displayName ?: "предмет"
+        val kind = if (exerciseType == AvatarCosmeticType.COSTUME.name) "костюм" else "фон"
+        "Купил $kind «$name»"
+    }
+    "FOLLOWED_USER" -> "Вы подписались на " +
+        (relatedUserName?.takeIf(String::isNotBlank) ?: "пользователя DailyBrain")
+    "NEW_FOLLOWER" -> "На вас подписался " + authorName
     else -> "Получил новое достижение"
 }
 
