@@ -21,6 +21,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -31,6 +32,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -44,6 +49,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.feature.rewards.presentation.RewardRulesDialog
+import com.jaroapps.dailybrain.feature.rewards.presentation.RewardRulesTopic
 import org.koin.androidx.compose.koinViewModel
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
@@ -58,6 +65,7 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    var showRules by remember { mutableStateOf(false) }
     val trainingDayColor = colorResource(R.color.color_training_completed)
     val patchedDayColor = colorResource(R.color.color_training_patched)
     val missedDayColor = colorResource(R.color.color_training_missed)
@@ -87,6 +95,9 @@ fun CalendarScreen(
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.weight(1f))
+            IconButton(onClick = { showRules = true }) {
+                Icon(Icons.Filled.Info, contentDescription = "Правила получения наград")
+            }
             IconButton(onClick = { /* Sharing will be implemented in a later iteration. */ }) {
                 Icon(
                     imageVector = Icons.Filled.Share,
@@ -324,8 +335,53 @@ fun CalendarScreen(
             }
         }
 
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = "Задание на месяц",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Text(
+            text = "Объём упражнений за четыре недели",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(Modifier.height(8.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                state.monthlyChallengeConditions.forEach { condition ->
+                    CalendarProgressRow(
+                        title = condition.title,
+                        completed = condition.completedCount,
+                        total = condition.requiredCount,
+                        suffix = "упр.",
+                        color = challengeColor,
+                    )
+                }
+                if (state.isMonthlyChallengeCompleted) {
+                    Text(
+                        text = "Месячное задание выполнено!",
+                        color = challengeColor,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+    }
 
-
+    if (showRules) {
+        RewardRulesDialog(
+            topic = RewardRulesTopic.STREAKS,
+            onDismiss = { showRules = false },
+        )
     }
 }
 
