@@ -115,7 +115,10 @@ fun ProfileScreen(
         val createdDate = Instant.ofEpochMilli(it.createdAtEpochMs)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
-        Period.between(createdDate, today).plusDays(1).takeIf { elapsed -> !elapsed.isNegative }
+        val firstWorkoutDayAdjustment = if (stats.totalExerciseCount > 0) 1L else 0L
+        Period.between(createdDate, today)
+            .plusDays(firstWorkoutDayAdjustment)
+            .takeIf { elapsed -> !elapsed.isNegative }
     }
 
     Scaffold(
@@ -245,6 +248,10 @@ fun ProfileScreen(
                     onClick = viewModel::reauthenticateGoogleAccount,
                     enabled = !state.isGoogleReauthenticating,
                     modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.color_success),
+                        contentColor = colorResource(R.color.color_on_accent),
+                    ),
                 ) {
                     Text(if (state.isGoogleReauthenticating) "Выполняется вход..." else "Восстановить подключение Google")
                 }
