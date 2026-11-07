@@ -169,6 +169,7 @@ fun StatisticsScreen(
                 ) {
                     Text(
                         text = when (period) {
+                            ChartPeriod.DAY -> stringResource(R.string.statistics_period_day)
                             ChartPeriod.WEEK -> stringResource(R.string.statistics_period_week)
                             ChartPeriod.MONTH -> stringResource(R.string.statistics_period_month)
                             ChartPeriod.HALF_YEAR -> stringResource(R.string.statistics_period_half_year)
