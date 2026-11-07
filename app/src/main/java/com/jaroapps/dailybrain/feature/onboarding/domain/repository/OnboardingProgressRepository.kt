@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.onboarding.domain.repository
 
 import com.jaroapps.dailybrain.feature.onboarding.domain.model.OnboardingProgress
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 interface OnboardingProgressRepository {
     fun observeActiveProgress(): Flow<OnboardingProgress>
