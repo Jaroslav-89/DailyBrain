@@ -165,9 +165,9 @@ class CompletedTrainingRepositoryImpl(
     private suspend fun updateOverallStreakStatistics(userId: String) {
         val dao = database.statisticsDao()
         val previous = dao.getOverall(userId) ?: return
-        val activeDates = TrainingStreakCalculator.parseDateKeys(
-            database.trainingDayDao().getAll(userId).map { it.date },
-        )
+        val trainingDates = database.trainingDayDao().getAll(userId).map { it.date }
+        val patchedDates = database.streakPatchDao().getDays(userId).map { it.date }
+        val activeDates = TrainingStreakCalculator.parseDateKeys(trainingDates + patchedDates)
         val streak = TrainingStreakCalculator.calculate(activeDates, LocalDate.now())
         dao.saveOverall(
             previous.copy(
