@@ -105,7 +105,11 @@ import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryReposi
 import com.jaroapps.dailybrain.feature.shop.presentation.ShopViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
+import org.koin.core.qualifier.named
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 
