@@ -1,5 +1,7 @@
 package com.jaroapps.dailybrain.navigation
 
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -139,6 +141,10 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
+            enterTransition = { EnterTransition.None },
+            exitTransition = { ExitTransition.None },
+            popEnterTransition = { EnterTransition.None },
+            popExitTransition = { ExitTransition.None },
         ) {
             composable(Route.STARTUP) {
                 StartupScreen(
