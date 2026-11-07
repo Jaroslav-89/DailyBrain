@@ -91,8 +91,9 @@ class HomeUiStateTest {
 
         assertEquals(ArithmeticDayStatus.PATCHED, state.arithmeticDayStatus(patchedYesterday))
         assertEquals(2, state.currentStreakDays)
-        assertFalse(state.hasCompletedExerciseThisWeek(ExerciseType.ARITHMETIC) && patchedYesterday in
-            state.completedExerciseDatesByType[ExerciseType.ARITHMETIC.storageValue].orEmpty())
+        assertFalse(
+            patchedYesterday in state.completedExerciseDatesByType[ExerciseType.ARITHMETIC.storageValue].orEmpty(),
+        )
         assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.ARITHMETIC))
     }
 
