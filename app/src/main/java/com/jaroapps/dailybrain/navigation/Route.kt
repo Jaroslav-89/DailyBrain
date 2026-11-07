@@ -15,14 +15,18 @@ object Route {
     const val PROFILE = "profile"
     const val PROFILE_SELECTION = "profile_selection"
     const val PROFILE_SETTINGS = "profile_settings"
+    const val PRIVACY_POLICY = "privacy_policy"
     const val PARAMETERS = "profile_parameters"
     const val FRIENDS = "friends"
     const val USER_PROFILE = "user_profile/{userId}"
     const val USER_PROFILE_CONNECTIONS = "user_profile_connections/{userId}/{connectionType}"
+    const val PROFILE_COLLECTIBLES = "profile_collectibles/{ownerUid}/{kind}"
+    const val COLLECTIBLE_DETAIL = "collectible_detail/{ownerUid}/{kind}/{itemId}"
     const val EDIT_PROFILE = "edit_profile"
     const val AVATAR_EDITOR = "avatar_editor"
     const val STATISTICS = "statistics"
     const val FEED = "feed"
+    const val SHOP = "shop"
     const val ARITHMETIC = "arithmetic"
     const val CALENDAR = "calendar"
     const val DAY_HISTORY = "day_history/{date}"
@@ -36,4 +40,8 @@ object Route {
     fun userProfile(userId: String): String = "user_profile/$userId"
     fun userProfileConnections(userId: String, connectionType: String): String =
         "user_profile_connections/$userId/$connectionType"
+    fun profileCollectibles(ownerUid: String, kind: String): String =
+        "profile_collectibles/$ownerUid/$kind"
+    fun collectibleDetail(ownerUid: String, kind: String, itemId: String): String =
+        "collectible_detail/$ownerUid/$kind/$itemId"
 }

@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Legacy Android color aliases kept for existing drawable/theme references. -->
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -7,4 +8,106 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+
+    <!-- Light application palette -->
+    <color name="light_background">#FFFFF8F2</color>
+    <color name="light_surface">#FFFFFDF9</color>
+    <color name="light_surface_variant">#FFF2EAE1</color>
+    <color name="light_primary">#FFB45309</color>
+    <color name="light_on_primary">#FFFFFFFF</color>
+    <color name="light_primary_container">#FFFFE5CC</color>
+    <color name="light_on_primary_container">#FF3B1F0B</color>
+    <color name="light_secondary">#FF346A7D</color>
+    <color name="light_on_secondary">#FFFFFFFF</color>
+    <color name="light_secondary_container">#FFDDEBF0</color>
+    <color name="light_on_secondary_container">#FF163640</color>
+    <color name="light_tertiary">#FF527755</color>
+    <color name="light_on_tertiary">#FFFFFFFF</color>
+    <color name="light_tertiary_container">#FFE2EEDF</color>
+    <color name="light_on_tertiary_container">#FF1F371F</color>
+    <color name="light_on_background">#FF252A31</color>
+    <color name="light_on_surface">#FF252A31</color>
+    <color name="light_on_surface_variant">#FF575B62</color>
+    <color name="light_outline">#FF81776E</color>
+    <color name="light_outline_variant">#FFDED3C8</color>
+    <color name="light_error">#FFB3261E</color>
+    <color name="light_on_error">#FFFFFFFF</color>
+    <color name="light_error_container">#FFF9DEDC</color>
+    <color name="light_on_error_container">#FF410E0B</color>
+    <color name="light_inverse_surface">#FF31302E</color>
+    <color name="light_inverse_on_surface">#FFF7F2EC</color>
+    <color name="light_inverse_primary">#FFFFB66E</color>
+    <color name="light_scrim">#99000000</color>
+
+    <!-- Dark application palette. The main canvas is intentionally #222325. -->
+    <color name="dark_background">#FF222325</color>
+    <color name="dark_surface">#FF292B2F</color>
+    <color name="dark_surface_variant">#FF36393E</color>
+    <color name="dark_primary">#FFFFB66E</color>
+    <color name="dark_on_primary">#FF3D1B04</color>
+    <color name="dark_primary_container">#FF65350E</color>
+    <color name="dark_on_primary_container">#FFFFE2C7</color>
+    <color name="dark_secondary">#FF9CCAD9</color>
+    <color name="dark_on_secondary">#FF17323C</color>
+    <color name="dark_secondary_container">#FF2D4E59</color>
+    <color name="dark_on_secondary_container">#FFD7F0F8</color>
+    <color name="dark_tertiary">#FFB3D6AF</color>
+    <color name="dark_on_tertiary">#FF1B351E</color>
+    <color name="dark_tertiary_container">#FF334F35</color>
+    <color name="dark_on_tertiary_container">#FFD9F3D4</color>
+    <color name="dark_on_background">#FFF0ECE6</color>
+    <color name="dark_on_surface">#FFF0ECE6</color>
+    <color name="dark_on_surface_variant">#FFC8C1B8</color>
+    <color name="dark_outline">#FF918A82</color>
+    <color name="dark_outline_variant">#FF4A4D51</color>
+    <color name="dark_error">#FFFFB4AB</color>
+    <color name="dark_on_error">#FF690005</color>
+    <color name="dark_error_container">#FF93000A</color>
+    <color name="dark_on_error_container">#FFFFDAD6</color>
+    <color name="dark_inverse_surface">#FFF0ECE6</color>
+    <color name="dark_inverse_on_surface">#FF292B2F</color>
+    <color name="dark_inverse_primary">#FF9C4C0A</color>
+    <color name="dark_scrim">#99000000</color>
+
+    <!-- Shared semantic colors for exercise states, achievements and endorphins. -->
+    <color name="color_endorphin_molecule">#FF8E24AA</color>
+    <color name="color_training_completed">#FFE98A23</color>
+    <color name="color_training_missed">#FF378FC5</color>
+    <color name="color_training_neutral">#FF858B94</color>
+    <color name="color_success">#FF3B8A61</color>
+    <color name="color_danger">#FFC94F4B</color>
+    <color name="color_personal_record">#FF3B8A61</color>
+    <color name="color_training_disabled">#FFB8B4AE</color>
+    <color name="color_exercise_arithmetic">#FFCE5149</color>
+    <color name="color_exercise_memory">#FF3786B4</color>
+    <color name="color_exercise_counting">#FFC58A27</color>
+    <color name="color_exercise_stroop">#FF46875F</color>
+    <color name="color_action_green">#FFC5E8C8</color>
+    <color name="color_on_action_green">#FF173D27</color>
+    <color name="color_home_dynamic_text">#FF282D35</color>
+    <color name="color_home_dynamic_text_secondary">#FF424A54</color>
+    <color name="color_exercise_glow_inner">#F2FFE5A8</color>
+    <color name="color_exercise_glow_middle">#E6FF8A24</color>
+    <color name="color_exercise_glow_outer">#99FF5B12</color>
+    <color name="color_on_accent">#FFFFFFFF</color>
+    <color name="color_positive_amount">#FF2F805A</color>
+    <color name="color_streak_ring_shadow">#FFA85A0B</color>
+    <color name="color_streak_ring_highlight">#FFFFE0B5</color>
+    <color name="color_qr_background">#FFFFFFFF</color>
+    <color name="color_qr_foreground">#FF111111</color>
+    <color name="color_avatar_skin_light">#FFFFE0BD</color>
+    <color name="color_avatar_skin_medium">#FFE0AC69</color>
+    <color name="color_avatar_skin_dark">#FF8D5524</color>
+    <color name="color_avatar_hair_dark">#FF241713</color>
+    <color name="color_avatar_hair_brown">#FF9A623B</color>
+    <color name="color_avatar_hair_blond">#FFD6A85F</color>
+    <color name="color_avatar_clothing_red">#FFE53935</color>
+    <color name="color_avatar_clothing_blue">#FF1565C0</color>
+    <color name="color_avatar_clothing_green">#FF2E7D32</color>
+    <color name="color_avatar_clothing_yellow">#FFF9C80E</color>
+    <color name="color_avatar_scene_sky">#FF90CAF9</color>
+    <color name="color_avatar_scene_sun">#FFFFD54F</color>
+    <color name="color_avatar_scene_hills">#FF388E3C</color>
+    <color name="color_avatar_background_gradient_start">#FF80DEEA</color>
+    <color name="color_avatar_background_gradient_end">#FF7E57C2</color>
 </resources>

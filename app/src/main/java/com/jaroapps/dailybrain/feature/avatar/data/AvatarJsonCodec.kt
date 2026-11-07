@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.avatar.data
 
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import org.json.JSONObject
 
 /** Versioned local JSON codec. Older configurations are upgraded with defaults for new slots. */
@@ -23,6 +25,8 @@ internal object AvatarJsonCodec {
         .put("bodyTypeId", value.bodyTypeId)
         .put("hairLengthId", value.hairLengthId)
         .put("facialHairId", value.facialHairId)
+        .put("costumeId", value.costumeId)
+        .put("backgroundSceneId", value.backgroundSceneId)
         .toString()
 
     fun decode(json: String?): AvatarConfiguration {
@@ -61,6 +65,8 @@ internal object AvatarJsonCodec {
                 bodyTypeId = data.optInt("bodyTypeId", AvatarConfiguration.DEFAULT_BODY_TYPE_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_BODY_TYPE_ID,
                 hairLengthId = data.optInt("hairLengthId", AvatarConfiguration.DEFAULT_HAIR_LENGTH_ID).takeIf { it in 1..5 } ?: AvatarConfiguration.DEFAULT_HAIR_LENGTH_ID,
                 facialHairId = data.optInt("facialHairId", AvatarConfiguration.NO_FACIAL_HAIR_ID).takeIf { it in 0..4 } ?: AvatarConfiguration.NO_FACIAL_HAIR_ID,
+                costumeId = data.optString("costumeId").takeIf { AvatarCosmeticCatalog.find(AvatarCosmeticType.COSTUME, it) != null },
+                backgroundSceneId = data.optString("backgroundSceneId").takeIf { AvatarCosmeticCatalog.find(AvatarCosmeticType.BACKGROUND, it) != null },
             )
         }.getOrDefault(AvatarConfiguration.Default)
     }

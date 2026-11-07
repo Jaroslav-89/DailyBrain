@@ -42,7 +42,7 @@
     <!-- Home screen -->
     <string name="home_tagline">Your daily brain workout</string>
     <string name="home_training_done_today">Training completed today</string>
-    <string name="home_not_trained_today">You haven\'t trained today yet</string>
+    <string name="home_not_trained_today">You have not trained today yet</string>
     <string name="home_statistics">My statistics</string>
     <string name="exercise_arithmetic">Arithmetic</string>
     <string name="exercise_memory">Word memorization</string>
@@ -75,11 +75,12 @@
     <string name="statistics_no_record">No record yet</string>
     <string name="statistics_best_time">Shortest time</string>
     <string name="statistics_progress_chart">Progress over time</string>
-    <string name="statistics_period_week">7 days</string>
-    <string name="statistics_period_month">30 days</string>
-    <string name="statistics_period_half_year">6 mo.</string>
-    <string name="statistics_period_year">1 year</string>
-    <string name="statistics_period_all">All time</string>
+    <string name="statistics_period_day">d</string>
+    <string name="statistics_period_week">w</string>
+    <string name="statistics_period_month">m</string>
+    <string name="statistics_period_half_year">6m</string>
+    <string name="statistics_period_year">y</string>
+    <string name="statistics_period_all">all</string>
     <string name="statistics_chart_average">Avg. %1$s</string>
     <string name="statistics_chart_no_data">No results in this period</string>
 
@@ -110,7 +111,7 @@
     <string name="memory_instruction">Memorize the words. You have 120 seconds.</string>
     <string name="memory_progress_hint">The bar fills up when the time is over.</string>
     <string name="memory_recall_title">Recall the words</string>
-    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn\'t matter; you can leave fields empty.</string>
+    <string name="memory_recall_instruction">Enter the words you remember in any fields. The order does not matter; you can leave fields empty.</string>
     <string name="memory_word_number">Word %1$d</string>
     <string name="memory_result_title">Training completed!</string>
     <string name="memory_score">%1$d of %2$d</string>
@@ -131,7 +132,10 @@
     <string name="counting_instruction">Count aloud from 1 to 120 as quickly as you can.</string>
 
     <!-- Stroop exercise screen -->
-    <string name="stroop_instruction">Name the color of the text, not the word itself</string>
+    <string name="stroop_instruction">Name the background color, not the word itself</string>
+    <string name="stroop_example_title">Example. Name the background color:</string>
+    <string name="stroop_example_answer">Answer: %1$s</string>
+    <string name="exercise_full_information">Full exercise information</string>
 
     <!-- Profile screens -->
     <string name="profile_title">My profile</string>
@@ -205,7 +209,7 @@
     <string name="article_intro">Brain training means regularly practising tasks that require attention, memory, processing speed, or reasoning. Short exercises can be a useful way to stay mentally engaged and build a learning habit.</string>
     <string name="article_paragraph_1">It is important to distinguish improvement on a specific task from changes in everyday life. Practice usually helps people get better at the kinds of tasks they train. Transfer to entirely different skills is not guaranteed, and evidence that brain-training apps broadly improve intelligence remains mixed.</string>
     <string name="article_paragraph_2">Consistency and manageable difficulty matter more than chasing a record every time. Start at a level where you can stay accurate, then gradually increase speed or difficulty. Take a break when tired: mistakes caused by fatigue do not necessarily mean your abilities have declined.</string>
-    <string name="article_paragraph_3">Arithmetic tasks practise working with numbers and keeping attention on a problem. Word memorization lets you practise encoding and retrieving information. Counting aloud combines sequencing, speech, and pace control. The Stroop test asks you to focus on the text colour while resisting the automatic tendency to read the word.</string>
+    <string name="article_paragraph_3">Arithmetic tasks practise working with numbers and keeping attention on a problem. Word memorization lets you practise encoding and retrieving information. Counting aloud combines sequencing, speech, and pace control. The Stroop test asks you to focus on the background colour while resisting the automatic tendency to read the word.</string>
     <string name="article_paragraph_4">Look at trends rather than a single day. Sleep, stress, mood, distractions, and familiarity with a task can all affect speed and accuracy. Small fluctuations are normal. Compare results under similar conditions and choose goals that help you stay engaged.</string>
     <string name="article_paragraph_5">An app does not replace broader habits that support wellbeing: enough sleep, physical activity, social connection, learning new things, and taking breaks during the day. It is useful to combine different kinds of mental activity rather than rely on one exercise.</string>
     <string name="article_paragraph_6">Use DailyBrain as a practice and personal-progress tool, not as a diagnostic test. If you notice persistent or sudden changes in memory or thinking, discuss them with a healthcare professional.</string>
@@ -215,8 +219,8 @@
     <string name="rules_memory">Memorize the words during the allotted time. Then enter the words you remember in the fields. Order does not matter, and you can leave fields empty.</string>
     <string name="intro_counting">This exercise asks you to count aloud from 1 to 120. Focus on the sequence and try to complete it without skipping numbers.</string>
     <string name="rules_counting">Tap “Start exercise” and count aloud from 1 to 120. Finish the exercise when you reach the end. Try not to skip numbers and use a natural pace.</string>
-    <string name="intro_stroop">In the Stroop test, focus on the colour of the text rather than the word itself. This exercise requires attention and control over the automatic response to reading.</string>
-    <string name="rules_stroop">Name the colour of the text and ignore the meaning of the word. Focus on the colour of the letters. Work carefully at a comfortable pace.</string>
+    <string name="intro_stroop">In the Stroop test, focus on the background colour rather than the word itself. This exercise requires attention and control over the automatic response to reading.</string>
+    <string name="rules_stroop">Name the background colour and ignore the meaning of the word. Focus on the background colour. Work carefully at a comfortable pace.</string>
 
     <string name="splash_tagline">Your everyday brain trainer</string>
 
@@ -252,5 +256,28 @@
 
     <string name="reward_history_week_title">Week: %1$s</string>
     <string name="reward_history_week_change">(%1$s %2$s for the week)</string>
+
+    <string name="shop_title">Shop</string>
+    <string name="preference_dark_theme">Dark theme</string>
+    <string name="preference_appearance_description">Your theme choice is saved on this device and restored the next time you open the app. The home screen dynamic background setting is saved separately.</string>
+
+    <string name="privacy_policy_title">Privacy Policy</string>
+    <string name="privacy_policy_updated">Last updated: November 7, 2026</string>
+    <string name="privacy_policy_intro_title">1. Overview</string>
+    <string name="privacy_policy_intro_body">DailyBrain is an app for independent memory, attention, and arithmetic exercises. This policy describes what the app stores on your device and what may be sent to cloud services when you use online features.</string>
+    <string name="privacy_policy_local_title">2. Data stored on your device</string>
+    <string name="privacy_policy_local_body">Your device may store local profile details (for example, display name, gender, date of birth, country, and city if you provide them), completed exercise results, statistics, reward history, app settings, and purchased items. This data is used to operate your profile, show progress, and personalize the interface. Deleting a local profile in the app deletes the local data associated with it.</string>
+    <string name="privacy_policy_cloud_title">3. Online features and profile data</string>
+    <string name="privacy_policy_cloud_body">If you link a profile with Google and use social features, the app uses Firebase Authentication and Cloud Firestore. Cloud data may include your Firebase identifier, public profile details (nickname, display name, and avatar), user connections, feed events, achievements, and information required to deliver gifts. Your Google email address and account details may be used by the authentication provider and are not intended to be displayed publicly in the feed or profile.</string>
+    <string name="privacy_policy_third_party_title">4. Third-party services</string>
+    <string name="privacy_policy_third_party_body">Google and Firebase services are used for sign-in and online synchronization. When you use them, those providers may process technical identifiers and connection data under their own terms and privacy policies. The app does not sell personal data or use it to create advertising profiles for sale.</string>
+    <string name="privacy_policy_permissions_title">5. Permissions and location</string>
+    <string name="privacy_policy_permissions_body">The app does not request access to your device location. Country and city fields are entered manually by you. Notification permission is used for exercise reminders.</string>
+    <string name="privacy_policy_retention_title">6. Storage and deletion</string>
+    <string name="privacy_policy_retention_body">Local data remains on your device until you delete the profile or app data. Uninstalling the app does not by itself guarantee deletion of data previously sent to the cloud. Cloud data is used to operate linked profiles and social features; deletion or changes to individual cloud records depend on the actions available in the app and the relevant service rules.</string>
+    <string name="privacy_policy_children_title">7. Security</string>
+    <string name="privacy_policy_children_body">We aim to limit data processing to what is needed for DailyBrain features. Firebase authentication and access controls are used for cloud operations. No method of storing or transmitting data can guarantee absolute security.</string>
+    <string name="privacy_policy_changes_title">8. Policy changes</string>
+    <string name="privacy_policy_changes_body">This policy may be updated when app features or data practices change. The current version is available in the app on this screen. Please review the updated policy when continuing to use online features.</string>
 
 </resources>

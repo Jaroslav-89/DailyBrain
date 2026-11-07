@@ -33,6 +33,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -43,10 +44,6 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val TrainingDayColor = Color(0xFFFF9800)
-private val MissedDayColor = Color(0xFF2196F3)
-private val TodayWithoutTrainingColor = Color(0xFF9E9E9E)
-
 @Composable
 fun CalendarScreen(
     onBack: () -> Unit,
@@ -56,6 +53,9 @@ fun CalendarScreen(
     viewModel: CalendarViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val trainingDayColor = colorResource(R.color.color_training_completed)
+    val missedDayColor = colorResource(R.color.color_training_missed)
+    val todayWithoutTrainingColor = colorResource(R.color.color_training_neutral)
 
     Column(
         modifier = modifier
@@ -107,7 +107,7 @@ fun CalendarScreen(
                     style = MaterialTheme.typography.displayLarge,
                     fontSize = 64.sp,
                     fontWeight = FontWeight.Bold,
-                    color = TrainingDayColor,
+                    color = trainingDayColor,
                 )
                 Text(
                     text = "дней подряд",
@@ -209,11 +209,11 @@ fun CalendarScreen(
                     ) {
                         if (date != null) {
                             val ringColor = when {
-                                date in state.activeDates -> TrainingDayColor
-                                date == state.today -> TodayWithoutTrainingColor
+                                date in state.activeDates -> trainingDayColor
+                                date == state.today -> todayWithoutTrainingColor
                                 state.firstTrainingDate != null &&
                                     date >= state.firstTrainingDate &&
-                                    date < state.today -> MissedDayColor
+                                    date < state.today -> missedDayColor
                                 else -> null
                             }
                             Box(
@@ -244,9 +244,9 @@ fun CalendarScreen(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            CalendarLegend(TrainingDayColor, "Тренировка выполнена")
-            CalendarLegend(MissedDayColor, "Пропуск")
-            CalendarLegend(TodayWithoutTrainingColor, "Сегодня")
+            CalendarLegend(trainingDayColor, "Тренировка выполнена")
+            CalendarLegend(missedDayColor, "Пропуск")
+            CalendarLegend(todayWithoutTrainingColor, "Сегодня")
         }
     }
 }

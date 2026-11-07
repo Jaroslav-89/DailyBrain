@@ -1,5 +1,14 @@
 package com.jaroapps.dailybrain.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,8 +17,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -17,8 +28,10 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Newspaper
+import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -59,13 +72,18 @@ import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSettingsScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.PrivacyPolicyScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionScreen
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileCollectiblesScreen
+import com.jaroapps.dailybrain.feature.profile.presentation.CollectibleDetailScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
+import com.jaroapps.dailybrain.feature.shop.presentation.ShopScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
@@ -79,6 +97,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         Route.HOME,
         Route.STATISTICS,
         Route.FEED,
+        Route.SHOP,
         Route.PROFILE,
     )
     val onboardingViewModel: com.jaroapps.dailybrain.feature.onboarding.presentation.OnboardingProgressViewModel = koinViewModel()
@@ -86,6 +105,8 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     val publicProfileSyncViewModel: PublicProfileSyncViewModel = koinViewModel()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         bottomBar = {
             if (showBottomNavigation) {
                 AppBottomNavigation(
@@ -105,6 +126,34 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                fadeIn(animationSpec = tween(240)) +
+                    slideInHorizontally(
+                        initialOffsetX = { width -> width / 14 },
+                        animationSpec = tween(300, easing = FastOutSlowInEasing),
+                    )
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(180)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { width -> -width / 18 },
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    )
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(240)) +
+                    slideInHorizontally(
+                        initialOffsetX = { width -> -width / 14 },
+                        animationSpec = tween(300, easing = FastOutSlowInEasing),
+                    )
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(180)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { width -> width / 18 },
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    )
+            },
         ) {
             composable(Route.STARTUP) {
                 StartupScreen(
@@ -169,12 +218,16 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
                 ExerciseIntroScreen(
                     exerciseKey = exerciseKey,
-                    onBack = { navController.popBackStack(Route.HOME, false) },
+                    onBack = { navController.popBackStack() },
                     onContinue = {
-                        onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
-                            navController.navigate(Route.exerciseRules(exerciseKey)) {
-                                popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
-                                launchSingleTop = true
+                        if (navController.previousBackStackEntry?.destination?.route == Route.EXERCISE_RULES) {
+                            navController.popBackStack()
+                        } else {
+                            onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
+                                navController.navigate(Route.exerciseRules(exerciseKey)) {
+                                    popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
+                                    launchSingleTop = true
+                                }
                             }
                         }
                     },
@@ -189,6 +242,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 ExerciseRulesScreen(
                     exerciseKey = exerciseKey,
                     onBack = { navController.popBackStack(Route.HOME, false) },
+                    onOpenFullInfo = { navController.navigate(Route.exerciseIntro(exerciseKey)) },
                     onStart = {
                         val destination = when (exerciseKey) {
                             "memory" -> Route.MEMORY_TRAINING
@@ -231,6 +285,12 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
                     onOpenFriends = { navController.navigate(Route.FRIENDS) },
                     onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                    onOpenCollectibles = { ownerUid, kind ->
+                        navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
+                    },
+                    onOpenCollectible = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
                 )
             }
 
@@ -239,6 +299,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onBack = { navController.popBackStack() },
                     onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
                     onOpenParameters = { navController.navigate(Route.PARAMETERS) },
+                    onOpenPrivacyPolicy = { navController.navigate(Route.PRIVACY_POLICY) },
                     onExitProfile = {
                         navController.navigate(Route.PROFILE_SELECTION) {
                             popUpTo(Route.HOME) { inclusive = true }
@@ -250,6 +311,10 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
 
             composable(Route.PARAMETERS) {
                 PreferencesScreen(onBack = { navController.popBackStack() })
+            }
+
+            composable(Route.PRIVACY_POLICY) {
+                PrivacyPolicyScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.FRIENDS) {
@@ -270,6 +335,12 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onOpenConnections = { profileUid, connectionType ->
                         navController.navigate(Route.userProfileConnections(profileUid, connectionType))
                     },
+                    onOpenCollectibles = { ownerUid, kind ->
+                        navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
+                    },
+                    onOpenCollectible = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
                 )
             }
 
@@ -288,6 +359,32 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onBack = { navController.popBackStack() },
                     onOpenUser = { nestedUserId -> navController.navigate(Route.userProfile(nestedUserId)) },
                 )
+            }
+
+            composable(
+                route = Route.PROFILE_COLLECTIBLES,
+                arguments = listOf(
+                    navArgument("ownerUid") { type = NavType.StringType },
+                    navArgument("kind") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                ProfileCollectiblesScreen(
+                    onBack = { navController.popBackStack() },
+                    onOpenItem = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
+                )
+            }
+
+            composable(
+                route = Route.COLLECTIBLE_DETAIL,
+                arguments = listOf(
+                    navArgument("ownerUid") { type = NavType.StringType },
+                    navArgument("kind") { type = NavType.StringType },
+                    navArgument("itemId") { type = NavType.StringType },
+                ),
+            ) {
+                CollectibleDetailScreen(onBack = { navController.popBackStack() })
             }
 
             composable(Route.EDIT_PROFILE) {
@@ -317,7 +414,14 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onOpenUserProfile = { userId ->
                         navController.navigate(Route.userProfile(userId))
                     },
+                    onOpenCollectible = { ownerUid, kind, itemId ->
+                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                    },
                 )
+            }
+
+            composable(Route.SHOP) {
+                ShopScreen()
             }
 
             composable(Route.CALENDAR) {
@@ -388,68 +492,79 @@ private fun AppBottomNavigation(
             icon = Icons.Filled.Newspaper,
         ),
         BottomNavigationDestination(
+            route = Route.SHOP,
+            label = stringResource(R.string.shop_title),
+            icon = Icons.Filled.ShoppingBag,
+        ),
+        BottomNavigationDestination(
             route = Route.PROFILE,
             label = stringResource(R.string.profile_title),
             icon = Icons.Filled.Person,
         ),
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+    Surface(
+        modifier = Modifier.navigationBarsPadding(),
+        color = MaterialTheme.colorScheme.surface,
+        tonalElevation = 4.dp,
     ) {
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color(0xFFD6D6D6)),
-        )
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(40.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+                .height(56.dp)
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             destinations.forEach { destination ->
                 val selected = currentRoute == destination.route
+                val iconScale by animateFloatAsState(
+                    targetValue = if (selected) 1.12f else 1f,
+                    animationSpec = tween(
+                        durationMillis = 180,
+                        easing = FastOutSlowInEasing,
+                    ),
+                    label = "bottomNavIconScale",
+                )
                 Box(
                     modifier = Modifier
-                        .size(40.dp)
+                        .weight(1f)
+                        .fillMaxHeight()
                         .clip(CircleShape)
-                        .background(
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            } else {
-                                Color.Transparent
-                            },
-                        )
                         .clickable {
                             if (!selected) onDestinationSelected(destination.route)
                         }
                         .semantics {
+                            role = Role.Tab
                             contentDescription = destination.label
-                            role = Role.Button
                         },
                     contentAlignment = Alignment.Center,
                 ) {
-                    Icon(
-                        imageVector = destination.icon,
-                        contentDescription = null,
-                        modifier = Modifier.size(19.dp),
-                        tint = if (selected) {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(width = 56.dp, height = 40.dp)
+                            .clip(CircleShape)
+                            .background(
+                                if (selected) MaterialTheme.colorScheme.secondaryContainer
+                                else Color.Transparent,
+                            ),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Icon(
+                            imageVector = destination.icon,
+                            contentDescription = null,
+                            tint = if (selected) MaterialTheme.colorScheme.onSecondaryContainer
+                            else MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier
+                                .size(28.dp)
+                                .graphicsLayer {
+                                    scaleX = iconScale
+                                    scaleY = iconScale
+                                },
+                        )
+                    }
                 }
             }
         }
-
-        // Reserve a small bottom area for system navigation gestures.
-        Spacer(Modifier.height(24.dp))
     }
 }

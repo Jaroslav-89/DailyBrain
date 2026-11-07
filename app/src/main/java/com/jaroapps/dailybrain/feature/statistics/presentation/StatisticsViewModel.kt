@@ -70,6 +70,7 @@ class StatisticsViewModel(
         val stroopAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }
 
         val periodStart = when (period) {
+            ChartPeriod.DAY -> today
             ChartPeriod.WEEK -> today.minusDays(6)
             ChartPeriod.MONTH -> today.minusDays(29)
             ChartPeriod.HALF_YEAR -> today.minusMonths(6)

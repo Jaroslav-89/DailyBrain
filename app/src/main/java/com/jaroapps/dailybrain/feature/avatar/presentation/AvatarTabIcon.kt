@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.res.colorResource
+import com.jaroapps.dailybrain.R
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.MaterialTheme
@@ -31,12 +33,29 @@ internal enum class AvatarEditorTab(val label: String) {
     FRECKLES("Веснушки"),
     FACIAL_HAIR("Борода и усы"),
     BACKGROUND("Градиент фона"),
+    COSTUMES("Костюмы"),
+    BACKGROUND_SCENES("Пейзажные фоны"),
 }
 
 @Composable
 internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
     val accent = MaterialTheme.colorScheme.primary
     val outline = if (selected) accent else MaterialTheme.colorScheme.onSurfaceVariant
+    val skinToneLight = colorResource(R.color.color_avatar_skin_light)
+    val skinToneMedium = colorResource(R.color.color_avatar_skin_medium)
+    val skinToneDark = colorResource(R.color.color_avatar_skin_dark)
+    val hairToneDark = colorResource(R.color.color_avatar_hair_dark)
+    val hairToneBrown = colorResource(R.color.color_avatar_hair_brown)
+    val hairToneBlond = colorResource(R.color.color_avatar_hair_blond)
+    val clothingRed = colorResource(R.color.color_avatar_clothing_red)
+    val clothingBlue = colorResource(R.color.color_avatar_clothing_blue)
+    val clothingGreen = colorResource(R.color.color_avatar_clothing_green)
+    val clothingYellow = colorResource(R.color.color_avatar_clothing_yellow)
+    val sceneSky = colorResource(R.color.color_avatar_scene_sky)
+    val sceneSun = colorResource(R.color.color_avatar_scene_sun)
+    val sceneHills = colorResource(R.color.color_avatar_scene_hills)
+    val backgroundGradientStart = colorResource(R.color.color_avatar_background_gradient_start)
+    val backgroundGradientEnd = colorResource(R.color.color_avatar_background_gradient_end)
     Canvas(
         Modifier.size(24.dp).semantics { contentDescription = tab.label },
     ) {
@@ -50,9 +69,9 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
         }
         when (tab) {
             AvatarEditorTab.SKIN -> {
-                drawCircle(Color(0xFFFFE0BD), 4f * unit, p(6f, 12f))
-                drawCircle(Color(0xFFE0AC69), 4f * unit, p(12f, 12f))
-                drawCircle(Color(0xFF8D5524), 4f * unit, p(18f, 12f))
+                drawCircle(skinToneLight, 4f * unit, p(6f, 12f))
+                drawCircle(skinToneMedium, 4f * unit, p(12f, 12f))
+                drawCircle(skinToneDark, 4f * unit, p(18f, 12f))
             }
             AvatarEditorTab.FACE -> {
                 drawOval(outline, p(5f, 2f), Size(14f * unit, 19f * unit), style = Stroke(2f * unit))
@@ -92,9 +111,9 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
                 line(17f, 20f, 12f, 22f)
             }
             AvatarEditorTab.HAIR_COLOR -> {
-                drawCircle(Color(0xFF241713), 4f * unit, p(6f, 12f))
-                drawCircle(Color(0xFF9A623B), 4f * unit, p(12f, 12f))
-                drawCircle(Color(0xFFD6A85F), 4f * unit, p(18f, 12f))
+                drawCircle(hairToneDark, 4f * unit, p(6f, 12f))
+                drawCircle(hairToneBrown, 4f * unit, p(12f, 12f))
+                drawCircle(hairToneBlond, 4f * unit, p(18f, 12f))
             }
             AvatarEditorTab.CLOTHING -> {
                 val path = Path().apply {
@@ -106,7 +125,7 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
                 drawPath(path, outline, style = Stroke(2f * unit))
             }
             AvatarEditorTab.CLOTHING_COLOR -> {
-                val colors = listOf(Color(0xFFE53935), Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFFF9C80E))
+                val colors = listOf(clothingRed, clothingBlue, clothingGreen, clothingYellow)
                 colors.forEachIndexed { index, color ->
                     val x = if (index % 2 == 0) 3f else 13f
                     val y = if (index < 2) 3f else 13f
@@ -141,10 +160,41 @@ internal fun AvatarTabIcon(tab: AvatarEditorTab, selected: Boolean) {
                 line(6f, 17f, 8f, 21f, 1.5f)
                 line(18f, 17f, 16f, 21f, 1.5f)
             }
+            AvatarEditorTab.COSTUMES -> {
+                val jacket = Path().apply {
+                    moveTo(8f * unit, 3f * unit)
+                    lineTo(3f * unit, 7f * unit)
+                    lineTo(1f * unit, 14f * unit)
+                    lineTo(6f * unit, 16f * unit)
+                    lineTo(8f * unit, 12f * unit)
+                    lineTo(8f * unit, 22f * unit)
+                    lineTo(16f * unit, 22f * unit)
+                    lineTo(16f * unit, 12f * unit)
+                    lineTo(18f * unit, 16f * unit)
+                    lineTo(23f * unit, 14f * unit)
+                    lineTo(21f * unit, 7f * unit)
+                    lineTo(16f * unit, 3f * unit)
+                    close()
+                }
+                drawPath(jacket, outline, style = Stroke(2f * unit))
+            }
+            AvatarEditorTab.BACKGROUND_SCENES -> {
+                drawRect(sceneSky, p(2f, 2f), Size(20f * unit, 20f * unit))
+                drawCircle(sceneSun, 3f * unit, p(17f, 7f))
+                val hills = Path().apply {
+                    moveTo(2f * unit, 19f * unit)
+                    lineTo(8f * unit, 10f * unit)
+                    lineTo(12f * unit, 15f * unit)
+                    lineTo(16f * unit, 11f * unit)
+                    lineTo(22f * unit, 20f * unit)
+                    close()
+                }
+                drawPath(hills, sceneHills)
+            }
             AvatarEditorTab.BACKGROUND -> {
                 drawRoundRect(
                     brush = Brush.linearGradient(
-                        colors = listOf(Color(0xFF80DEEA), Color(0xFF7E57C2)),
+                        colors = listOf(backgroundGradientStart, backgroundGradientEnd),
                         start = Offset(0f, 0f),
                         end = Offset(size.width, size.height),
                     ),

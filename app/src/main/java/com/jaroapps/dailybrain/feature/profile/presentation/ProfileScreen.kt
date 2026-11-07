@@ -32,6 +32,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -39,20 +40,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
@@ -68,11 +74,24 @@ fun ProfileScreen(
     onEditAvatar: () -> Unit,
     onOpenFriends: () -> Unit,
     onOpenUserProfile: (String) -> Unit,
+    onOpenCollectibles: (String, ProfileCollectibleKind) -> Unit,
+    onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val collectibles by viewModel.collectibles.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refreshIncomingGifts()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     val avatarViewModel: AvatarViewModel = koinViewModel()
     val avatarState by avatarViewModel.uiState.collectAsStateWithLifecycle()
     val profile = state.profile
@@ -85,12 +104,12 @@ fun ProfileScreen(
         if (directoryState.profile?.firebaseUid != null) directoryViewModel.loadInviteCode()
     }
     val today = LocalDate.now()
-    val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today) }
+    val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today).plusDays(1) }
     val accountPeriod = profile?.let {
         val createdDate = Instant.ofEpochMilli(it.createdAtEpochMs)
             .atZone(ZoneId.systemDefault())
             .toLocalDate()
-        Period.between(createdDate, today).takeIf { elapsed -> !elapsed.isNegative }
+        Period.between(createdDate, today).plusDays(1).takeIf { elapsed -> !elapsed.isNegative }
     }
 
     Scaffold(
@@ -148,7 +167,7 @@ fun ProfileScreen(
                                     Icon(
                                         imageVector = Icons.Filled.CheckCircle,
                                         contentDescription = "Google аккаунт подтверждён",
-                                        tint = Color(0xFF2E7D32),
+                                        tint = colorResource(R.color.color_success),
                                         modifier = Modifier.size(20.dp),
                                     )
                                 }
@@ -239,8 +258,8 @@ fun ProfileScreen(
                     onClick = { showAddFriendsDialog = true },
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF2E7D32),
-                        contentColor = Color.White,
+                        containerColor = colorResource(R.color.color_success),
+                        contentColor = colorResource(R.color.color_on_accent),
                     ),
                 ) {
                     Icon(Icons.Filled.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -263,6 +282,32 @@ fun ProfileScreen(
                     }
                 }
             }
+
+            Spacer(Modifier.height(10.dp))
+            ProfileStatCard(
+                "Эндорфиновые пластыри",
+                "${profile?.patchCount ?: 0}/5",
+                Modifier.fillMaxWidth(),
+            )
+            Spacer(Modifier.height(18.dp))
+            val collectibleOwnerUid = profile?.firebaseUid ?: "local"
+            ProfileCollectibleSection(
+                title = "Подарки",
+                ownerUid = collectibleOwnerUid,
+                items = collectibles.filter { it.kind == ProfileCollectibleKind.GIFT },
+                kind = ProfileCollectibleKind.GIFT,
+                onOpenCollection = onOpenCollectibles,
+                onOpenItem = onOpenCollectible,
+            )
+            if (collectibles.any { it.kind == ProfileCollectibleKind.GIFT }) Spacer(Modifier.height(14.dp))
+            ProfileCollectibleSection(
+                title = "Бейджики",
+                ownerUid = collectibleOwnerUid,
+                items = collectibles.filter { it.kind == ProfileCollectibleKind.BADGE },
+                kind = ProfileCollectibleKind.BADGE,
+                onOpenCollection = onOpenCollectibles,
+                onOpenItem = onOpenCollectible,
+            )
 
             Spacer(Modifier.height(22.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {

@@ -17,8 +17,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.colorResource
+import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 
@@ -46,7 +47,7 @@ fun MyQrCodeDialog(
                 Spacer(Modifier.height(4.dp))
                 Surface(
                     shape = RoundedCornerShape(12.dp),
-                    color = Color.White,
+                    color = colorResource(R.color.color_qr_background),
                     modifier = Modifier.size(216.dp).padding(4.dp),
                 ) {
                     when {

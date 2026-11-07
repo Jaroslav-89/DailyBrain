@@ -77,6 +77,7 @@ class EndorphinRepositoryImpl(
         giftId: String,
         giftType: EndorphinGiftType,
         senderUserId: String?,
+        senderName: String?,
     ): GiftReceiptResult {
         require(giftId.isNotBlank()) { "A stable gift ID is required." }
         val userId = activeUserProvider.currentUserId()
@@ -120,6 +121,7 @@ class EndorphinRepositoryImpl(
                     giftId = giftId.trim(),
                     giftType = giftType.name,
                     senderUserId = senderUserId,
+                    senderName = senderName,
                     receivedAtEpochMs = now,
                     isOpened = false,
                 ),

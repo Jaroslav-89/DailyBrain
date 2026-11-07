@@ -12,6 +12,8 @@ import com.jaroapps.dailybrain.core.database.dao.UserBadgeDao
 import com.jaroapps.dailybrain.core.database.dao.UserGiftDao
 import com.jaroapps.dailybrain.core.database.dao.FeedEventDao
 import com.jaroapps.dailybrain.core.database.dao.OnboardingProgressDao
+import com.jaroapps.dailybrain.core.database.dao.UserInventoryDao
+import com.jaroapps.dailybrain.core.database.dao.GiftOutboxDao
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
@@ -24,6 +26,8 @@ import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
 import com.jaroapps.dailybrain.core.database.entity.UserBadgeEntity
 import com.jaroapps.dailybrain.core.database.entity.UserGiftEntity
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
+import com.jaroapps.dailybrain.core.database.entity.UserInventoryEntity
+import com.jaroapps.dailybrain.core.database.entity.GiftOutboxEntity
 
 @Database(
     entities = [
@@ -39,8 +43,10 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
         UserBadgeEntity::class,
         UserGiftEntity::class,
         FeedEventEntity::class,
+        UserInventoryEntity::class,
+        GiftOutboxEntity::class,
     ],
-    version = 19,
+    version = 21,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -55,4 +61,6 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userBadgeDao(): UserBadgeDao
     abstract fun userGiftDao(): UserGiftDao
     abstract fun feedEventDao(): FeedEventDao
+    abstract fun userInventoryDao(): UserInventoryDao
+    abstract fun giftOutboxDao(): GiftOutboxDao
 }

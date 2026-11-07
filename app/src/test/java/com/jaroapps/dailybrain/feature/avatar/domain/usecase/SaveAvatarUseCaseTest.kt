@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.avatar.domain.usecase
 
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
+import com.jaroapps.dailybrain.feature.avatar.domain.model.OwnedAvatarCosmetic
 import com.jaroapps.dailybrain.feature.avatar.domain.repository.AvatarRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
@@ -68,6 +69,8 @@ class SaveAvatarUseCaseTest {
 
         override fun observeAvatar(): Flow<AvatarConfiguration> =
             flowOf(saved ?: AvatarConfiguration.Default)
+
+        override fun observeOwnedCosmetics(): Flow<Set<OwnedAvatarCosmetic>> = flowOf(emptySet())
 
         override suspend fun saveAvatar(configuration: AvatarConfiguration) {
             saved = configuration

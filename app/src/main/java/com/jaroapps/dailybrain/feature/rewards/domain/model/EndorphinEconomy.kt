@@ -1,8 +1,7 @@
 package com.jaroapps.dailybrain.feature.rewards.domain.model
 
 /**
- * Single source of truth for endorphin rewards and the future shop price list.
- * The shop UI and purchases are intentionally not part of this implementation yet.
+ * Single source of truth for endorphin rewards and shop price/limit rules.
  */
 enum class EndorphinGiftType(
     val price: Int,

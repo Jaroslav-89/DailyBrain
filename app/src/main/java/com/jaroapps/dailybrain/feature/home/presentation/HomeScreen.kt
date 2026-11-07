@@ -1,12 +1,16 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -26,12 +30,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,8 +46,10 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.foundation.LocalIndication
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -58,10 +64,6 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val BrainOrange = Color(0xFFFF9800)
-private val MissedBlue = Color(0xFF2196F3)
-private val UnavailableGray = Color(0xFFBDBDBD)
-private val ZeroStreakGray = Color(0xFF9E9E9E)
 private val WeekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault())
 
 private val WeekdayLabels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
@@ -83,7 +85,18 @@ fun HomeScreen(
     LaunchedEffect(context) {
         HomeAppearancePreference.ensureLoaded(context)
     }
-    val homeBackground = if (HomeAppearancePreference.dynamicBackgroundEnabled) {
+    val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
+    val homeTextColor = if (dynamicBackgroundEnabled) {
+        colorResource(R.color.color_home_dynamic_text)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val homeSecondaryTextColor = if (dynamicBackgroundEnabled) {
+        colorResource(R.color.color_home_dynamic_text_secondary)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val homeBackground = if (dynamicBackgroundEnabled) {
         dynamicWeekBackground(state)
     } else {
         SolidColor(MaterialTheme.colorScheme.background)
@@ -122,13 +135,14 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
+                    color = homeTextColor,
                 )
                 androidx.compose.foundation.Image(
                     painter = painterResource(R.drawable.ic_notification_brain),
                     contentDescription = null,
                     modifier = Modifier.padding(start = 5.dp).size(24.dp),
                     colorFilter = ColorFilter.tint(
-                        if (state.currentStreakDays > 0) BrainOrange else ZeroStreakGray,
+                        if (state.currentStreakDays > 0) colorResource(R.color.color_training_completed) else colorResource(R.color.color_training_neutral),
                     ),
                 )
             }
@@ -144,11 +158,12 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
+                    color = homeTextColor,
                 )
                 Icon(
                     imageVector = Icons.Filled.Star,
                     contentDescription = null,
-                    tint = Color(0xFF43A047),
+                    tint = colorResource(R.color.color_success),
                     modifier = Modifier.padding(start = 5.dp).size(24.dp),
                 )
             }
@@ -164,11 +179,11 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
+                    color = homeTextColor,
                 )
-                Icon(
-                    imageVector = Icons.Filled.Favorite,
+                androidx.compose.foundation.Image(
+                    painter = painterResource(R.drawable.ic_endorphin_molecule),
                     contentDescription = null,
-                    tint = Color(0xFF8E24AA),
                     modifier = Modifier.padding(start = 5.dp).size(24.dp),
                 )
             }
@@ -180,12 +195,13 @@ fun HomeScreen(
             text = "Ваше задание на неделю",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
+            color = homeTextColor,
         )
         Text(
             text = "${state.currentWeekDates.first().format(WeekDateFormatter)} - " +
                 state.currentWeekDates.last().format(WeekDateFormatter),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = homeSecondaryTextColor,
             modifier = Modifier.padding(top = 2.dp),
         )
 
@@ -198,9 +214,10 @@ fun HomeScreen(
         ) {
             val arithmeticButtonSize = 56.dp
             val arithmeticRingSize = 88.dp
-            val dayItemHeight = 112.dp
+            val dayItemWidth = arithmeticRingSize + 36.dp
+            val dayItemHeight = 100.dp
             val additionalButtonSize = 72.dp
-            val additionalRingSize = 96.dp
+            val additionalRingSize = 112.dp
 
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
@@ -233,10 +250,10 @@ fun HomeScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     listOf(
-                        Color(0xFFE53935),
-                        Color(0xFF1E88E5),
-                        Color(0xFFF9A825),
-                        Color(0xFF43A047),
+                        colorResource(R.color.color_exercise_arithmetic),
+                        colorResource(R.color.color_exercise_memory),
+                        colorResource(R.color.color_exercise_counting),
+                        colorResource(R.color.color_success),
                     ).forEach { color ->
                         Box(
                             Modifier
@@ -269,6 +286,13 @@ fun HomeScreen(
             )
 
             state.currentWeekDates.forEachIndexed { index, date ->
+                val interactionSource = remember(date) { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val pressOffset by animateDpAsState(
+                    targetValue = if (isPressed) 5.dp else 0.dp,
+                    animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
+                    label = "arithmeticButtonPress",
+                )
                 val status = state.arithmeticDayStatus(date)
                 val color = arithmeticButtonColor(status)
                 val today = date == state.today
@@ -277,13 +301,13 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .offset(
-                            x = x(horizontalPositions[index], arithmeticRingSize),
+                            x = x(horizontalPositions[index], dayItemWidth),
                             y = y(index / 6f, dayItemHeight),
                         )
-                        .size(width = arithmeticRingSize, height = dayItemHeight),
-                    contentAlignment = Alignment.TopCenter,
+                        .size(width = dayItemWidth, height = dayItemHeight),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier.size(arithmeticRingSize),
                             contentAlignment = Alignment.Center,
@@ -291,14 +315,14 @@ fun HomeScreen(
                             if (today) {
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
-                                    initialRadius = 31.dp,
-                                    targetRadius = 38.dp,
+                                    initialRadius = 30.dp,
+                                    targetRadius = 39.dp,
                                 )
                             }
 
                             Box(
                                 modifier = Modifier
-                                    .offset(y = 4.dp)
+                                     .offset(y = 4.dp + pressOffset)
                                     .size(arithmeticButtonSize)
                                     .clip(CircleShape)
                                     .background(depthColor(color)),
@@ -307,6 +331,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .size(arithmeticButtonSize)
                                     .graphicsLayer {
+                                        translationY = pressOffset.toPx()
                                         rotationX = 9f
                                         cameraDistance = 12f * density
                                         shadowElevation = 7.dp.toPx()
@@ -315,6 +340,8 @@ fun HomeScreen(
                                     }
                                     .background(color, CircleShape)
                                     .clickable(
+                                        interactionSource = interactionSource,
+                                        indication = LocalIndication.current,
                                         enabled = today,
                                         onClick = onStartTraining,
                                     )
@@ -328,6 +355,8 @@ fun HomeScreen(
                                                 "$dateLabel: начать арифметику"
                                             ArithmeticDayStatus.COMPLETED ->
                                                 "$dateLabel: тренировка выполнена"
+                                            ArithmeticDayStatus.BEFORE_FIRST_TRAINING ->
+                                                "$dateLabel: тренировки ещё не начались"
                                             ArithmeticDayStatus.MISSED ->
                                                 "$dateLabel: пропущенный день"
                                         }
@@ -338,7 +367,7 @@ fun HomeScreen(
                                     Icon(
                                         imageVector = Icons.Filled.Add,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = colorResource(R.color.color_on_accent),
                                         modifier = Modifier
                                             .align(Alignment.TopStart)
                                             .padding(start = 14.dp, top = 13.dp)
@@ -346,7 +375,7 @@ fun HomeScreen(
                                     )
                                     Text(
                                         text = "/",
-                                        color = Color.White,
+                                        color = colorResource(R.color.color_on_accent),
                                         fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.align(Alignment.Center),
@@ -354,7 +383,7 @@ fun HomeScreen(
                                     Icon(
                                         imageVector = Icons.Filled.Remove,
                                         contentDescription = null,
-                                        tint = Color.White,
+                                        tint = colorResource(R.color.color_on_accent),
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
                                             .padding(end = 14.dp, bottom = 13.dp)
@@ -366,11 +395,11 @@ fun HomeScreen(
 
                         Text(
                             text = dateLabel,
-                            modifier = Modifier.offset(y = (-8).dp),
+                            modifier = Modifier.padding(start = 0.dp),
                             style = MaterialTheme.typography.titleMedium,
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (today) BrainOrange else MaterialTheme.colorScheme.onSurface,
+                            color = homeTextColor,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                         )
@@ -382,12 +411,14 @@ fun HomeScreen(
     }
 }
 
+@Composable
 private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (status) {
     ArithmeticDayStatus.LOADING,
+    ArithmeticDayStatus.BEFORE_FIRST_TRAINING,
     ArithmeticDayStatus.AVAILABLE_TODAY,
-    ArithmeticDayStatus.FUTURE -> UnavailableGray
-    ArithmeticDayStatus.COMPLETED -> BrainOrange
-    ArithmeticDayStatus.MISSED -> MissedBlue
+    ArithmeticDayStatus.FUTURE -> colorResource(R.color.color_training_disabled)
+    ArithmeticDayStatus.COMPLETED -> colorResource(R.color.color_training_completed)
+    ArithmeticDayStatus.MISSED -> colorResource(R.color.color_training_missed)
 }
 
 private fun depthColor(color: Color): Color = Color(
@@ -397,6 +428,7 @@ private fun depthColor(color: Color): Color = Color(
     alpha = color.alpha,
 )
 
+@Composable
 private fun dynamicWeekBackground(state: HomeUiState): Brush {
     // The gradient is derived from the exact button colors, so future exercise colors (for example
     // violet) can be added once in arithmeticButtonColor and will get a matching pastel background.
@@ -415,9 +447,9 @@ private fun dynamicWeekBackground(state: HomeUiState): Brush {
 }
 
 private fun lightenForBackground(color: Color): Color = Color(
-    red = color.red + (1f - color.red) * 0.80f,
-    green = color.green + (1f - color.green) * 0.80f,
-    blue = color.blue + (1f - color.blue) * 0.80f,
+    red = color.red + (1f - color.red) * 0.58f,
+    green = color.green + (1f - color.green) * 0.58f,
+    blue = color.blue + (1f - color.blue) * 0.58f,
     alpha = 1f,
 )
 
@@ -438,11 +470,18 @@ private fun RoundExerciseButton(
             lineHeight = 18.sp,
             style = MaterialTheme.typography.titleMedium,
             fontWeight = FontWeight.Bold,
-            color = Color.White,
+            color = colorResource(R.color.color_on_accent),
         )
     },
 ) {
-    val buttonColor = if (completed) BrainOrange else UnavailableGray
+    val buttonColor = if (completed) colorResource(R.color.color_training_completed) else colorResource(R.color.color_training_disabled)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressOffset by animateDpAsState(
+        targetValue = if (isPressed) 5.dp else 0.dp,
+        animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
+        label = "roundExerciseButtonPress",
+    )
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
@@ -452,13 +491,13 @@ private fun RoundExerciseButton(
         if (!completed) {
             StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                radius = size / 2 + 6.dp,
+                radius = size / 2 + 20.dp,
             )
         }
 
         Box(
             modifier = Modifier
-                .offset(y = 4.dp)
+                 .offset(y = 4.dp + pressOffset)
                 .size(size)
                 .clip(CircleShape)
                 .background(depthColor(buttonColor)),
@@ -467,6 +506,7 @@ private fun RoundExerciseButton(
             modifier = Modifier
                 .size(size)
                 .graphicsLayer {
+                    translationY = pressOffset.toPx()
                     rotationX = 9f
                     cameraDistance = 12f * density
                     shadowElevation = 7.dp.toPx()
@@ -474,7 +514,11 @@ private fun RoundExerciseButton(
                     clip = true
                 }
                 .background(buttonColor, CircleShape)
-                .clickable(onClick = onClick)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    onClick = onClick,
+                )
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
@@ -488,28 +532,23 @@ private fun StaticRing(
     modifier: Modifier = Modifier,
     radius: Dp,
 ) {
+    val innerGlow = colorResource(R.color.color_exercise_glow_inner)
+    val middleGlow = colorResource(R.color.color_exercise_glow_middle)
+    val outerGlow = colorResource(R.color.color_exercise_glow_outer)
     Canvas(modifier = modifier) {
-        val ringRadius = radius.toPx()
-        val lowerCenter = center.copy(y = center.y + 2.dp.toPx())
-        val upperCenter = center.copy(y = center.y - 1.dp.toPx())
-        // Dark lower edge gives the orange ring a raised, beveled look.
+        val glowRadius = radius.toPx()
         drawCircle(
-            color = Color(0xFFC96A00),
-            radius = ringRadius,
-            center = lowerCenter,
-            style = Stroke(width = 5.dp.toPx()),
-        )
-        drawCircle(
-            color = BrainOrange,
-            radius = ringRadius,
-            center = upperCenter,
-            style = Stroke(width = 4.dp.toPx()),
-        )
-        drawCircle(
-            color = Color(0xFFFFD49A),
-            radius = ringRadius - 1.dp.toPx(),
-            center = upperCenter.copy(y = upperCenter.y - 0.5.dp.toPx()),
-            style = Stroke(width = 1.dp.toPx()),
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to innerGlow,
+                    0.58f to middleGlow,
+                    0.82f to outerGlow,
+                    1f to Color.Transparent,
+                ),
+                center = center,
+                radius = glowRadius,
+            ),
+            radius = glowRadius,
         )
     }
 }
@@ -534,27 +573,23 @@ private fun PulsingRing(
         label = "pulsingExerciseRingRadius",
     )
 
+    val innerGlow = colorResource(R.color.color_exercise_glow_inner)
+    val middleGlow = colorResource(R.color.color_exercise_glow_middle)
+    val outerGlow = colorResource(R.color.color_exercise_glow_outer)
     Canvas(modifier = modifier) {
-        val ringRadius = radiusDp.dp.toPx()
-        val lowerCenter = center.copy(y = center.y + 2.dp.toPx())
-        val upperCenter = center.copy(y = center.y - 1.dp.toPx())
+        val glowRadius = radiusDp.dp.toPx()
         drawCircle(
-            color = Color(0xFFC96A00),
-            radius = ringRadius,
-            center = lowerCenter,
-            style = Stroke(width = 5.dp.toPx()),
-        )
-        drawCircle(
-            color = BrainOrange,
-            radius = ringRadius,
-            center = upperCenter,
-            style = Stroke(width = 4.dp.toPx()),
-        )
-        drawCircle(
-            color = Color(0xFFFFD49A),
-            radius = ringRadius - 1.dp.toPx(),
-            center = upperCenter.copy(y = upperCenter.y - 0.5.dp.toPx()),
-            style = Stroke(width = 1.dp.toPx()),
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to innerGlow,
+                    0.58f to middleGlow,
+                    0.82f to outerGlow,
+                    1f to Color.Transparent,
+                ),
+                center = center,
+                radius = glowRadius,
+            ),
+            radius = glowRadius,
         )
     }
 }

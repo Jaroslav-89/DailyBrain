@@ -1,5 +1,7 @@
 package com.jaroapps.dailybrain.feature.profile.presentation
 
+import com.jaroapps.dailybrain.R
+
 import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
@@ -39,6 +41,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -139,8 +142,8 @@ fun ProfileSelectionScreen(
                 enabled = !state.isWorking,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF2E7D32),
-                    contentColor = Color.White,
+                    containerColor = colorResource(R.color.color_success),
+                    contentColor = colorResource(R.color.color_on_accent),
                 ),
             ) {
                 Text("Создать новый профиль")
@@ -166,7 +169,7 @@ fun ProfileSelectionScreen(
                         profileToDelete = null
                     },
                     enabled = !state.isWorking,
-                    colors = ButtonDefaults.textButtonColors(contentColor = Color(0xFFC62828)),
+                    colors = ButtonDefaults.textButtonColors(contentColor = colorResource(R.color.color_danger)),
                 ) {
                     Text("Удалить")
                 }
@@ -236,7 +239,7 @@ private fun ProfileSelectionItem(
                 Icon(
                     imageVector = Icons.Filled.Delete,
                     contentDescription = "Удалить профиль ${profile.effectiveDisplayName}",
-                    tint = Color(0xFFC62828),
+                    tint = colorResource(R.color.color_danger),
                 )
             }
         }

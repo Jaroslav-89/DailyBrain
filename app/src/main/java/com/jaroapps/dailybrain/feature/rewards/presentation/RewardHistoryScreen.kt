@@ -15,7 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -32,6 +31,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -104,18 +104,20 @@ fun RewardHistoryScreen(
                             lineHeight = 54.sp,
                             fontWeight = FontWeight.Bold,
                         )
-                        Icon(
-                            imageVector = when (state.balanceType) {
-                                RewardBalanceType.XP -> Icons.Filled.Star
-                                RewardBalanceType.ENDORPHINS -> Icons.Filled.Favorite
-                            },
-                            contentDescription = null,
-                            tint = when (state.balanceType) {
-                                RewardBalanceType.XP -> Color(0xFF43A047)
-                                RewardBalanceType.ENDORPHINS -> Color(0xFF8E24AA)
-                            },
-                            modifier = Modifier.padding(start = 10.dp).size(34.dp),
-                        )
+                        if (state.balanceType == RewardBalanceType.XP) {
+                            Icon(
+                                imageVector = Icons.Filled.Star,
+                                contentDescription = null,
+                                tint = colorResource(R.color.color_success),
+                                modifier = Modifier.padding(start = 10.dp).size(34.dp),
+                            )
+                        } else {
+                            androidx.compose.foundation.Image(
+                                painter = androidx.compose.ui.res.painterResource(R.drawable.ic_endorphin_molecule),
+                                contentDescription = "Эндорфины",
+                                modifier = Modifier.padding(start = 10.dp).size(34.dp),
+                            )
+                        }
                     }
                     Text(
                         stringResource(
@@ -185,7 +187,7 @@ private fun RewardHistoryWeekHeader(
         else -> "0"
     }
     val totalColor = when {
-        section.totalAmount > 0L -> Color(0xFF2E7D32)
+        section.totalAmount > 0L -> colorResource(R.color.color_positive_amount)
         section.totalAmount < 0L -> MaterialTheme.colorScheme.error
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
@@ -283,7 +285,7 @@ private fun RewardHistoryEntryCard(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = when {
-                    entry.amount > 0 -> Color(0xFF2E7D32)
+                    entry.amount > 0 -> colorResource(R.color.color_positive_amount)
                     entry.amount < 0 -> MaterialTheme.colorScheme.error
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },

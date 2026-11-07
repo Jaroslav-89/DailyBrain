@@ -34,6 +34,9 @@ interface FeedEventDao {
         limit: Int,
     ): List<FeedEventEntity>
 
+    @Query("SELECT * FROM feed_events WHERE localAccountId = :localAccountId AND eventId = :eventId LIMIT 1")
+    suspend fun getEvent(localAccountId: String, eventId: String): FeedEventEntity?
+
     @Query("SELECT * FROM feed_events WHERE localAccountId = :localAccountId AND isLocal = 1")
     suspend fun getLocalEvents(localAccountId: String): List<FeedEventEntity>
 

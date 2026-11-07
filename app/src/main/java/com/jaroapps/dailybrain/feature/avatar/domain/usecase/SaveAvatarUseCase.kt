@@ -1,6 +1,8 @@
 package com.jaroapps.dailybrain.feature.avatar.domain.usecase
 
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import com.jaroapps.dailybrain.feature.avatar.domain.repository.AvatarRepository
 
 class SaveAvatarUseCase(
@@ -26,6 +28,8 @@ class SaveAvatarUseCase(
         require(configuration.bodyTypeId in 1..5) { "Unknown body type ID" }
         require(configuration.hairLengthId in 1..5) { "Unknown hair length ID" }
         require(configuration.facialHairId in 0..4) { "Unknown facial hair ID" }
+        require(configuration.costumeId == null || AvatarCosmeticCatalog.find(AvatarCosmeticType.COSTUME, configuration.costumeId) != null) { "Unknown costume ID" }
+        require(configuration.backgroundSceneId == null || AvatarCosmeticCatalog.find(AvatarCosmeticType.BACKGROUND, configuration.backgroundSceneId) != null) { "Unknown background scene ID" }
         repository.saveAvatar(configuration)
     }
 }

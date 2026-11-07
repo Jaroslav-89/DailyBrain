@@ -121,6 +121,56 @@ service cloud.firestore {
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
     }
 
+    // Public-safe gift and badge metadata for profile collection previews and details.
+    match /publicProfileCards/{uid}/collectibles/{collectibleId} {
+      function canViewCollectibles() {
+        return signedIn()
+          && exists(/databases/$(database)/documents/publicProfiles/$(uid))
+          && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid))
+          && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(uid));
+      }
+
+      function validCollectible() {
+        return request.resource.data.keys().hasOnly([
+          'id', 'kind', 'itemType', 'acquiredAtEpochMs', 'senderFirebaseUid',
+          'senderName', 'periodKey', 'triggerWorkoutId', 'amount'
+        ])
+          && request.resource.data.keys().hasAll(['id', 'kind', 'itemType', 'acquiredAtEpochMs'])
+          && request.resource.data.id is string
+          && request.resource.data.kind in ['GIFT', 'BADGE']
+          && request.resource.data.itemType is string
+          && request.resource.data.acquiredAtEpochMs is int
+          && collectibleId == (request.resource.data.kind == 'GIFT' ? 'gift_' : 'badge_') + request.resource.data.id
+          && (!request.resource.data.keys().hasAny(['senderFirebaseUid']) || request.resource.data.senderFirebaseUid is string)
+          && (!request.resource.data.keys().hasAny(['senderName']) || (
+            request.resource.data.senderName is string && request.resource.data.senderName.size() <= 80
+          ))
+          && (!request.resource.data.keys().hasAny(['periodKey']) || request.resource.data.periodKey is string)
+          && (!request.resource.data.keys().hasAny(['triggerWorkoutId']) || request.resource.data.triggerWorkoutId is int)
+          && (!request.resource.data.keys().hasAny(['amount']) || request.resource.data.amount is int)
+          && (
+            (
+              request.resource.data.kind == 'GIFT'
+              && request.resource.data.itemType in ['CANDY', 'COFFEE', 'CROISSANT', 'HAMBURGER', 'CAKE']
+            )
+            || (
+              request.resource.data.kind == 'BADGE'
+              && request.resource.data.itemType in [
+                'WEEKLY_STREAK', 'WEEKLY_CHALLENGE',
+                'MONTH_01', 'MONTH_02', 'MONTH_03', 'MONTH_04',
+                'MONTH_05', 'MONTH_06', 'MONTH_07', 'MONTH_08',
+                'MONTH_09', 'MONTH_10', 'MONTH_11', 'MONTH_12'
+              ]
+            )
+          );
+      }
+
+      allow get, list: if canViewCollectibles();
+      allow create, update: if isOwner(uid) && validCollectible()
+        && exists(/databases/$(database)/documents/publicProfiles/$(uid));
+      allow delete: if isOwner(uid);
+    }
+
     match /blockedUsers/{blockerUid}/users/{blockedUid} {
       allow get: if signedIn() && (request.auth.uid == blockerUid || request.auth.uid == blockedUid);
       allow list: if signedIn() && request.auth.uid == blockerUid;
@@ -244,7 +294,8 @@ service cloud.firestore {
         return request.resource.data.keys().hasOnly([
           'authorUid', 'authorName', 'authorUsername', 'eventType',
           'occurredAtEpochMs', 'periodKey', 'exerciseType',
-          'valueLong', 'valueInt', 'accuracyPercent'
+          'valueLong', 'valueInt', 'accuracyPercent',
+          'relatedUserFirebaseUid', 'relatedUserName'
         ])
           && request.resource.data.authorUid is string
           && request.resource.data.authorUid == request.auth.uid
@@ -252,7 +303,7 @@ service cloud.firestore {
           && request.resource.data.authorName.size() <= 80
           && request.resource.data.eventType in [
             'WEEKLY_STREAK', 'WEEKLY_CHALLENGE', 'MONTHLY_STREAK',
-            'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE'
+            'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE', 'GIFT_RECEIVED'
           ]
           && request.resource.data.occurredAtEpochMs is int
           && (!request.resource.data.keys().hasAny(['authorUsername']) || request.resource.data.authorUsername is string)
@@ -260,7 +311,17 @@ service cloud.firestore {
           && (!request.resource.data.keys().hasAny(['exerciseType']) || request.resource.data.exerciseType is string)
           && (!request.resource.data.keys().hasAny(['valueLong']) || request.resource.data.valueLong is int)
           && (!request.resource.data.keys().hasAny(['valueInt']) || request.resource.data.valueInt is int)
-          && (!request.resource.data.keys().hasAny(['accuracyPercent']) || request.resource.data.accuracyPercent is number);
+          && (!request.resource.data.keys().hasAny(['accuracyPercent']) || request.resource.data.accuracyPercent is number)
+          && (!request.resource.data.keys().hasAny(['relatedUserFirebaseUid']) || request.resource.data.relatedUserFirebaseUid is string)
+          && (!request.resource.data.keys().hasAny(['relatedUserName']) || (
+            request.resource.data.relatedUserName is string && request.resource.data.relatedUserName.size() <= 80
+          ))
+          && (request.resource.data.eventType != 'GIFT_RECEIVED' || (
+            request.resource.data.periodKey in ['CANDY', 'COFFEE', 'CROISSANT', 'HAMBURGER', 'CAKE']
+            && request.resource.data.relatedUserFirebaseUid is string
+            && request.resource.data.relatedUserName is string
+            && request.resource.data.valueInt is int
+          ));
       }
 
       allow get: if signedIn()
@@ -281,6 +342,45 @@ service cloud.firestore {
         && resource.data.authorUid == request.auth.uid
         && validFeedEvent();
       allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
+    }
+
+    // Gifts are immutable deliveries. The client may retry the same gift ID, but cannot
+    // alter a delivery after creation. The recipient alone can read the inbox.
+    match /giftDeliveries/{recipientUid}/items/{giftId} {
+      function validGiftPayload() {
+        return request.resource.data.keys().hasOnly([
+          'giftId', 'senderUid', 'senderName', 'recipientUid',
+          'giftType', 'amount', 'createdAtEpochMs'
+        ])
+          && request.resource.data.giftId == giftId
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.senderName is string
+          && request.resource.data.senderName.size() <= 80
+          && request.resource.data.recipientUid == recipientUid
+          && request.resource.data.giftType in ['CANDY', 'COFFEE', 'CROISSANT', 'HAMBURGER', 'CAKE']
+          && request.resource.data.amount is int
+          && (
+            (request.resource.data.giftType == 'CANDY' && request.resource.data.amount == 10)
+            || (request.resource.data.giftType == 'COFFEE' && request.resource.data.amount == 20)
+            || (request.resource.data.giftType == 'CROISSANT' && request.resource.data.amount == 30)
+            || (request.resource.data.giftType == 'HAMBURGER' && request.resource.data.amount == 40)
+            || (request.resource.data.giftType == 'CAKE' && request.resource.data.amount == 50)
+          )
+          && request.resource.data.createdAtEpochMs is int;
+      }
+
+      allow get, list: if isOwner(recipientUid);
+      allow create: if signedIn()
+        && request.auth.uid != recipientUid
+        && validGiftPayload()
+        && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
+        && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
+      allow update: if signedIn()
+        && resource.data.senderUid == request.auth.uid
+        && request.resource.data == resource.data;
+      allow delete: if false;
     }
   }
 }

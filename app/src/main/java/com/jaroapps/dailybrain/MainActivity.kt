@@ -4,13 +4,11 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.graphics.Color as AndroidColor
+import android.graphics.drawable.ColorDrawable
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
-import androidx.core.view.WindowCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.jaroapps.dailybrain.feature.brain.BrainStateManager
@@ -21,6 +19,7 @@ import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.StartupDestinat
 import com.jaroapps.dailybrain.navigation.AppNavHost
 import com.jaroapps.dailybrain.navigation.Route
 import com.jaroapps.dailybrain.ui.theme.DailyBrainTheme
+import com.jaroapps.dailybrain.ui.theme.AppThemePreference
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
@@ -49,8 +48,13 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         GlobalContext.get().get<GoogleSignInClient>().attachActivity(this)
 
-        window.statusBarColor = AndroidColor.WHITE
-        WindowInsetsControllerCompat(window, window.decorView).isAppearanceLightStatusBars = true
+        AppThemePreference.ensureLoaded(applicationContext)
+        val startupBackground = if (AppThemePreference.isDarkTheme) {
+            R.color.dark_background
+        } else {
+            R.color.light_background
+        }
+        window.setBackgroundDrawable(ColorDrawable(ContextCompat.getColor(this, startupBackground)))
 
         lifecycleScope.launch {
             val startDestination = try {

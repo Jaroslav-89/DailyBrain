@@ -6,6 +6,8 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarJsonCodec
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
+import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import kotlinx.coroutines.CancellationException
@@ -21,9 +23,12 @@ class PublicProfileSyncViewModel(
     observeProfileStatistics: ObserveProfileStatisticsUseCase,
     observeAvatar: ObserveAvatarUseCase,
     private val userDirectoryRepository: UserDirectoryRepository,
+    private val profileCollectiblesRepository: ProfileCollectiblesRepository,
+    private val giftDeliveryRepository: GiftDeliveryRepository,
 ) : ViewModel() {
 
     private var relationshipsSyncedForUid: String? = null
+    private var giftsSyncedForUid: String? = null
 
     init {
         viewModelScope.launch {
@@ -31,11 +36,16 @@ class PublicProfileSyncViewModel(
                 observeUserProfile(),
                 observeProfileStatistics(),
                 observeAvatar(),
-            ) { profile, statistics, avatar ->
-                Triple(profile, statistics, avatar)
-            }.collect { (profile, statistics, avatar) ->
+                profileCollectiblesRepository.observeOwn(),
+            ) { profile, statistics, avatar, collectibles ->
+                ProfileSyncSnapshot(profile, statistics, avatar, collectibles)
+            }.collect { (profile, statistics, avatar, collectibles) ->
                 val firebaseUid = profile.firebaseUid ?: return@collect
                 try {
+                    if (giftsSyncedForUid != firebaseUid) {
+                        runCatching { giftDeliveryRepository.syncIncoming() }
+                            .onSuccess { giftsSyncedForUid = firebaseUid }
+                    }
                     userDirectoryRepository.updatePublicProfile(
                         firebaseUid = firebaseUid,
                         displayName = profile.effectiveDisplayName,
@@ -46,6 +56,7 @@ class PublicProfileSyncViewModel(
                         avatarConfigurationJson = AvatarJsonCodec.encode(avatar),
                         statistics = statistics,
                     )
+                    profileCollectiblesRepository.syncOwnPublic(firebaseUid, collectibles)
                     if (relationshipsSyncedForUid != firebaseUid) {
                         userDirectoryRepository.getFollowing(firebaseUid)
                         userDirectoryRepository.getFollowers(firebaseUid)
@@ -59,6 +70,13 @@ class PublicProfileSyncViewModel(
             }
         }
     }
+
+    private data class ProfileSyncSnapshot(
+        val profile: com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile,
+        val statistics: com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics,
+        val avatar: com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarConfiguration,
+        val collectibles: List<com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectible>,
+    )
 
     private companion object {
         const val TAG = "PublicProfileSync"

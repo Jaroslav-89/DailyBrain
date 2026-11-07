@@ -37,6 +37,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.res.stringResource
@@ -132,8 +133,8 @@ fun EditProfileScreen(
             onClick = onEditAvatar,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
-                containerColor = androidx.compose.ui.graphics.Color(0xFF2E7D32),
-                contentColor = androidx.compose.ui.graphics.Color.White,
+                containerColor = colorResource(R.color.color_success),
+                contentColor = colorResource(R.color.color_on_accent),
             ),
         ) {
             Text("Редактировать аватар")

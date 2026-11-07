@@ -40,6 +40,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -48,6 +49,8 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarJsonCodec
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicBestExerciseResult
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileCollectibleSection
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
 import java.time.LocalDate
@@ -60,6 +63,8 @@ fun PublicUserProfileScreen(
     profileFirebaseUid: String,
     onBack: () -> Unit,
     onOpenConnections: (String, String) -> Unit,
+    onOpenCollectibles: (String, ProfileCollectibleKind) -> Unit,
+    onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     viewModel: PublicUserProfileViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -71,10 +76,10 @@ fun PublicUserProfileScreen(
     val today = LocalDate.now()
     val trainingPeriod = stats?.firstTrainingDate
         ?.let { runCatching { LocalDate.parse(it) }.getOrNull() }
-        ?.let { firstDate -> Period.between(firstDate, today).takeIf { !it.isNegative } }
+        ?.let { firstDate -> Period.between(firstDate, today).plusDays(1).takeIf { !it.isNegative } }
     val memberPeriod = user?.memberSinceEpochMs?.let { epoch ->
         val date = Instant.ofEpochMilli(epoch).atZone(ZoneId.systemDefault()).toLocalDate()
-        Period.between(date, today).takeIf { !it.isNegative }
+        Period.between(date, today).plusDays(1).takeIf { !it.isNegative }
     }
 
     Scaffold(
@@ -209,8 +214,8 @@ fun PublicUserProfileScreen(
                             enabled = !state.isUpdatingFollow,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (state.isFollowing) Color(0xFFC62828) else Color(0xFF2E7D32),
-                                contentColor = Color.White,
+                                containerColor = if (state.isFollowing) colorResource(R.color.color_danger) else colorResource(R.color.color_success),
+                                contentColor = colorResource(R.color.color_on_accent),
                             ),
                         ) {
                             Text(
@@ -222,6 +227,25 @@ fun PublicUserProfileScreen(
                             )
                         }
                     }
+                    ProfileCollectibleSection(
+                        title = "Подарки",
+                        ownerUid = user.firebaseUid,
+                        items = state.collectibles.filter { it.kind == ProfileCollectibleKind.GIFT },
+                        kind = ProfileCollectibleKind.GIFT,
+                        onOpenCollection = onOpenCollectibles,
+                        onOpenItem = onOpenCollectible,
+                    )
+                    if (state.collectibles.any { it.kind == ProfileCollectibleKind.GIFT }) {
+                        Spacer(Modifier.height(14.dp))
+                    }
+                    ProfileCollectibleSection(
+                        title = "Бейджики",
+                        ownerUid = user.firebaseUid,
+                        items = state.collectibles.filter { it.kind == ProfileCollectibleKind.BADGE },
+                        kind = ProfileCollectibleKind.BADGE,
+                        onOpenCollection = onOpenCollectibles,
+                        onOpenItem = onOpenCollectible,
+                    )
                     if (stats != null) {
                         Spacer(Modifier.height(22.dp))
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
@@ -265,8 +289,8 @@ fun PublicUserProfileScreen(
                             enabled = !state.isUpdatingBlock,
                             modifier = Modifier.fillMaxWidth(),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (state.isBlockedByViewer) Color(0xFF2E7D32) else Color(0xFFC62828),
-                                contentColor = Color.White,
+                                containerColor = if (state.isBlockedByViewer) colorResource(R.color.color_success) else colorResource(R.color.color_danger),
+                                contentColor = colorResource(R.color.color_on_accent),
                             ),
                         ) {
                             Text(

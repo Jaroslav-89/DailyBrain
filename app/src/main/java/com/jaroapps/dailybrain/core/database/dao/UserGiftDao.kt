@@ -18,6 +18,15 @@ interface UserGiftDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(gifts: List<UserGiftEntity>)
 
+    @Query("UPDATE user_gifts SET isOpened = 1 WHERE ownerUserId = :ownerUserId AND giftId = :giftId")
+    suspend fun markOpened(ownerUserId: String, giftId: String)
+
+    @Query("SELECT * FROM user_gifts WHERE ownerUserId = :ownerUserId AND giftId = :giftId LIMIT 1")
+    suspend fun getForUser(ownerUserId: String, giftId: String): UserGiftEntity?
+
+    @Query("UPDATE user_gifts SET senderUserId = :senderUid, senderName = :senderName WHERE ownerUserId = :ownerUserId AND giftId = :giftId")
+    suspend fun updateSenderInfo(ownerUserId: String, giftId: String, senderUid: String, senderName: String?)
+
     @Query("DELETE FROM user_gifts WHERE ownerUserId = :ownerUserId")
     suspend fun deleteForUser(ownerUserId: String)
 }

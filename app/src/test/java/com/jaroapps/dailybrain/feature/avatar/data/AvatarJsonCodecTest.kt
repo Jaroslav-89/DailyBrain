@@ -13,6 +13,8 @@ class AvatarJsonCodecTest {
             glassesId = 5,
             frecklesId = 4,
             facialHairId = 4,
+            costumeId = "spacesuit",
+            backgroundSceneId = "beach",
         )
 
         assertEquals(
@@ -28,6 +30,8 @@ class AvatarJsonCodecTest {
         )
 
         assertEquals(AvatarConfiguration.NO_FACIAL_HAIR_ID, restored.facialHairId)
+        assertEquals(null, restored.costumeId)
+        assertEquals(null, restored.backgroundSceneId)
         assertEquals(3, restored.glassesId)
         assertEquals(2, restored.frecklesId)
         assertEquals(AvatarConfiguration.CURRENT_SCHEMA_VERSION, restored.schemaVersion)
@@ -44,6 +48,24 @@ class AvatarJsonCodecTest {
 
         assertEquals(5, yellow.backgroundId)
         assertEquals(2, peach.backgroundId)
+    }
+
+    @Test
+    fun `cosmetics survive encode and decode`() {
+        val configuration = AvatarConfiguration.Default.copy(
+            costumeId = "bear",
+            backgroundSceneId = "snow_mountains",
+        )
+        assertEquals(configuration, AvatarJsonCodec.decode(AvatarJsonCodec.encode(configuration)))
+    }
+
+    @Test
+    fun `unknown cosmetics are ignored when decoding old or malformed json`() {
+        val restored = AvatarJsonCodec.decode(
+            """{"schemaVersion":5,"costumeId":"not_a_costume","backgroundSceneId":"not_a_background"}""",
+        )
+        assertEquals(null, restored.costumeId)
+        assertEquals(null, restored.backgroundSceneId)
     }
 
     @Test

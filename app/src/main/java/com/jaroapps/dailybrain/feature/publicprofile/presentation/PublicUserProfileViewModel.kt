@@ -3,6 +3,8 @@ package com.jaroapps.dailybrain.feature.publicprofile.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectible
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import kotlinx.coroutines.CancellationException
@@ -19,6 +21,7 @@ data class PublicUserProfileUiState(
     val user: PublicUserProfile? = null,
     val followingUsers: List<PublicUserProfile> = emptyList(),
     val followerUsers: List<PublicUserProfile> = emptyList(),
+    val collectibles: List<ProfileCollectible> = emptyList(),
     val isSelf: Boolean = false,
     val isFollowing: Boolean = false,
     val isBlockedByViewer: Boolean = false,
@@ -31,6 +34,7 @@ data class PublicUserProfileUiState(
 class PublicUserProfileViewModel(
     private val observeUserProfile: ObserveUserProfileUseCase,
     private val userDirectoryRepository: UserDirectoryRepository,
+    private val profileCollectiblesRepository: ProfileCollectiblesRepository,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(PublicUserProfileUiState())
     val uiState: StateFlow<PublicUserProfileUiState> = _uiState
@@ -54,7 +58,7 @@ class PublicUserProfileViewModel(
             val user = userDirectoryRepository.getPublicUserProfile(viewerUid, profileFirebaseUid)
                 ?: throw IllegalStateException("Профиль пользователя не найден.")
             val self = viewerUid == profileFirebaseUid
-            if (user.isRestricted) {
+            if (user.isRestricted || isBlockedByViewer) {
                 _uiState.value = PublicUserProfileUiState(
                     viewerFirebaseUid = viewerUid,
                     user = user,
@@ -65,6 +69,8 @@ class PublicUserProfileViewModel(
                 )
                 return
             }
+            val collectibles = runCatching { profileCollectiblesRepository.getForOwner(profileFirebaseUid) }
+                .getOrDefault(emptyList())
             val result = coroutineScope {
                 val following = async { userDirectoryRepository.getPublicFollowing(viewerUid, profileFirebaseUid) }
                 val followers = async { userDirectoryRepository.getPublicFollowers(viewerUid, profileFirebaseUid) }
@@ -78,6 +84,7 @@ class PublicUserProfileViewModel(
                 user = user,
                 followingUsers = result.first,
                 followerUsers = result.second,
+                collectibles = collectibles,
                 isSelf = self,
                 isFollowing = result.third,
                 isBlockedByViewer = isBlockedByViewer,
@@ -103,8 +110,13 @@ class PublicUserProfileViewModel(
                 } else {
                     userDirectoryRepository.blockUser(viewerUid, user.firebaseUid)
                 }
+                val refreshedCollectibles = if (shouldUnblock) {
+                    runCatching { profileCollectiblesRepository.getForOwner(user.firebaseUid) }
+                        .getOrDefault(emptyList())
+                } else emptyList()
                 _uiState.update { current ->
                     current.copy(
+                        collectibles = refreshedCollectibles,
                         isBlockedByViewer = !shouldUnblock,
                         isUpdatingBlock = false,
                         isFollowing = if (shouldUnblock) current.isFollowing else false,
