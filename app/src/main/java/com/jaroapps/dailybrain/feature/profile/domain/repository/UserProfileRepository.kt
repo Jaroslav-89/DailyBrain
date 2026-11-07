@@ -8,6 +8,8 @@ import kotlinx.coroutines.flow.Flow
 
 interface UserProfileRepository {
     fun observeProfile(): Flow<UserProfile>
+    /** Emits null when profile selection is active or the selected local row is missing. */
+    fun observeSelectedProfile(): Flow<UserProfile?> = observeProfile().map { it }
     fun observeProfiles(): Flow<List<UserProfile>>
     suspend fun getProfile(localAccountId: String): UserProfile?
     suspend fun createLocalProfile(): UserProfile
