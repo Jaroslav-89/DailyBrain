@@ -64,7 +64,8 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
-private val ExerciseRingMaxRadius = 39.dp
+private val ArithmeticExerciseRingMaxRadius = 43.dp
+private val AdditionalExerciseRingMaxRadius = 51.dp
 
 private val WeekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault())
 
@@ -215,11 +216,11 @@ fun HomeScreen(
                 .weight(1f),
         ) {
             val arithmeticButtonSize = 56.dp
-            val arithmeticRingSize = 88.dp
+            val arithmeticRingSize = 96.dp
             val dayItemWidth = arithmeticRingSize + 36.dp
             val dayItemHeight = 100.dp
             val additionalButtonSize = 72.dp
-            val additionalRingSize = arithmeticRingSize
+            val additionalRingSize = 112.dp
 
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
@@ -317,8 +318,8 @@ fun HomeScreen(
                             if (today) {
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
-                                    initialRadius = 30.dp,
-                                    targetRadius = ExerciseRingMaxRadius,
+                                    initialRadius = 34.dp,
+                                    targetRadius = ArithmeticExerciseRingMaxRadius,
                                 )
                             }
 
@@ -494,7 +495,7 @@ private fun RoundExerciseButton(
         if (!completed) {
             StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                radius = ExerciseRingMaxRadius,
+                radius = AdditionalExerciseRingMaxRadius,
             )
         }
 
