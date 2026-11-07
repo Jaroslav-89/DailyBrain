@@ -640,4 +640,33 @@ object DatabaseMigrations {
         }
     }
 
+
+    /** Store dates protected by patches and the idempotent per-profile processing cursor. */
+    val MIGRATION_22_23 = object : Migration(22, 23) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE streak_patch_days (
+                    userId TEXT NOT NULL,
+                    date INTEGER NOT NULL,
+                    appliedAtEpochMs INTEGER NOT NULL,
+                    PRIMARY KEY(userId, date)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX index_streak_patch_days_userId_date ON streak_patch_days(userId, date)",
+            )
+            database.execSQL(
+                """
+                CREATE TABLE streak_patch_state (
+                    userId TEXT NOT NULL PRIMARY KEY,
+                    lastProcessedDate INTEGER NOT NULL,
+                    isStreakActive INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+        }
+    }
+
 }
