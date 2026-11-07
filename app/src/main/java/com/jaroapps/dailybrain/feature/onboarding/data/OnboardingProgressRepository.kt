@@ -17,6 +17,9 @@ class OnboardingProgressRepository(
     private val dao: OnboardingProgressDao,
     private val activeUserProvider: ActiveUserProvider,
 ) : OnboardingProgressRepositoryContract {
+    override fun observeProfileSelectionRequired(): Flow<Boolean?> =
+        activeUserProvider.observeProfileSelectionRequired()
+
     override fun observeActiveProgress(): Flow<OnboardingProgress> =
         activeUserProvider.observeUserId().flatMapLatest { localAccountId ->
             flow {
