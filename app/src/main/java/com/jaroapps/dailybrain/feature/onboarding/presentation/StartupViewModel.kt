@@ -11,6 +11,7 @@ import kotlinx.coroutines.launch
 
 sealed interface StartupUiState {
     data object Loading : StartupUiState
+    data object ProfileSelectionRequired : StartupUiState
     data object AppIntroRequired : StartupUiState
     data object HomeReady : StartupUiState
     data object Error : StartupUiState
