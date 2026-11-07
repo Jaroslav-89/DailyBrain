@@ -5,14 +5,19 @@ import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.entity.UserProfileEntity
 import com.jaroapps.dailybrain.core.database.entity.AppSettingsEntity
+import com.jaroapps.dailybrain.core.database.entity.PendingProfileDeletionEntity
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
+import com.jaroapps.dailybrain.feature.profile.domain.model.PendingProfileDeletion
+import com.jaroapps.dailybrain.feature.profile.domain.model.PendingProfileDeletionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.util.UUID
@@ -24,27 +29,36 @@ class UserProfileRepositoryImpl(
 ) : UserProfileRepository {
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     override fun observeProfile(): Flow<UserProfile> =
-        activeUserProvider.observeUserId().flatMapLatest { userId ->
-            combine(
-                database.userProfileDao().observeProfile(userId),
-                database.trainingSessionDao().observeFirstTrainingStartedAtEpochMs(userId),
-            ) { entity, firstTrainingAt ->
-                val dao = database.userProfileDao()
-                if (entity == null) {
-                    dao.insertIfAbsent(createInitialProfile(userId, firstTrainingAt))
-                    requireNotNull(dao.getProfile(userId)).toDomain()
-                } else if (firstTrainingAt != null && firstTrainingAt != entity.createdAtEpochMs) {
-                    val updated = entity.copy(createdAtEpochMs = firstTrainingAt)
-                    dao.save(updated)
-                    updated.toDomain()
-                } else {
-                    entity.toDomain()
+        observeSelectedProfile().filterNotNull()
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    override fun observeSelectedProfile(): Flow<UserProfile?> =
+        activeUserProvider.observeSelectedUserId().flatMapLatest { userId ->
+            if (userId == null) {
+                flowOf(null)
+            } else {
+                combine(
+                    database.userProfileDao().observeProfile(userId),
+                    database.trainingSessionDao().observeFirstTrainingStartedAtEpochMs(userId),
+                ) { entity, firstTrainingAt ->
+                    when {
+                        entity == null -> null
+                        firstTrainingAt != null && firstTrainingAt != entity.createdAtEpochMs -> {
+                            val updated = entity.copy(createdAtEpochMs = firstTrainingAt)
+                            database.userProfileDao().save(updated)
+                            updated.toDomain()
+                        }
+                        else -> entity.toDomain()
+                    }
                 }
             }
         }
 
     override fun observeProfiles(): Flow<List<UserProfile>> =
         database.userProfileDao().observeProfiles().map { profiles -> profiles.map { it.toDomain() } }
+
+    override suspend fun getProfile(localAccountId: String): UserProfile? =
+        database.userProfileDao().getProfile(localAccountId)?.toDomain()
 
     override suspend fun createLocalProfile(): UserProfile {
         val localAccountId = UUID.randomUUID().toString()
@@ -77,34 +91,34 @@ class UserProfileRepositoryImpl(
         deleteProfile(activeUserProvider.currentUserId())
     }
 
-    override suspend fun deleteProfile(localAccountId: String) {
+    override suspend fun deleteProfile(localAccountId: String): PendingProfileDeletion? =
         database.withTransaction {
             val profileDao = database.userProfileDao()
-            val profile = profileDao.getProfile(localAccountId) ?: return@withTransaction
+            val profile = profileDao.getProfile(localAccountId) ?: return@withTransaction null
+            val pendingDeletion = profile.firebaseUid?.takeIf(String::isNotBlank)?.let { firebaseUid ->
+                val deletionDao = database.pendingProfileDeletionDao()
+                deletionDao.insertIfAbsent(
+                    PendingProfileDeletionEntity(
+                        firebaseUid = firebaseUid,
+                        googleSubject = profile.googleSubject?.takeIf(String::isNotBlank),
+                        status = PendingProfileDeletionStatus.CLOUD_CLEANUP_PENDING.name,
+                        requestedAtEpochMs = System.currentTimeMillis(),
+                    ),
+                )
+                requireNotNull(deletionDao.getByFirebaseUid(firebaseUid)).toDomain()
+            }
             val settingsDao = database.appSettingsDao()
             val activeId = settingsDao.getActiveLocalAccountId()
 
-            // Deleting the active profile must never make ActiveUserProvider recreate it.
-            // Keep the app in profile-selection mode until the user explicitly chooses another one.
+            // Do not activate a neighboring profile as a side effect of deletion.
+            // The selector must remain the only route to choosing the next active profile.
             if (activeId == localAccountId) {
-                val replacement = profileDao.getProfiles().firstOrNull {
-                    it.localAccountId != localAccountId
-                }
-                if (replacement != null) {
-                    settingsDao.setActiveAccount(
-                        AppSettingsEntity(
-                            activeLocalAccountId = replacement.localAccountId,
-                            profileSelectionRequired = true,
-                        ),
-                    )
-                } else {
-                    settingsDao.setActiveAccount(
-                        AppSettingsEntity(
-                            activeLocalAccountId = "",
-                            profileSelectionRequired = true,
-                        ),
-                    )
-                }
+                settingsDao.setActiveAccount(
+                    AppSettingsEntity(
+                        activeLocalAccountId = "",
+                        profileSelectionRequired = true,
+                    ),
+                )
             }
 
             database.trainingSessionDao().deleteAll(localAccountId)
@@ -125,7 +139,31 @@ class UserProfileRepositoryImpl(
             database.feedEventDao().deleteForLocalAccount(localAccountId)
             val deleted = profileDao.deleteByLocalAccountId(profile.localAccountId)
             check(deleted == 1) { "Failed to delete local profile" }
+            pendingDeletion
         }
+
+    override suspend fun findPendingProfileDeletion(
+        googleSubject: String?,
+        firebaseUid: String,
+    ): PendingProfileDeletion? {
+        val dao = database.pendingProfileDeletionDao()
+        // A Google subject can have several pending records after interrupted retries.
+        // Prefer the UID Firebase actually authenticated so its cleanup is never skipped.
+        val byFirebaseUid = dao.getByFirebaseUid(firebaseUid)
+        val bySubject = googleSubject?.takeIf(String::isNotBlank)?.let { dao.getByGoogleSubject(it) }
+        return (byFirebaseUid ?: bySubject)?.toDomain()
+    }
+
+    override suspend fun markPendingProfileDeletionCloudDataDeleted(firebaseUid: String) {
+        val updated = database.pendingProfileDeletionDao().updateStatus(
+            firebaseUid = firebaseUid,
+            status = PendingProfileDeletionStatus.CLOUD_DATA_DELETED.name,
+        )
+        check(updated == 1) { "Pending profile deletion was not found." }
+    }
+
+    override suspend fun completePendingProfileDeletion(firebaseUid: String) {
+        database.pendingProfileDeletionDao().delete(firebaseUid)
     }
 
     override suspend fun isGoogleSubjectLinkedToAnotherProfile(
@@ -238,6 +276,12 @@ class UserProfileRepositoryImpl(
             )
         )
     }
+
+    private fun PendingProfileDeletionEntity.toDomain() = PendingProfileDeletion(
+        firebaseUid = firebaseUid,
+        googleSubject = googleSubject,
+        status = PendingProfileDeletionStatus.valueOf(status),
+    )
 
     private fun createInitialProfile(userId: String, firstTrainingAt: Long?): UserProfileEntity {
         val now = System.currentTimeMillis()

@@ -8,7 +8,7 @@ import com.google.firebase.firestore.FirebaseFirestore
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
-import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import com.jaroapps.dailybrain.common.domain.service.FeedSyncTrigger
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.rewards.domain.model.GiftReceiptResult
@@ -133,9 +133,7 @@ class FirestoreGiftDeliveryRepository(
     private fun configuredApp(): FirebaseApp? = FirebaseApp.getApps(appContext).firstOrNull()
 
     private fun requireCurrentFirebaseUser(app: FirebaseApp, firebaseUid: String) {
-        if (FirebaseAuth.getInstance(app).currentUser?.uid != firebaseUid) {
-            throw FirebaseSessionMismatchException()
-        }
+        requireMatchingFirebaseSession(firebaseUid, FirebaseAuth.getInstance(app).currentUser?.uid)
     }
 
     private suspend fun <T> Task<T>.awaitResult(): T =

@@ -24,13 +24,13 @@ class ActiveUserProvider(
         if (settingsDao.isProfileSelectionRequired() == true) {
             throw ProfileSelectionRequiredException()
         }
-        settingsDao.getActiveLocalAccountId()?.let { return it }
+        settingsDao.getActiveLocalAccountId()?.takeIf(String::isNotBlank)?.let { return it }
 
         return initializationMutex.withLock {
             if (settingsDao.isProfileSelectionRequired() == true) {
                 throw ProfileSelectionRequiredException()
             }
-            settingsDao.getActiveLocalAccountId()?.let { return@withLock it }
+            settingsDao.getActiveLocalAccountId()?.takeIf(String::isNotBlank)?.let { return@withLock it }
 
             val profileDao = database.userProfileDao()
             val profile = profileDao.getLegacyDefaultProfile() ?: UserProfileEntity(
@@ -48,23 +48,33 @@ class ActiveUserProvider(
         }
     }
 
-    fun observeUserId(): Flow<String> = flow {
+    /**
+     * Emits null while profile selection is required. Consumers that switch with flatMapLatest
+     * must observe this nullable stream so they stop watching a deleted profile instead of
+     * recreating it from an empty Room row.
+     */
+    fun observeProfileSelectionRequired(): Flow<Boolean?> =
+        database.appSettingsDao().observeProfileSelectionRequired()
+
+    fun observeSelectedUserId(): Flow<String?> = flow {
         val initialId = try {
             currentUserId()
         } catch (_: ProfileSelectionRequiredException) {
             null
         }
-        if (initialId != null) emit(initialId)
+        emit(initialId)
 
         emitAll(
             combine(
                 database.appSettingsDao().observeActiveLocalAccountId(),
                 database.appSettingsDao().observeProfileSelectionRequired(),
             ) { localAccountId, selectionRequired ->
-                if (selectionRequired == true) null else localAccountId
-            }.filterNotNull(),
+                localAccountId?.takeIf { selectionRequired != true && it.isNotBlank() }
+            },
         )
     }.distinctUntilChanged()
+
+    fun observeUserId(): Flow<String> = observeSelectedUserId().filterNotNull()
 }
 
 class ProfileSelectionRequiredException : IllegalStateException(

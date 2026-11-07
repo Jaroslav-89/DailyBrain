@@ -15,6 +15,10 @@ import java.lang.ref.WeakReference
 
 class GoogleSignInConfigurationException(message: String) : IllegalStateException(message)
 
+fun interface GoogleSignInProvider {
+    suspend fun signIn(): GoogleSignInResult
+}
+
 data class GoogleSignInResult(
     val account: GoogleAccountProfile,
     /** Kept in memory only; never persisted in Room or logged. */
@@ -25,7 +29,7 @@ data class GoogleSignInResult(
  * Android Google Credential Manager entry point.
  * MainActivity owns the Activity lifecycle reference, following FunnyMail's pattern.
  */
-class GoogleSignInClient {
+class GoogleSignInClient : GoogleSignInProvider {
     @Volatile
     private var activityReference: WeakReference<Activity>? = null
 
@@ -33,7 +37,7 @@ class GoogleSignInClient {
         activityReference = activity?.let(::WeakReference)
     }
 
-    suspend fun signIn(): GoogleSignInResult = withContext(Dispatchers.Main.immediate) {
+    override suspend fun signIn(): GoogleSignInResult = withContext(Dispatchers.Main.immediate) {
         val activity = activityReference?.get()
             ?: throw IllegalStateException("Не удалось открыть Google Sign-In. Перезапустите экран приложения.")
 

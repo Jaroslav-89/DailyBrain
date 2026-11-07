@@ -391,6 +391,12 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 EditProfileScreen(
                     onBack = { navController.popBackStack() },
                     onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
+                    onProfileDeleted = {
+                        navController.navigate(Route.PROFILE_SELECTION) {
+                            popUpTo(Route.HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    },
                 )
             }
 

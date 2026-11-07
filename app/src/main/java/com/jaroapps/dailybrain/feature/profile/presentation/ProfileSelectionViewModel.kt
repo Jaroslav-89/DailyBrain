@@ -5,7 +5,7 @@ import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteLocalProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +27,7 @@ class ProfileSelectionViewModel(
     observeLocalProfiles: ObserveLocalProfilesUseCase,
     private val createLocalProfile: CreateLocalProfileUseCase,
     private val switchActiveProfile: SwitchActiveProfileUseCase,
-    private val deleteLocalProfile: DeleteLocalProfileUseCase,
+    private val deleteProfileUseCase: DeleteProfileUseCase,
 ) : ViewModel() {
     private val profilesLoaded = MutableStateFlow(false)
     private val profiles = observeLocalProfiles()
@@ -80,10 +80,13 @@ class ProfileSelectionViewModel(
     fun deleteProfile(localAccountId: String) {
         viewModelScope.launch {
             runAction {
-                deleteLocalProfile(localAccountId)
+                deleteProfileUseCase(localAccountId)
             }
         }
     }
+
+    private fun profileActionError(error: Exception): String =
+        "Не удалось выполнить действие с профилем. Попробуйте ещё раз."
 
     private suspend fun runAction(action: suspend () -> Unit) {
         if (isWorking.value) return
@@ -93,8 +96,8 @@ class ProfileSelectionViewModel(
             action()
         } catch (cancelled: CancellationException) {
             throw cancelled
-        } catch (_: Exception) {
-            error.value = "Не удалось выполнить действие с профилем. Попробуйте ещё раз."
+        } catch (error: Exception) {
+            this@ProfileSelectionViewModel.error.value = profileActionError(error)
         } finally {
             isWorking.value = false
         }

@@ -6,8 +6,41 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    function isOwner(uid) {
+    function activeUser() {
+      return signedIn()
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(request.auth.uid));
+    }
+
+    function canAccessOwnData(uid) {
       return signedIn() && request.auth.uid == uid;
+    }
+
+    function canDeleteOwnData(uid) {
+      // A deleted UID may finish erasing data it owns, but activeUser() blocks new writes.
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    function isOwner(uid) {
+      return activeUser() && request.auth.uid == uid;
+    }
+
+    match /deletedProfiles/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'deletedAt', 'cleanupComplete'])
+        && request.resource.data.uid == uid
+        && request.resource.data.deletedAt is timestamp
+        && request.resource.data.cleanupComplete == false;
+      allow update: if canAccessOwnData(uid)
+        && resource.data.uid == uid
+        && resource.data.get('cleanupComplete', false) == false
+        && request.resource.data.keys().hasOnly(['uid', 'deletedAt', 'cleanupComplete', 'cleanedAt'])
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.deletedAt == resource.data.deletedAt
+        && request.resource.data.cleanupComplete == true
+        && request.resource.data.cleanedAt is timestamp;
+      allow delete: if false;
     }
 
     function validUsername(value) {
@@ -52,7 +85,7 @@ service cloud.firestore {
     }
 
     match /users/{uid} {
-      allow get: if isOwner(uid);
+      allow get: if canAccessOwnData(uid);
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.uid == uid
@@ -63,7 +96,7 @@ service cloud.firestore {
           == request.resource.data.usernameLower
         && getAfter(/databases/$(database)/documents/publicProfiles/$(uid)).data.inviteCode
           == request.resource.data.inviteCode;
-      allow delete: if isOwner(uid)
+      allow delete: if canDeleteOwnData(uid)
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid))
         && (
           resource.data.get('usernameLower', '') == ''
@@ -76,7 +109,7 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{uid} {
-      allow get: if isOwner(uid) || (signedIn() && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid)));
+      allow get: if canAccessOwnData(uid) || (signedIn() && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid)));
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
@@ -92,7 +125,7 @@ service cloud.firestore {
           == request.resource.data.usernameLower
         && getAfter(/databases/$(database)/documents/users/$(uid)).data.inviteCode
           == request.resource.data.inviteCode;
-      allow delete: if isOwner(uid)
+      allow delete: if canDeleteOwnData(uid)
         && !existsAfter(/databases/$(database)/documents/users/$(uid))
         && (
           resource.data.get('usernameLower', '') == ''
@@ -116,7 +149,7 @@ service cloud.firestore {
         && request.resource.data.avatarConfigurationJson is string
         && existsAfter(/databases/$(database)/documents/users/$(uid))
         && existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
-      allow delete: if isOwner(uid)
+      allow delete: if canDeleteOwnData(uid)
         && !existsAfter(/databases/$(database)/documents/users/$(uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
     }
@@ -168,7 +201,7 @@ service cloud.firestore {
       allow get, list: if canViewCollectibles();
       allow create, update: if isOwner(uid) && validCollectible()
         && exists(/databases/$(database)/documents/publicProfiles/$(uid));
-      allow delete: if isOwner(uid);
+      allow delete: if canDeleteOwnData(uid);
     }
 
     match /blockedUsers/{blockerUid}/users/{blockedUid} {
@@ -179,12 +212,12 @@ service cloud.firestore {
         && request.resource.data.uid == blockedUid
         && blockedUid != blockerUid;
       allow update: if false;
-      allow delete: if isOwner(blockerUid);
+      allow delete: if canDeleteOwnData(blockerUid);
     }
     match /usernames/{username} {
       allow get: if signedIn();
       allow list: if false;
-      allow create: if signedIn()
+      allow create: if activeUser()
         && validUsername(username)
         && request.resource.data.keys().hasOnly(['userId'])
         && request.resource.data.userId == request.auth.uid
@@ -192,7 +225,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower == username
         && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower == username;
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if canDeleteOwnData(request.auth.uid)
         && resource.data.userId == request.auth.uid
         && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
@@ -201,7 +234,7 @@ service cloud.firestore {
     match /inviteCodes/{inviteCode} {
       allow get: if signedIn();
       allow list: if false;
-      allow create: if signedIn()
+      allow create: if activeUser()
         && validInviteCode(inviteCode)
         && request.resource.data.keys().hasOnly(['userId'])
         && request.resource.data.userId == request.auth.uid
@@ -209,7 +242,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.inviteCode == inviteCode
         && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.inviteCode == inviteCode;
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if canDeleteOwnData(request.auth.uid)
         && resource.data.userId == request.auth.uid
         && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
@@ -227,32 +260,33 @@ service cloud.firestore {
           resource.data.followerUid == request.auth.uid
           || resource.data.followingUid == request.auth.uid
         );
-      allow create: if signedIn()
+      allow create: if activeUser()
         && request.resource.data.keys().hasOnly(['followerUid', 'followingUid', 'createdAt'])
         && request.resource.data.followerUid == request.auth.uid
         && request.resource.data.followingUid is string
         && request.resource.data.followingUid != request.auth.uid
         && followId == request.resource.data.followerUid + '_' + request.resource.data.followingUid
         && exists(/databases/$(database)/documents/publicProfiles/$(request.resource.data.followingUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(request.resource.data.followingUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(request.resource.data.followingUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.resource.data.followingUid)/users/$(request.auth.uid));
       allow update: if false;
       allow delete: if signedIn()
         && (
           resource.data.followerUid == request.auth.uid
-          || (
-            resource.data.followingUid == request.auth.uid
-            && existsAfter(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(resource.data.followerUid))
-          )
+          || resource.data.followingUid == request.auth.uid
         );
     }
 
     // Public relationship projections let signed-in users inspect another profile's lists
     // without granting access to arbitrary documents in the internal follows collection.
     match /publicFollowing/{profileUid}/users/{followingUid} {
-      allow get, list: if signedIn()
+      allow get: if signedIn()
+        && (request.auth.uid == profileUid || request.auth.uid == followingUid
+          || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)));
+      allow list: if signedIn()
         && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
-      allow create: if signedIn()
+      allow create: if activeUser()
         && request.auth.uid == profileUid
         && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == followingUid
@@ -265,9 +299,12 @@ service cloud.firestore {
     }
 
     match /publicFollowers/{profileUid}/users/{followerUid} {
-      allow get, list: if signedIn()
+      allow get: if signedIn()
+        && (request.auth.uid == profileUid || request.auth.uid == followerUid
+          || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)));
+      allow list: if signedIn()
         && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
-      allow create: if signedIn()
+      allow create: if activeUser()
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == followerUid
@@ -337,8 +374,8 @@ service cloud.firestore {
           || isFollowingAuthor(resource.data.authorUid)
         );
 
-      allow create: if signedIn() && validFeedEvent();
-      allow update: if signedIn()
+      allow create: if activeUser() && validFeedEvent();
+      allow update: if activeUser()
         && resource.data.authorUid == request.auth.uid
         && validFeedEvent();
       allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
@@ -369,18 +406,19 @@ service cloud.firestore {
           && request.resource.data.createdAtEpochMs is int;
       }
 
-      allow get, list: if isOwner(recipientUid);
-      allow create: if signedIn()
+      allow get, list: if canAccessOwnData(recipientUid);
+      allow create: if activeUser()
         && request.auth.uid != recipientUid
         && validGiftPayload()
         && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
         && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
-      allow update: if signedIn()
+      allow update: if activeUser()
         && resource.data.senderUid == request.auth.uid
         && request.resource.data == resource.data;
-      allow delete: if false;
+      allow delete: if canDeleteOwnData(recipientUid);
     }
   }
 }

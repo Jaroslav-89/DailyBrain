@@ -1,5 +1,7 @@
 package com.jaroapps.dailybrain.feature.profile.domain.repository
 
+import kotlinx.coroutines.flow.Flow
+
 sealed interface FirebaseGoogleSignInResult {
     data class Success(val firebaseUid: String) : FirebaseGoogleSignInResult
     data object NotConfigured : FirebaseGoogleSignInResult
@@ -16,5 +18,8 @@ interface FirebaseAuthenticationRepository {
         expectedGoogleSubject: String,
     ): FirebaseGoogleSignInResult
 
+    fun currentUserId(): String?
+    fun observeCurrentUserId(): Flow<String?>
+    suspend fun deleteCurrentUser(expectedFirebaseUid: String)
     fun signOut()
 }

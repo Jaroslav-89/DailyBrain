@@ -12,6 +12,10 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import kotlin.coroutines.resume
@@ -55,6 +59,34 @@ class FirebaseAuthenticationRepositoryImpl(
             Log.e(LOG_TAG, "Firebase Google authentication failed: $diagnosticCode", error)
             FirebaseGoogleSignInResult.Failed(diagnosticCode)
         }
+    }
+
+    override fun currentUserId(): String? = firebaseAuthOrNull()?.currentUser?.uid
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    override fun observeCurrentUserId(): Flow<String?> = callbackFlow {
+        val auth = firebaseAuthOrNull()
+        if (auth == null) {
+            trySend(null)
+            close()
+            return@callbackFlow
+        }
+        val listener = FirebaseAuth.AuthStateListener { currentAuth ->
+            trySend(currentAuth.currentUser?.uid)
+        }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }
+
+    override suspend fun deleteCurrentUser(expectedFirebaseUid: String) {
+        val auth = firebaseAuthOrNull()
+            ?: throw IllegalStateException("Firebase is not configured.")
+        val user = auth.currentUser
+            ?: throw IllegalStateException("There is no signed-in Firebase user.")
+        if (user.uid != expectedFirebaseUid) {
+            throw IllegalStateException("The Firebase session does not match the profile being deleted.")
+        }
+        user.delete().awaitResult()
     }
 
     override fun signOut() {

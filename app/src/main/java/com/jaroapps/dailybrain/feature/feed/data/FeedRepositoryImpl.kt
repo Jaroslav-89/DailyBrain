@@ -13,6 +13,7 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import com.jaroapps.dailybrain.feature.rewards.data.RewardRecalculator
+import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -54,9 +55,15 @@ class FeedRepositoryImpl(
     override suspend fun refresh() {
         val localAccountId = activeUserProvider.currentUserId()
         val profile = database.userProfileDao().getProfile(localAccountId) ?: return
+
+        // Recalculate locally before any network checks; this also runs for unlinked/offline profiles.
+        database.withTransaction {
+            RewardRecalculator.recalculate(database, localAccountId)
+        }
+
         val firebaseUid = profile.firebaseUid
         if (firebaseUid.isNullOrBlank()) {
-            database.feedEventDao().deleteCachedFriendEvents(localAccountId)
+            // Keep the last successful friend cache available while cloud features are disconnected.
             return
         }
 
@@ -65,11 +72,6 @@ class FeedRepositoryImpl(
         }
         requireCurrentFirebaseUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
-
-        // Recalculate locally before network access; this does not depend on the friends feed.
-        database.withTransaction {
-            RewardRecalculator.recalculate(database, localAccountId)
-        }
 
         // Read the canonical follow graph. publicFollowing is a denormalized projection and
         // may be absent for older follows created before that projection was introduced.
@@ -95,6 +97,8 @@ class FeedRepositoryImpl(
         // Replace the friend cache only after all per-author queries completed successfully.
         // A failed query leaves the last successfully loaded cache intact.
         database.withTransaction {
+            // Re-check after network reads so a profile/session switch cannot cache another session's result.
+            requireCurrentFirebaseUser(app, firebaseUid)
             database.feedEventDao().deleteCachedFriendEvents(localAccountId)
             if (friendEvents.isNotEmpty()) database.feedEventDao().upsertAll(friendEvents)
         }
@@ -171,6 +175,10 @@ class FeedRepositoryImpl(
         firebaseUid: String,
         firestore: FirebaseFirestore,
     ) {
+        val app = requireNotNull(configuredApp()) {
+            "FIREBASE_NOT_CONFIGURED: check app/google-services.json and Firebase initialization."
+        }
+        requireCurrentFirebaseUser(app, firebaseUid)
         val dao = database.feedEventDao()
         val localEvents = dao.getLocalEvents(localAccountId)
 
@@ -252,9 +260,7 @@ class FeedRepositoryImpl(
         FirebaseApp.getApps(appContext).firstOrNull()
 
     private fun requireCurrentFirebaseUser(app: FirebaseApp, uid: String) {
-        check(FirebaseAuth.getInstance(app).currentUser?.uid == uid) {
-            "FIREBASE_SESSION_MISMATCH: the active Firebase account does not match the selected local profile."
-        }
+        requireMatchingFirebaseSession(uid, FirebaseAuth.getInstance(app).currentUser?.uid)
     }
 
     private suspend fun <T> Task<T>.awaitResult(): T =

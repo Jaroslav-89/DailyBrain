@@ -6,12 +6,16 @@ import com.google.firebase.firestore.FirebaseFirestoreException
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -26,12 +30,15 @@ data class FeedUiState(
 
 class FeedViewModel(
     private val repository: FeedRepository,
+    observeUserProfile: ObserveUserProfileUseCase,
+    firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
 ) : ViewModel() {
     private val events = MutableStateFlow<List<FeedEvent>>(emptyList())
     private val isRefreshing = MutableStateFlow(false)
     private val isLoadingMore = MutableStateFlow(false)
     private val hasMore = MutableStateFlow(false)
     private val errorMessage = MutableStateFlow<String?>(null)
+    private var refreshPending = false
 
     val uiState: StateFlow<FeedUiState> = combine(
         events,
@@ -67,11 +74,30 @@ class FeedViewModel(
                 hasMore.value = firstPageWithLookahead.size > PAGE_SIZE || alreadyLoadedOlder.isNotEmpty()
             }
         }
-        refresh()
+        viewModelScope.launch {
+            combine(
+                observeUserProfile(),
+                firebaseAuthenticationRepository.observeCurrentUserId(),
+            ) { profile, firebaseUid ->
+                profile.localAccountId to profile.firebaseUid?.takeIf {
+                    it.isNotBlank() && it == firebaseUid
+                }
+            }
+                .distinctUntilChanged()
+                .collect {
+                    // Always recalculate the selected profile's local rewards. The repository
+                    // skips cloud work until the active Firebase UID matches the stored binding.
+                    // A later matching auth-state emission retries the deferred cloud sync.
+                    refresh()
+                }
+        }
     }
 
     fun refresh() {
-        if (isRefreshing.value) return
+        if (isRefreshing.value) {
+            refreshPending = true
+            return
+        }
         viewModelScope.launch {
             isRefreshing.value = true
             errorMessage.value = null
@@ -91,13 +117,19 @@ class FeedViewModel(
                     .firstOrNull()
                 val diagnosticCode = firestoreError?.code?.name
                     ?: (error.message?.substringBefore(':')?.takeIf { it.matches(Regex("[A-Z0-9_]+")) })
-                errorMessage.value = if (diagnosticCode != null) {
-                    "Не удалось обновить ленту ($diagnosticCode). Показываем сохранённые новости."
-                } else {
-                    "Не удалось обновить ленту. Показываем сохранённые новости."
+                errorMessage.value = when {
+                    error is FirebaseSessionMismatchException ->
+                        "Войдите в Google-аккаунт, привязанный к этому профилю. Показываем сохранённую ленту."
+                    diagnosticCode != null ->
+                        "Не удалось обновить ленту ($diagnosticCode). Показываем сохранённые новости."
+                    else -> "Не удалось обновить ленту. Показываем сохранённые новости."
                 }
             } finally {
                 isRefreshing.value = false
+                if (refreshPending) {
+                    refreshPending = false
+                    refresh()
+                }
             }
         }
     }

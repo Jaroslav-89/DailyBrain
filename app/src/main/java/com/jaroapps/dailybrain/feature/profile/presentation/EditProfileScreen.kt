@@ -45,6 +45,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
@@ -60,6 +61,7 @@ import java.time.ZoneOffset
 fun EditProfileScreen(
     onBack: () -> Unit,
     onEditAvatar: () -> Unit,
+    onProfileDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
@@ -79,6 +81,7 @@ fun EditProfileScreen(
     var birthDateError by remember { mutableStateOf(false) }
     var datePickerVisible by remember { mutableStateOf(false) }
     var deleteDialogVisible by remember { mutableStateOf(false) }
+    var deleteProfileLocalAccountId by remember { mutableStateOf<String?>(null) }
     var unlinkConfirmationVisible by remember { mutableStateOf(false) }
     var googleSignInError by remember { mutableStateOf<String?>(null) }
     var isGoogleSignInInProgress by remember { mutableStateOf(false) }
@@ -148,7 +151,7 @@ fun EditProfileScreen(
             supportingText = { Text(stringResource(R.string.profile_name_optional)) },
             singleLine = true,
         )
-        if (profile?.firebaseUid != null) {
+        if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
             Spacer(Modifier.height(20.dp))
             Text("Уникальный ник", style = MaterialTheme.typography.titleMedium)
             Text(
@@ -250,13 +253,24 @@ fun EditProfileScreen(
         if (deleteDialogVisible) {
             AlertDialog(
                 onDismissRequest = {
-                    deleteDialogVisible = false
-                    viewModel.clearDeleteError()
+                    if (!state.isDeletingProfile) {
+                        deleteDialogVisible = false
+                        deleteProfileLocalAccountId = null
+                        viewModel.clearDeleteError()
+                    }
                 },
                 title = { Text("Удаление аккаунта?") },
                 text = {
                     Column {
                         Text(stringResource(R.string.profile_delete_warning))
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Локальные данные будут удалены сразу. Облачная очистка удалит полученные подарки и подписки, " +
+                                "но сохранит подарки, отправленные другим пользователям, и их эндорфины. " +
+                                "Если сети нет, очистка завершится при следующем входе через Google.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         if (state.deleteError) {
                             Spacer(Modifier.height(8.dp))
                             Text(
@@ -268,17 +282,32 @@ fun EditProfileScreen(
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { viewModel.deleteProfile(onDeleted = onBack) },
+                        onClick = {
+                            val localAccountId = deleteProfileLocalAccountId ?: return@TextButton
+                            viewModel.deleteProfile(localAccountId) {
+                                deleteDialogVisible = false
+                                deleteProfileLocalAccountId = null
+                                onProfileDeleted()
+                            }
+                        },
+                        enabled = !state.isDeletingProfile,
                     ) {
-                        Text(stringResource(R.string.profile_delete_confirm))
+                        Text(
+                            if (state.isDeletingProfile) "Удаляем..."
+                            else stringResource(R.string.profile_delete_confirm),
+                        )
                     }
                 },
                 dismissButton = {
                     TextButton(
                         onClick = {
-                            deleteDialogVisible = false
-                            viewModel.clearDeleteError()
+                            if (!state.isDeletingProfile) {
+                                deleteDialogVisible = false
+                                deleteProfileLocalAccountId = null
+                                viewModel.clearDeleteError()
+                            }
                         },
+                        enabled = !state.isDeletingProfile,
                     ) {
                         Text(stringResource(R.string.action_cancel))
                     }
@@ -354,7 +383,7 @@ fun EditProfileScreen(
                             onSaved = onBack,
                         )
                     }
-                    if (profile?.firebaseUid != null) {
+                    if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
                         directoryViewModel.saveUsername(username) { usernameSaved ->
                             if (usernameSaved) saveProfileDetails()
                         }
@@ -378,77 +407,99 @@ fun EditProfileScreen(
         }
 
         Spacer(Modifier.height(12.dp))
-        if (profile?.firebaseUid != null) {
-            Button(
-                onClick = {
-                    unlinkConfirmationVisible = true
-                    directoryViewModel.resetUsernameError()
-                },
-                enabled = !state.isSaving && !directoryState.isSavingUsername &&
-                    !directoryState.isUnlinkingGoogle,
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.error,
-                    contentColor = MaterialTheme.colorScheme.onError,
-                ),
-            ) {
-                Text("Отвязать Google аккаунт")
-            }
-            directoryState.unlinkError?.let { error ->
-                Spacer(Modifier.height(8.dp))
-                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
-        } else {
-            Button(
-                onClick = ::connectGoogle,
-                enabled = !state.isSaving && !isGoogleSignInInProgress && !state.isGoogleLinking,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                if (isGoogleSignInInProgress || state.isGoogleLinking) {
-                    androidx.compose.material3.CircularProgressIndicator(
-                        modifier = Modifier.size(18.dp),
-                        strokeWidth = 2.dp,
-                    )
-                } else {
-                    Text("Войти через Google аккаунт")
+        when (state.cloudSessionStatus) {
+            ProfileCloudSessionStatus.READY -> {
+                Button(
+                    onClick = {
+                        unlinkConfirmationVisible = true
+                        directoryViewModel.resetUsernameError()
+                    },
+                    enabled = !state.isSaving && !directoryState.isSavingUsername &&
+                        !directoryState.isUnlinkingGoogle,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError,
+                    ),
+                ) {
+                    Text("Отвязать Google аккаунт")
+                }
+                directoryState.unlinkError?.let { error ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
                 }
             }
-            googleSignInError?.let { error ->
-                Spacer(Modifier.height(8.dp))
-                Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            ProfileCloudSessionStatus.REAUTH_REQUIRED -> {
+                Text(
+                    "Этот профиль уже связан с Google, но активная Firebase-сессия не совпадает. Локальные данные можно редактировать, облачные функции временно отключены.",
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
+                )
+                state.googleReauthenticationError?.let { error ->
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                Button(
+                    onClick = viewModel::reauthenticateGoogleAccount,
+                    enabled = !state.isGoogleReauthenticating,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (state.isGoogleReauthenticating) "Выполняется вход..." else "Восстановить подключение Google")
+                }
             }
-            when (state.googleLinkError) {
-                GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> Text(
-                    "Этот Google-аккаунт уже привязан к другому профилю на устройстве.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                GoogleLinkError.FIREBASE_NOT_CONFIGURED -> Text(
-                    "Firebase не настроен. Проверьте app/google-services.json и Google provider в Firebase Authentication.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                GoogleLinkError.FIREBASE_AUTH_FAILED -> Text(
-                    firebaseDiagnosticDescription(state.googleLinkDiagnostic),
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                GoogleLinkError.SAVE_FAILED -> Text(
-                    "Не удалось сохранить привязку Google-аккаунта. Попробуйте ещё раз.",
-                    color = MaterialTheme.colorScheme.error,
-                    style = MaterialTheme.typography.bodySmall,
-                )
-                null -> Unit
+            ProfileCloudSessionStatus.NOT_LINKED -> {
+                Button(
+                    onClick = ::connectGoogle,
+                    enabled = !state.isSaving && !isGoogleSignInInProgress && !state.isGoogleLinking,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (isGoogleSignInInProgress || state.isGoogleLinking) {
+                        androidx.compose.material3.CircularProgressIndicator(
+                            modifier = Modifier.size(18.dp),
+                            strokeWidth = 2.dp,
+                        )
+                    } else {
+                        Text("Войти через Google аккаунт")
+                    }
+                }
+                googleSignInError?.let { error ->
+                    Spacer(Modifier.height(8.dp))
+                    Text(error, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+                }
+                when (state.googleLinkError) {
+                    GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> Text(
+                        "Этот Google-аккаунт уже привязан к другому профилю на устройстве.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    GoogleLinkError.FIREBASE_NOT_CONFIGURED -> Text(
+                        "Firebase не настроен. Проверьте app/google-services.json и Google provider в Firebase Authentication.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    GoogleLinkError.FIREBASE_AUTH_FAILED -> Text(
+                        firebaseDiagnosticDescription(state.googleLinkDiagnostic),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    GoogleLinkError.SAVE_FAILED -> Text(
+                        "Не удалось сохранить привязку Google-аккаунта. Попробуйте ещё раз.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                    )
+                    null -> Unit
+                }
             }
         }
 
         Spacer(Modifier.height(12.dp))
         Button(
             onClick = {
+                val localAccountId = profile?.localAccountId ?: return@Button
+                deleteProfileLocalAccountId = localAccountId
                 viewModel.clearDeleteError()
                 deleteDialogVisible = true
             },
-            enabled = !state.isSaving && state.profiles.size > 1,
+            enabled = !state.isSaving && !state.isDeletingProfile && profile != null,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
@@ -457,16 +508,6 @@ fun EditProfileScreen(
         ) {
             Text("Удаление аккаунта")
         }
-        if (state.profiles.size <= 1) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.profile_delete_last_profile_hint),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-
-
     }
 }
 

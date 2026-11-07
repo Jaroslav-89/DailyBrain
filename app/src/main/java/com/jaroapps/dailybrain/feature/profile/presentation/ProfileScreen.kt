@@ -60,6 +60,7 @@ import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.repository.BestExerciseResult
 import org.koin.androidx.compose.koinViewModel
 import java.time.Instant
@@ -99,9 +100,14 @@ fun ProfileScreen(
     var showMyQrDialog by remember { mutableStateOf(false) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
-    LaunchedEffect(directoryState.profile?.firebaseUid) {
+    val relationshipsReady =
+        state.cloudSessionStatus == ProfileCloudSessionStatus.READY &&
+            directoryState.cloudSessionStatus == ProfileCloudSessionStatus.READY
+    LaunchedEffect(directoryState.profile?.firebaseUid, directoryState.cloudSessionStatus) {
         directoryViewModel.refreshRelationships()
-        if (directoryState.profile?.firebaseUid != null) directoryViewModel.loadInviteCode()
+        if (directoryState.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
+            directoryViewModel.loadInviteCode()
+        }
     }
     val today = LocalDate.now()
     val trainingPeriod = stats.firstTrainingDate?.let { Period.between(it, today).plusDays(1) }
@@ -163,7 +169,7 @@ fun ProfileScreen(
                                 horizontalArrangement = Arrangement.spacedBy(6.dp),
                                 verticalAlignment = Alignment.CenterVertically,
                             ) {
-                                if (profile?.firebaseUid != null) {
+                                if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
                                     Icon(
                                         imageVector = Icons.Filled.CheckCircle,
                                         contentDescription = "Google аккаунт подтверждён",
@@ -223,6 +229,27 @@ fun ProfileScreen(
                 }
             }
 
+
+            if (state.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
+                Spacer(Modifier.height(12.dp))
+                Text(
+                    "Профиль привязан к Google, но текущая Firebase-сессия принадлежит другому аккаунту. Облачные функции временно отключены.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                state.googleReauthenticationError?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error)
+                }
+                Spacer(Modifier.height(6.dp))
+                Button(
+                    onClick = viewModel::reauthenticateGoogleAccount,
+                    enabled = !state.isGoogleReauthenticating,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text(if (state.isGoogleReauthenticating) "Выполняется вход..." else "Восстановить подключение Google")
+                }
+            }
+
             Spacer(Modifier.height(12.dp))
             Surface(
                 modifier = Modifier
@@ -238,11 +265,11 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(directoryState.followingUsers.size.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(if (relationshipsReady) directoryState.followingUsers.size.toString() else "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Подписок", style = MaterialTheme.typography.bodyMedium)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(directoryState.followerUsers.size.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(if (relationshipsReady) directoryState.followerUsers.size.toString() else "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Подписчиков", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -266,7 +293,7 @@ fun ProfileScreen(
                     Spacer(Modifier.width(8.dp))
                     Text("Добавить друзей")
                 }
-                if (profile?.firebaseUid != null) {
+                if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
                     Surface(
                         modifier = Modifier.size(48.dp),
                         shape = CircleShape,
@@ -392,7 +419,7 @@ fun ProfileScreen(
         }
     }
 
-    if (showMyQrDialog && profile?.firebaseUid != null) {
+    if (showMyQrDialog && state.cloudSessionStatus == ProfileCloudSessionStatus.READY && profile != null) {
         MyQrCodeDialog(
             profile = profile,
             inviteCode = profile.inviteCode ?: directoryState.inviteCode,

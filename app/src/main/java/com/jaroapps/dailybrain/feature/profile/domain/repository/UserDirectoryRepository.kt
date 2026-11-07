@@ -5,14 +5,27 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisti
 
 class UserDirectoryNotConfiguredException : IllegalStateException("Firebase is not configured.")
 class FirebaseSessionMismatchException : IllegalStateException("The active Firebase account does not match the selected local profile.")
+
+/**
+ * Shared guard used immediately before every Firebase/Firestore operation that belongs to a local profile.
+ * A stored Google binding is not enough: FirebaseAuth must hold the matching UID.
+ */
+fun requireMatchingFirebaseSession(expectedUid: String, currentUid: String?) {
+    if (expectedUid.isBlank() || currentUid != expectedUid) {
+        throw FirebaseSessionMismatchException()
+    }
+}
+
 class UsernameTakenException : IllegalStateException("The username is already reserved.")
 class UserDirectoryProfileMissingException : IllegalStateException("The cloud user profile does not exist.")
+class PublicProfileDeletedException : IllegalStateException("Профиль удалён.")
 
 interface UserDirectoryRepository {
     suspend fun ensureProfile(firebaseUid: String, email: String?, displayName: String?, avatarUrl: String?): String
     suspend fun isUsernameAvailable(firebaseUid: String, username: String): Boolean
     suspend fun updateUsername(firebaseUid: String, username: String)
     suspend fun unlinkProfile(firebaseUid: String)
+    suspend fun deleteProfileData(firebaseUid: String)
     suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile?
     suspend fun getOrCreateInviteCode(firebaseUid: String): String
     suspend fun findUserByInviteCode(firebaseUid: String, inviteCode: String): PublicUserProfile?

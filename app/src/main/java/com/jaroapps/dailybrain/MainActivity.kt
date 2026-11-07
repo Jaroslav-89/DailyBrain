@@ -65,6 +65,7 @@ class MainActivity : ComponentActivity() {
                     when (GlobalContext.get().get<GetStartupDestinationUseCase>().invoke().first()) {
                         StartupDestination.APP_ONBOARDING -> Route.APP_ONBOARDING
                         StartupDestination.HOME -> Route.HOME
+                        StartupDestination.PROFILE_SELECTION -> Route.PROFILE_SELECTION
                     }
                 }
             } catch (_: Exception) {

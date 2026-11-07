@@ -14,6 +14,7 @@ import com.jaroapps.dailybrain.core.database.dao.FeedEventDao
 import com.jaroapps.dailybrain.core.database.dao.OnboardingProgressDao
 import com.jaroapps.dailybrain.core.database.dao.UserInventoryDao
 import com.jaroapps.dailybrain.core.database.dao.GiftOutboxDao
+import com.jaroapps.dailybrain.core.database.dao.PendingProfileDeletionDao
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
@@ -28,6 +29,7 @@ import com.jaroapps.dailybrain.core.database.entity.UserGiftEntity
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.UserInventoryEntity
 import com.jaroapps.dailybrain.core.database.entity.GiftOutboxEntity
+import com.jaroapps.dailybrain.core.database.entity.PendingProfileDeletionEntity
 
 @Database(
     entities = [
@@ -45,8 +47,9 @@ import com.jaroapps.dailybrain.core.database.entity.GiftOutboxEntity
         FeedEventEntity::class,
         UserInventoryEntity::class,
         GiftOutboxEntity::class,
+        PendingProfileDeletionEntity::class,
     ],
-    version = 21,
+    version = 22,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -63,4 +66,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun feedEventDao(): FeedEventDao
     abstract fun userInventoryDao(): UserInventoryDao
     abstract fun giftOutboxDao(): GiftOutboxDao
+    abstract fun pendingProfileDeletionDao(): PendingProfileDeletionDao
 }

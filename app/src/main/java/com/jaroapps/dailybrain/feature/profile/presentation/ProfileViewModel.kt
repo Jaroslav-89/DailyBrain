@@ -4,10 +4,18 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleSignInCancelledException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleAccountMismatchException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleAccountNotLinkedException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseUidMismatchException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseNotConfiguredException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseAuthenticationException
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectible
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
@@ -15,14 +23,15 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUse
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteActiveProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ReauthenticateGoogleAccountUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.combine
-import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 
 enum class GoogleLinkError {
@@ -35,9 +44,17 @@ enum class GoogleLinkError {
 private data class ProfileActionState(
     val saveError: Boolean,
     val deleteError: Boolean,
+    val isDeletingProfile: Boolean,
     val isGoogleLinking: Boolean,
     val googleLinkError: GoogleLinkError?,
     val googleLinkDiagnostic: String?,
+    val isGoogleReauthenticating: Boolean,
+    val googleReauthenticationError: String?,
+)
+
+private data class ProfileSessionSnapshot(
+    val profile: UserProfile,
+    val firebaseUid: String?,
 )
 
 data class ProfileUiState(
@@ -47,9 +64,13 @@ data class ProfileUiState(
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
     val deleteError: Boolean = false,
+    val isDeletingProfile: Boolean = false,
     val isGoogleLinking: Boolean = false,
     val googleLinkError: GoogleLinkError? = null,
     val googleLinkDiagnostic: String? = null,
+    val cloudSessionStatus: ProfileCloudSessionStatus = ProfileCloudSessionStatus.NOT_LINKED,
+    val isGoogleReauthenticating: Boolean = false,
+    val googleReauthenticationError: String? = null,
 )
 
 class ProfileViewModel(
@@ -59,26 +80,59 @@ class ProfileViewModel(
     observeLocalProfiles: ObserveLocalProfilesUseCase,
     private val createLocalProfile: CreateLocalProfileUseCase,
     private val switchActiveProfile: SwitchActiveProfileUseCase,
-    private val deleteActiveProfile: DeleteActiveProfileUseCase,
+    private val deleteProfileUseCase: DeleteProfileUseCase,
     private val linkGoogleAccountUseCase: LinkGoogleAccountUseCase,
+    private val reauthenticateGoogleAccountUseCase: ReauthenticateGoogleAccountUseCase,
+    private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
     profileCollectiblesRepository: ProfileCollectiblesRepository,
     private val giftDeliveryRepository: GiftDeliveryRepository,
 ) : ViewModel() {
     private val saving = MutableStateFlow(false)
     private val saveError = MutableStateFlow(false)
     private val deleteError = MutableStateFlow(false)
+    private val deletingProfile = MutableStateFlow(false)
     private val googleLinking = MutableStateFlow(false)
     private val googleLinkError = MutableStateFlow<GoogleLinkError?>(null)
     private val googleLinkDiagnostic = MutableStateFlow<String?>(null)
+    private val googleReauthenticating = MutableStateFlow(false)
+    private val googleReauthenticationError = MutableStateFlow<String?>(null)
 
-    private val actionState = combine(
+    private val baseActionState = combine(
         saveError,
         deleteError,
+        deletingProfile,
         googleLinking,
         googleLinkError,
-        googleLinkDiagnostic,
-    ) { hasSaveError, hasDeleteError, isLinking, linkError, diagnostic ->
-        ProfileActionState(hasSaveError, hasDeleteError, isLinking, linkError, diagnostic)
+    ) { hasSaveError, hasDeleteError, isDeleting, isLinking, linkError ->
+        ProfileActionState(
+            saveError = hasSaveError,
+            deleteError = hasDeleteError,
+            isDeletingProfile = isDeleting,
+            isGoogleLinking = isLinking,
+            googleLinkError = linkError,
+            googleLinkDiagnostic = null,
+            isGoogleReauthenticating = false,
+            googleReauthenticationError = null,
+        )
+    }.combine(googleLinkDiagnostic) { state, diagnostic ->
+        state.copy(googleLinkDiagnostic = diagnostic)
+    }
+    private val actionState = combine(
+        baseActionState,
+        googleReauthenticating,
+        googleReauthenticationError,
+    ) { base, isReauthenticating, reauthError ->
+        base.copy(
+            isGoogleReauthenticating = isReauthenticating,
+            googleReauthenticationError = reauthError,
+        )
+    }
+
+    private val profileSession = combine(
+        observeUserProfile(),
+        firebaseAuthenticationRepository.observeCurrentUserId(),
+    ) { profile, firebaseUid ->
+        ProfileSessionSnapshot(profile, firebaseUid)
     }
 
     val collectibles: StateFlow<List<ProfileCollectible>> = profileCollectiblesRepository.observeOwn()
@@ -89,22 +143,31 @@ class ProfileViewModel(
     }
 
     val uiState: StateFlow<ProfileUiState> = combine(
-        observeUserProfile(),
+        profileSession,
         observeLocalProfiles(),
         observeProfileStatistics(),
         saving,
         actionState,
-    ) { profile, profiles, statistics, isSaving, actions ->
+    ) { session, profiles, statistics, isSaving, actions ->
+        val cloudSessionStatus = when {
+            session.profile.firebaseUid.isNullOrBlank() -> ProfileCloudSessionStatus.NOT_LINKED
+            session.firebaseUid == session.profile.firebaseUid -> ProfileCloudSessionStatus.READY
+            else -> ProfileCloudSessionStatus.REAUTH_REQUIRED
+        }
         ProfileUiState(
-            profile = profile,
+            profile = session.profile,
             profiles = profiles,
             statistics = statistics,
             isSaving = isSaving,
             saveError = actions.saveError,
             deleteError = actions.deleteError,
+            isDeletingProfile = actions.isDeletingProfile,
             isGoogleLinking = actions.isGoogleLinking,
             googleLinkError = actions.googleLinkError,
             googleLinkDiagnostic = actions.googleLinkDiagnostic,
+            cloudSessionStatus = cloudSessionStatus,
+            isGoogleReauthenticating = actions.isGoogleReauthenticating,
+            googleReauthenticationError = actions.googleReauthenticationError,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ProfileUiState())
 
@@ -133,14 +196,21 @@ class ProfileViewModel(
         }
     }
 
-    fun deleteProfile(onDeleted: () -> Unit) {
+    fun deleteProfile(localAccountId: String, onDeleted: () -> Unit) {
+        if (localAccountId.isBlank() || deletingProfile.value) return
         viewModelScope.launch {
+            if (deletingProfile.value) return@launch
+            deletingProfile.value = true
             deleteError.value = false
             try {
-                deleteActiveProfile()
+                deleteProfileUseCase(localAccountId)
                 onDeleted()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
                 deleteError.value = true
+            } finally {
+                deletingProfile.value = false
             }
         }
     }
@@ -152,6 +222,43 @@ class ProfileViewModel(
     fun clearGoogleLinkError() {
         googleLinkError.value = null
         googleLinkDiagnostic.value = null
+    }
+
+    fun clearGoogleReauthenticationError() {
+        googleReauthenticationError.value = null
+    }
+
+    fun reauthenticateGoogleAccount() {
+        val localAccountId = uiState.value.profile?.localAccountId ?: return
+        if (googleReauthenticating.value) return
+        viewModelScope.launch {
+            googleReauthenticating.value = true
+            googleReauthenticationError.value = null
+            try {
+                reauthenticateGoogleAccountUseCase(localAccountId)
+                refreshIncomingGifts()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                googleReauthenticationError.value = when (error) {
+                    is ProfileGoogleSignInCancelledException ->
+                        "Вход в Google отменён. Облачные функции остаются отключёнными."
+                    is ProfileGoogleAccountMismatchException ->
+                        "Выбран другой Google-аккаунт. Выберите аккаунт, привязанный к этому профилю."
+                    is ProfileGoogleAccountNotLinkedException ->
+                        "У профиля нет привязки Google. Сначала подключите аккаунт."
+                    is ProfileFirebaseUidMismatchException ->
+                        "Firebase вернул другой аккаунт. Сохранённая привязка не изменена."
+                    is ProfileFirebaseNotConfiguredException ->
+                        "Firebase не настроен в приложении. Проверьте app/google-services.json."
+                    is ProfileFirebaseAuthenticationException ->
+                        firebaseDiagnosticDescription(error.diagnosticCode)
+                    else -> "Не удалось восстановить подключение Google. Попробуйте ещё раз."
+                }
+            } finally {
+                googleReauthenticating.value = false
+            }
+        }
     }
 
     fun linkGoogleAccount(signInResult: GoogleSignInResult) {
