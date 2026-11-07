@@ -361,6 +361,8 @@ fun HomeScreen(
                                                 "$dateLabel: начать арифметику"
                                             ArithmeticDayStatus.COMPLETED ->
                                                 "$dateLabel: тренировка выполнена"
+                                            ArithmeticDayStatus.PATCHED ->
+                                                "$dateLabel: пропущенный день защищён пластырем"
                                             ArithmeticDayStatus.BEFORE_FIRST_TRAINING ->
                                                 "$dateLabel: тренировки ещё не начались"
                                             ArithmeticDayStatus.MISSED ->
@@ -369,32 +371,40 @@ fun HomeScreen(
                                     },
                                 contentAlignment = Alignment.Center,
                             ) {
-                                Box(Modifier.fillMaxSize()) {
-                                    Icon(
-                                        imageVector = Icons.Filled.Add,
-                                        contentDescription = null,
-                                        tint = colorResource(R.color.color_on_accent),
-                                        modifier = Modifier
-                                            .align(Alignment.TopStart)
-                                            .padding(start = 14.dp, top = 13.dp)
-                                            .size(12.dp),
-                                    )
+                                if (status == ArithmeticDayStatus.PATCHED) {
                                     Text(
-                                        text = "/",
-                                        color = colorResource(R.color.color_on_accent),
-                                        fontSize = 16.sp,
-                                        fontWeight = FontWeight.Bold,
+                                        text = "🩹",
+                                        fontSize = 26.sp,
                                         modifier = Modifier.align(Alignment.Center),
                                     )
-                                    Icon(
-                                        imageVector = Icons.Filled.Remove,
-                                        contentDescription = null,
-                                        tint = colorResource(R.color.color_on_accent),
-                                        modifier = Modifier
-                                            .align(Alignment.BottomEnd)
-                                            .padding(end = 14.dp, bottom = 13.dp)
-                                            .size(12.dp),
-                                    )
+                                } else {
+                                    Box(Modifier.fillMaxSize()) {
+                                        Icon(
+                                            imageVector = Icons.Filled.Add,
+                                            contentDescription = null,
+                                            tint = colorResource(R.color.color_on_accent),
+                                            modifier = Modifier
+                                                .align(Alignment.TopStart)
+                                                .padding(start = 14.dp, top = 13.dp)
+                                                .size(12.dp),
+                                        )
+                                        Text(
+                                            text = "/",
+                                            color = colorResource(R.color.color_on_accent),
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold,
+                                            modifier = Modifier.align(Alignment.Center),
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Filled.Remove,
+                                            contentDescription = null,
+                                            tint = colorResource(R.color.color_on_accent),
+                                            modifier = Modifier
+                                                .align(Alignment.BottomEnd)
+                                                .padding(end = 14.dp, bottom = 13.dp)
+                                                .size(12.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -424,6 +434,7 @@ private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (st
     ArithmeticDayStatus.AVAILABLE_TODAY,
     ArithmeticDayStatus.FUTURE -> colorResource(R.color.color_training_disabled)
     ArithmeticDayStatus.COMPLETED -> colorResource(R.color.color_training_completed)
+    ArithmeticDayStatus.PATCHED -> colorResource(R.color.color_training_patched)
     ArithmeticDayStatus.MISSED -> colorResource(R.color.color_training_missed)
 }
 
