@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.common.data.repository
 
 import androidx.room.withTransaction
 import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
+import com.jaroapps.dailybrain.common.domain.model.StreakPatchRules
 import com.jaroapps.dailybrain.common.domain.repository.StreakPatchRepository
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
@@ -53,55 +54,47 @@ class StreakPatchRepositoryImpl(
                 )
             }
 
-            var cursor = runCatching {
+            val cursor = runCatching {
                 LocalDate.parse(state.lastProcessedDate.toString(), DateTimeFormatter.BASIC_ISO_DATE)
             }.getOrElse { yesterday }
-            var streakActive = state.isStreakActive
-            var remainingPatches = profile.patchCount.coerceAtLeast(0)
-            var appliedCount = 0
+            val result = StreakPatchRules.process(
+                lastProcessedDate = cursor,
+                throughDate = yesterday,
+                trainingDates = TrainingStreakCalculator.parseDateKeys(trainingDateKeys),
+                existingPatchedDates = TrainingStreakCalculator.parseDateKeys(patchDays),
+                isStreakActive = state.isStreakActive,
+                availablePatches = profile.patchCount,
+            )
 
-            while (cursor.isBefore(yesterday)) {
-                cursor = cursor.plusDays(1)
-                val dateKey = cursor.toDateKey()
-                when {
-                    dateKey in trainingDateKeys -> streakActive = true
-                    dateKey in patchDays -> streakActive = true
-                    streakActive && remainingPatches > 0 -> {
-                        val inserted = patchDao.insertDayIfAbsent(
-                            StreakPatchDayEntity(
-                                userId = userId,
-                                date = dateKey,
-                                appliedAtEpochMs = System.currentTimeMillis(),
-                            ),
-                        )
-                        if (inserted != -1L) {
-                            patchDays += dateKey
-                            remainingPatches--
-                            appliedCount++
-                        }
-                    }
-                    else -> streakActive = false
-                }
+            val appliedAt = System.currentTimeMillis()
+            result.newlyPatchedDates.forEach { date ->
+                patchDao.insertDayIfAbsent(
+                    StreakPatchDayEntity(
+                        userId = userId,
+                        date = date.toDateKey(),
+                        appliedAtEpochMs = appliedAt,
+                    ),
+                )
             }
-
+            val appliedCount = result.newlyPatchedDates.size
             patchDao.saveState(
                 StreakPatchStateEntity(
                     userId = userId,
-                    lastProcessedDate = maxOf(state.lastProcessedDate, yesterdayKey),
-                    isStreakActive = streakActive,
+                    lastProcessedDate = maxOf(result.lastProcessedDate.toDateKey(), state.lastProcessedDate),
+                    isStreakActive = result.isStreakActive,
                 ),
             )
 
             if (appliedCount > 0) {
                 profileDao.save(
                     profile.copy(
-                        patchCount = remainingPatches,
-                        updatedAtEpochMs = System.currentTimeMillis(),
+                        patchCount = (profile.patchCount - appliedCount).coerceAtLeast(0),
+                        updatedAtEpochMs = appliedAt,
                     ),
                 )
                 RewardRecalculator.recalculate(database, userId)
-                updateCachedStreak(userId, today)
             }
+            updateCachedStreak(userId, today)
             appliedCount
         }
     }
