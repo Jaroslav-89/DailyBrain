@@ -60,7 +60,9 @@ class FirestoreGiftDeliveryRepository(
                 .document(gift.giftId)
                 .set(payload)
                 .awaitResult()
-            database.giftOutboxDao().markSent(localUserId, gift.giftId)
+            // Persist the local feed event before marking the outbox item complete.
+            // If the app stops after the Firestore write, the next sync safely retries the
+            // same document ID and still creates the sender's feed event.
             if (addOutgoingFeedEvent(
                     localUserId = localUserId,
                     firebaseUid = firebaseUid,
@@ -72,6 +74,7 @@ class FirestoreGiftDeliveryRepository(
             ) {
                 feedEventsUpdated = true
             }
+            database.giftOutboxDao().markSent(localUserId, gift.giftId)
             sentCount++
         }
         if (feedEventsUpdated) feedSyncTrigger.requestSync()
