@@ -36,12 +36,8 @@ class MainActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         lifecycleScope.launch {
-            try {
-                GlobalContext.get().get<BrainStateManager>().refresh()
-                runCatching { GlobalContext.get().get<ProcessMissedStreakDaysUseCase>().invoke() }
-            } catch (_: Exception) {
-                // Mood refresh must not prevent the app from opening.
-            }
+            runCatching { GlobalContext.get().get<BrainStateManager>().refresh() }
+            runCatching { GlobalContext.get().get<ProcessMissedStreakDaysUseCase>().invoke() }
         }
     }
 
