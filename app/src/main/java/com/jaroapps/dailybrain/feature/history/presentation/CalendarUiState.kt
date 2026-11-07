@@ -28,6 +28,7 @@ data class CalendarUiState(
     val patchedDates: Set<LocalDate> = emptySet(),
     val firstTrainingDate: LocalDate? = null,
     val weeklyChallengeConditions: List<WeeklyChallengeConditionUiState> = emptyList(),
+    val monthlyChallengeConditions: List<WeeklyChallengeConditionUiState> = emptyList(),
     val currentTime: LocalDateTime = LocalDateTime.now(),
 ) {
     val today: LocalDate
@@ -62,6 +63,9 @@ data class CalendarUiState(
 
     val isWeeklyChallengeCompleted: Boolean
         get() = weeklyChallengeConditions.isNotEmpty() && weeklyChallengeConditions.all { it.isCompleted }
+
+    val isMonthlyChallengeCompleted: Boolean
+        get() = monthlyChallengeConditions.isNotEmpty() && monthlyChallengeConditions.all { it.isCompleted }
 
     val hoursRemainingToday: Int
         get() {
