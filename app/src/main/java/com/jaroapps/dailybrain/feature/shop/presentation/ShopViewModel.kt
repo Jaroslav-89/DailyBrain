@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.feature.shop.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticCatalog
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
@@ -33,6 +34,7 @@ data class ShopUiState(
     val isLoadingRecipients: Boolean = false,
     val isPurchasing: Boolean = false,
     val message: String? = null,
+    val messageTitle: String = "Магазин",
     val giftPrompt: ShopGiftPrompt? = null,
 )
 
@@ -41,6 +43,7 @@ private data class ShopActions(
     val isLoadingRecipients: Boolean = false,
     val isPurchasing: Boolean = false,
     val message: String? = null,
+    val messageTitle: String = "Магазин",
     val giftPrompt: ShopGiftPrompt? = null,
 )
 
@@ -65,6 +68,7 @@ class ShopViewModel(
             isLoadingRecipients = action.isLoadingRecipients,
             isPurchasing = action.isPurchasing,
             message = action.message,
+            messageTitle = action.messageTitle,
             giftPrompt = action.giftPrompt,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShopUiState())
@@ -118,15 +122,23 @@ class ShopViewModel(
     }
 
     fun dismissMessage() {
-        actions.value = actions.value.copy(message = null)
+        actions.value = actions.value.copy(message = null, messageTitle = "Магазин")
     }
 
     fun purchasePatch() {
-        purchase { shopRepository.purchasePatch(UUID.randomUUID().toString()) }
+        val newPatchCount = (uiState.value.profile?.patchCount ?: 0) + 1
+        purchase(
+            successMessage = "Пластырь куплен! Теперь у вас $newPatchCount из ${com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy.MAX_PATCH_COUNT}.",
+        ) {
+            shopRepository.purchasePatch(UUID.randomUUID().toString())
+        }
     }
 
     fun purchaseCosmetic(type: AvatarCosmeticType, itemId: String) {
-        purchase {
+        val itemName = AvatarCosmeticCatalog.find(type, itemId)?.displayName ?: "Предмет"
+        purchase(
+            successMessage = "$itemName куплен! Теперь он доступен в редакторе аватара в профиле.",
+        ) {
             shopRepository.purchaseCosmetic(type, itemId, UUID.randomUUID().toString())
         }
     }
@@ -149,10 +161,15 @@ class ShopViewModel(
                 val giftId = System.currentTimeMillis().toString() + "_" + UUID.randomUUID()
                 when (val result = shopRepository.purchaseGift(recipient.firebaseUid, giftType, giftId)) {
                     is ShopPurchaseResult.Purchased -> {
-                        val sent = runCatching { giftDeliveryRepository.syncPendingOutgoing() }.getOrDefault(0) > 0
+                        val sent = runCatching {
+                            giftDeliveryRepository.syncPendingOutgoing(giftId)
+                        }.getOrDefault(false)
+                        val recipientName = recipient.displayName?.trim()?.takeIf(String::isNotEmpty)
+                            ?: "@${recipient.username}"
                         showMessage(
-                            if (sent) "Подарок отправлен!"
-                            else "Подарок сохранён и будет отправлен при восстановлении соединения.",
+                            if (sent) "Подарок «${giftType.displayName}» отправлен пользователю $recipientName."
+                            else "Подарок «${giftType.displayName}» сохранён и будет отправлен пользователю $recipientName при восстановлении соединения.",
+                            if (sent) "Подарок отправлен" else "Подарок сохранён",
                         )
                     }
                     is ShopPurchaseResult.InsufficientFunds ->
@@ -193,10 +210,15 @@ class ShopViewModel(
                     giftId = giftId,
                 )) {
                     is ShopPurchaseResult.Purchased -> {
-                        val sent = runCatching { giftDeliveryRepository.syncPendingOutgoing() }.getOrDefault(0) > 0
+                        val sent = runCatching {
+                            giftDeliveryRepository.syncPendingOutgoing(giftId)
+                        }.getOrDefault(false)
+                        val recipientName = recipient.displayName?.trim()?.takeIf(String::isNotEmpty)
+                            ?: "@${recipient.username}"
                         showMessage(
-                            if (sent) "Подарок отправлен!"
-                            else "Подарок сохранён и будет отправлен при восстановлении соединения.",
+                            if (sent) "Предмет «${item.displayName}» отправлен пользователю $recipientName."
+                            else "Предмет «${item.displayName}» сохранён и будет отправлен пользователю $recipientName при восстановлении соединения.",
+                            if (sent) "Подарок отправлен" else "Подарок сохранён",
                         )
                     }
                     is ShopPurchaseResult.InsufficientFunds ->
@@ -224,13 +246,16 @@ class ShopViewModel(
         }
     }
 
-    private fun purchase(operation: suspend () -> ShopPurchaseResult) {
+    private fun purchase(
+        successMessage: String,
+        operation: suspend () -> ShopPurchaseResult,
+    ) {
         if (actions.value.isPurchasing) return
         viewModelScope.launch {
             actions.value = actions.value.copy(isPurchasing = true, message = null)
             try {
                 when (val result = operation()) {
-                    is ShopPurchaseResult.Purchased -> showMessage("Покупка успешно совершена!")
+                    is ShopPurchaseResult.Purchased -> showMessage(successMessage, "Покупка успешна")
                     is ShopPurchaseResult.InsufficientFunds ->
                         showMessage("Недостаточно эндорфинов: у вас " + result.currentBalance +
                             ", требуется " + result.requiredAmount + ".")
@@ -248,7 +273,7 @@ class ShopViewModel(
         }
     }
 
-    private fun showMessage(message: String) {
-        actions.value = actions.value.copy(message = message)
+    private fun showMessage(message: String, title: String = "Магазин") {
+        actions.value = actions.value.copy(message = message, messageTitle = title)
     }
 }
