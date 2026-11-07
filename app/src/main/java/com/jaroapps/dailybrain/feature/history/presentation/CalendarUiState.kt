@@ -48,7 +48,14 @@ data class CalendarUiState(
 
     /** Number of active or patch-protected dates so far in the current calendar month. */
     val monthlyStreakProgress: Int
-        get() = streakDates.count { !it.isAfter(today) && YearMonth.from(it) == YearMonth.from(today) }
+        get() {
+            val month = YearMonth.from(today)
+            var consecutiveDays = 0
+            for (dayNumber in 1..today.dayOfMonth) {
+                if (month.atDay(dayNumber) in streakDates) consecutiveDays++ else break
+            }
+            return consecutiveDays
+        }
 
     val monthlyStreakTarget: Int
         get() = YearMonth.from(today).lengthOfMonth()
