@@ -35,6 +35,7 @@ class StartupViewModel(
             try {
                 getStartupDestination().collect { destination ->
                     _uiState.value = when (destination) {
+                        StartupDestination.PROFILE_SELECTION -> StartupUiState.ProfileSelectionRequired
                         StartupDestination.APP_ONBOARDING -> StartupUiState.AppIntroRequired
                         StartupDestination.HOME -> StartupUiState.HomeReady
                     }
