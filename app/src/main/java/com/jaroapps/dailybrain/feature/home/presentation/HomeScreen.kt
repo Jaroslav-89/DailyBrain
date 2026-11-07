@@ -1,12 +1,16 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -41,6 +45,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalIndication
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.colorResource
@@ -207,10 +212,11 @@ fun HomeScreen(
                 .weight(1f),
         ) {
             val arithmeticButtonSize = 56.dp
-            val arithmeticRingSize = 108.dp
-            val dayItemHeight = 112.dp
+            val arithmeticRingSize = 100.dp
+            val dayItemWidth = arithmeticRingSize + 36.dp
+            val dayItemHeight = 100.dp
             val additionalButtonSize = 72.dp
-            val additionalRingSize = 120.dp
+            val additionalRingSize = 112.dp
 
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
@@ -279,6 +285,13 @@ fun HomeScreen(
             )
 
             state.currentWeekDates.forEachIndexed { index, date ->
+                val interactionSource = remember(date) { MutableInteractionSource() }
+                val isPressed by interactionSource.collectIsPressedAsState()
+                val pressOffset by animateDpAsState(
+                    targetValue = if (isPressed) 5.dp else 0.dp,
+                    animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
+                    label = "arithmeticButtonPress",
+                )
                 val status = state.arithmeticDayStatus(date)
                 val color = arithmeticButtonColor(status)
                 val today = date == state.today
@@ -287,13 +300,13 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .offset(
-                            x = x(horizontalPositions[index], arithmeticRingSize),
+                            x = x(horizontalPositions[index], dayItemWidth),
                             y = y(index / 6f, dayItemHeight),
                         )
-                        .size(width = arithmeticRingSize, height = dayItemHeight),
-                    contentAlignment = Alignment.TopCenter,
+                        .size(width = dayItemWidth, height = dayItemHeight),
+                    contentAlignment = Alignment.CenterStart,
                 ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier.size(arithmeticRingSize),
                             contentAlignment = Alignment.Center,
@@ -301,14 +314,14 @@ fun HomeScreen(
                             if (today) {
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
-                                    initialRadius = 40.dp,
-                                    targetRadius = 50.dp,
+                                    initialRadius = 36.dp,
+                                    targetRadius = 45.dp,
                                 )
                             }
 
                             Box(
                                 modifier = Modifier
-                                    .offset(y = 4.dp)
+                                     .offset(y = 4.dp + pressOffset)
                                     .size(arithmeticButtonSize)
                                     .clip(CircleShape)
                                     .background(depthColor(color)),
@@ -317,6 +330,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .size(arithmeticButtonSize)
                                     .graphicsLayer {
+                                        translationY = pressOffset.toPx()
                                         rotationX = 9f
                                         cameraDistance = 12f * density
                                         shadowElevation = 7.dp.toPx()
@@ -325,6 +339,8 @@ fun HomeScreen(
                                     }
                                     .background(color, CircleShape)
                                     .clickable(
+                                        interactionSource = interactionSource,
+                                        indication = LocalIndication.current,
                                         enabled = today,
                                         onClick = onStartTraining,
                                     )
@@ -359,7 +375,7 @@ fun HomeScreen(
                                     Text(
                                         text = "/",
                                         color = colorResource(R.color.color_on_accent),
-                                        fontSize = 16.sp,
+                                        fontSize = 14.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.align(Alignment.Center),
                                     )
@@ -378,13 +394,11 @@ fun HomeScreen(
 
                         Text(
                             text = dateLabel,
-                            modifier = Modifier.offset(y = (-8).dp),
+                            modifier = Modifier.padding(start = 0.dp),
                             style = MaterialTheme.typography.titleMedium,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (dynamicBackgroundEnabled) homeTextColor
-                                else if (today) colorResource(R.color.color_training_completed)
-                                else MaterialTheme.colorScheme.onSurface,
+                            color = homeTextColor,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                         )
@@ -460,6 +474,13 @@ private fun RoundExerciseButton(
     },
 ) {
     val buttonColor = if (completed) colorResource(R.color.color_training_completed) else colorResource(R.color.color_training_disabled)
+    val interactionSource = remember { MutableInteractionSource() }
+    val isPressed by interactionSource.collectIsPressedAsState()
+    val pressOffset by animateDpAsState(
+        targetValue = if (isPressed) 5.dp else 0.dp,
+        animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
+        label = "roundExerciseButtonPress",
+    )
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
@@ -469,13 +490,13 @@ private fun RoundExerciseButton(
         if (!completed) {
             StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                radius = size / 2 + 24.dp,
+                radius = size / 2 + 20.dp,
             )
         }
 
         Box(
             modifier = Modifier
-                .offset(y = 4.dp)
+                 .offset(y = 4.dp + pressOffset)
                 .size(size)
                 .clip(CircleShape)
                 .background(depthColor(buttonColor)),
@@ -484,6 +505,7 @@ private fun RoundExerciseButton(
             modifier = Modifier
                 .size(size)
                 .graphicsLayer {
+                    translationY = pressOffset.toPx()
                     rotationX = 9f
                     cameraDistance = 12f * density
                     shadowElevation = 7.dp.toPx()
@@ -491,7 +513,11 @@ private fun RoundExerciseButton(
                     clip = true
                 }
                 .background(buttonColor, CircleShape)
-                .clickable(onClick = onClick)
+                .clickable(
+                    interactionSource = interactionSource,
+                    indication = LocalIndication.current,
+                    onClick = onClick,
+                )
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
