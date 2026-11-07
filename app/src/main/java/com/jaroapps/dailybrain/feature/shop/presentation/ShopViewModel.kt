@@ -21,6 +21,11 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.UUID
 
+enum class ShopGiftPrompt {
+    GOOGLE_AUTH_REQUIRED,
+    FIND_FRIENDS,
+}
+
 data class ShopUiState(
     val profile: UserProfile? = null,
     val inventory: List<ShopCosmeticOwnership> = emptyList(),
@@ -28,6 +33,7 @@ data class ShopUiState(
     val isLoadingRecipients: Boolean = false,
     val isPurchasing: Boolean = false,
     val message: String? = null,
+    val giftPrompt: ShopGiftPrompt? = null,
 )
 
 private data class ShopActions(
@@ -35,6 +41,7 @@ private data class ShopActions(
     val isLoadingRecipients: Boolean = false,
     val isPurchasing: Boolean = false,
     val message: String? = null,
+    val giftPrompt: ShopGiftPrompt? = null,
 )
 
 class ShopViewModel(
@@ -58,6 +65,7 @@ class ShopViewModel(
             isLoadingRecipients = action.isLoadingRecipients,
             isPurchasing = action.isPurchasing,
             message = action.message,
+            giftPrompt = action.giftPrompt,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ShopUiState())
 
@@ -75,21 +83,42 @@ class ShopViewModel(
     fun refreshRecipients() {
         val firebaseUid = uiState.value.profile?.firebaseUid
         if (firebaseUid.isNullOrBlank()) {
-            showMessage("Чтобы дарить подарки, подключите Google-аккаунт в профиле.")
+            actions.value = actions.value.copy(
+                followingUsers = emptyList(),
+                isLoadingRecipients = false,
+                message = null,
+                giftPrompt = ShopGiftPrompt.GOOGLE_AUTH_REQUIRED,
+            )
             return
         }
+        actions.value = actions.value.copy(
+            followingUsers = emptyList(),
+            isLoadingRecipients = true,
+            message = null,
+            giftPrompt = null,
+        )
         viewModelScope.launch {
-            actions.value = actions.value.copy(isLoadingRecipients = true, message = null)
             try {
                 val users = userDirectoryRepository.getFollowing(firebaseUid)
                     .filterNot { it.firebaseUid == firebaseUid }
-                actions.value = actions.value.copy(followingUsers = users)
+                actions.value = actions.value.copy(
+                    followingUsers = users,
+                    giftPrompt = if (users.isEmpty()) ShopGiftPrompt.FIND_FRIENDS else null,
+                )
             } catch (_: Exception) {
                 showMessage("Не удалось загрузить список подписок.")
             } finally {
                 actions.value = actions.value.copy(isLoadingRecipients = false)
             }
         }
+    }
+
+    fun dismissGiftPrompt() {
+        actions.value = actions.value.copy(giftPrompt = null)
+    }
+
+    fun dismissMessage() {
+        actions.value = actions.value.copy(message = null)
     }
 
     fun purchasePatch() {
@@ -127,7 +156,8 @@ class ShopViewModel(
                         )
                     }
                     is ShopPurchaseResult.InsufficientFunds ->
-                        showMessage("Недостаточно эндорфинов: требуется " + result.requiredAmount + ".")
+                        showMessage("Недостаточно эндорфинов: у вас " + result.currentBalance +
+                            ", требуется " + result.requiredAmount + ".")
                     is ShopPurchaseResult.AlreadyProcessed -> showMessage("Эта отправка подарка уже обработана.")
                     else -> showMessage("Не удалось отправить подарок.")
                 }
@@ -170,7 +200,8 @@ class ShopViewModel(
                         )
                     }
                     is ShopPurchaseResult.InsufficientFunds ->
-                        showMessage("Недостаточно эндорфинов: требуется " + result.requiredAmount + ".")
+                        showMessage("Недостаточно эндорфинов: у вас " + result.currentBalance +
+                            ", требуется " + result.requiredAmount + ".")
                     is ShopPurchaseResult.AlreadyProcessed ->
                         showMessage("Эта отправка подарка уже обработана.")
                     ShopPurchaseResult.AccountNotLinked ->
@@ -201,7 +232,8 @@ class ShopViewModel(
                 when (val result = operation()) {
                     is ShopPurchaseResult.Purchased -> showMessage("Покупка успешно совершена!")
                     is ShopPurchaseResult.InsufficientFunds ->
-                        showMessage("Недостаточно эндорфинов: требуется " + result.requiredAmount + ".")
+                        showMessage("Недостаточно эндорфинов: у вас " + result.currentBalance +
+                            ", требуется " + result.requiredAmount + ".")
                     is ShopPurchaseResult.AlreadyProcessed -> showMessage("Покупка уже была обработана.")
                     ShopPurchaseResult.AlreadyOwned -> showMessage("Этот предмет уже куплен.")
                     ShopPurchaseResult.PatchLimitReached -> showMessage("У вас уже максимальное количество пластырей.")
