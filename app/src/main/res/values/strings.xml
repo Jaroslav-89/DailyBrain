@@ -135,7 +135,10 @@
     <string name="counting_instruction">Считай вслух от 1 до 120 как можно быстрее.</string>
 
     <!-- Stroop exercise screen -->
-    <string name="stroop_instruction">Называй цвет текста, а не то, что написано</string>
+    <string name="stroop_instruction">Называй цвет фона, а не то, что написано</string>
+    <string name="stroop_example_title">Пример. Назови цвет фона:</string>
+    <string name="stroop_example_answer">Ответ: %1$s</string>
+    <string name="exercise_full_information">Полная информация об упражнении</string>
 
     <!-- Profile screens -->
     <string name="profile_title">Мой профиль</string>
