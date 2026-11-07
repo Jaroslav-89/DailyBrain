@@ -7,12 +7,16 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -27,6 +31,8 @@ data class FeedUiState(
 
 class FeedViewModel(
     private val repository: FeedRepository,
+    observeUserProfile: ObserveUserProfileUseCase,
+    firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
 ) : ViewModel() {
     private val events = MutableStateFlow<List<FeedEvent>>(emptyList())
     private val isRefreshing = MutableStateFlow(false)
@@ -68,7 +74,21 @@ class FeedViewModel(
                 hasMore.value = firstPageWithLookahead.size > PAGE_SIZE || alreadyLoadedOlder.isNotEmpty()
             }
         }
-        refresh()
+        viewModelScope.launch {
+            combine(
+                observeUserProfile(),
+                firebaseAuthenticationRepository.observeCurrentUserId(),
+            ) { profile, firebaseUid ->
+                profile.firebaseUid?.takeIf { it.isNotBlank() && it == firebaseUid }
+            }
+                .distinctUntilChanged()
+                .filterNotNull()
+                .collect {
+                    // Re-run the feed sync only when a local profile and Firebase session match.
+                    // This also retries a previously deferred sync after explicit reauthentication.
+                    refresh()
+                }
+        }
     }
 
     fun refresh() {

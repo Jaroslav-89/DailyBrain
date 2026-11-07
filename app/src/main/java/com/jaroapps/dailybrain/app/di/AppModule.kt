@@ -196,7 +196,13 @@ val appModule = module {
         )
     }
     single<FeedSyncTrigger> { FeedSyncManager(repository = get()) }
-    viewModel { FeedViewModel(repository = get()) }
+    viewModel {
+        FeedViewModel(
+            repository = get(),
+            observeUserProfile = get(),
+            firebaseAuthenticationRepository = get(),
+        )
+    }
 
     // Local profile/account feature
     single<UserProfileRepository> { UserProfileRepositoryImpl(database = get(), activeUserProvider = get()) }
