@@ -16,5 +16,6 @@ interface FirebaseAuthenticationRepository {
         expectedGoogleSubject: String,
     ): FirebaseGoogleSignInResult
 
+    fun currentUserId(): String?
     fun signOut()
 }

@@ -46,6 +46,9 @@ class UserProfileRepositoryImpl(
     override fun observeProfiles(): Flow<List<UserProfile>> =
         database.userProfileDao().observeProfiles().map { profiles -> profiles.map { it.toDomain() } }
 
+    override suspend fun getProfile(localAccountId: String): UserProfile? =
+        database.userProfileDao().getProfile(localAccountId)?.toDomain()
+
     override suspend fun createLocalProfile(): UserProfile {
         val localAccountId = UUID.randomUUID().toString()
         val profile = createInitialProfile(

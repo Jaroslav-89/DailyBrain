@@ -74,6 +74,9 @@ import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncVie
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileViewModel
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsViewModel
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInProvider
+import com.jaroapps.dailybrain.feature.profile.data.auth.ActiveProfileAuthCoordinator
+import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileAuthSessionManager
 import com.jaroapps.dailybrain.feature.profile.data.auth.FirebaseAuthenticationRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
@@ -205,8 +208,15 @@ val appModule = module {
         )
     }
     single { GoogleSignInClient() }
+    single<GoogleSignInProvider> { get<GoogleSignInClient>() }
     single<FirebaseAuthenticationRepository> {
         FirebaseAuthenticationRepositoryImpl(context = androidContext())
+    }
+    single<ProfileAuthSessionManager> {
+        ActiveProfileAuthCoordinator(
+            googleSignInProvider = get(),
+            firebaseAuthenticationRepository = get(),
+        )
     }
     factory {
         LinkGoogleAccountUseCase(
@@ -218,7 +228,13 @@ val appModule = module {
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }
-    factory { SwitchActiveProfileUseCase(repository = get(), stateChangedNotifier = get()) }
+    factory {
+        SwitchActiveProfileUseCase(
+            repository = get(),
+            profileAuthSessionManager = get(),
+            stateChangedNotifier = get(),
+        )
+    }
     factory { DeleteActiveProfileUseCase(repository = get()) }
     factory { DeleteLocalProfileUseCase(repository = get()) }
     factory { ExitActiveProfileUseCase(repository = get()) }

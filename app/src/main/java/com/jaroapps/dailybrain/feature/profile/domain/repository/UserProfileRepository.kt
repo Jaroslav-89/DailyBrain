@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.Flow
 interface UserProfileRepository {
     fun observeProfile(): Flow<UserProfile>
     fun observeProfiles(): Flow<List<UserProfile>>
+    suspend fun getProfile(localAccountId: String): UserProfile?
     suspend fun createLocalProfile(): UserProfile
     suspend fun switchActiveProfile(localAccountId: String)
     suspend fun exitActiveProfile()

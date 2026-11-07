@@ -57,6 +57,8 @@ class FirebaseAuthenticationRepositoryImpl(
         }
     }
 
+    override fun currentUserId(): String? = firebaseAuthOrNull()?.currentUser?.uid
+
     override fun signOut() {
         runCatching { firebaseAuthOrNull()?.signOut() }
     }
