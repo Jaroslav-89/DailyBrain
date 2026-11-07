@@ -376,7 +376,7 @@ fun HomeScreen(
                                     Text(
                                         text = "/",
                                         color = colorResource(R.color.color_on_accent),
-                                        fontSize = 14.sp,
+                                        fontSize = 16.sp,
                                         fontWeight = FontWeight.Bold,
                                         modifier = Modifier.align(Alignment.Center),
                                     )
@@ -397,7 +397,7 @@ fun HomeScreen(
                             text = dateLabel,
                             modifier = Modifier.padding(start = 0.dp),
                             style = MaterialTheme.typography.titleMedium,
-                            fontSize = 16.sp,
+                            fontSize = 14.sp,
                             fontWeight = FontWeight.Bold,
                             color = homeTextColor,
                             textAlign = TextAlign.Center,
