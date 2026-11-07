@@ -2,10 +2,14 @@ package com.jaroapps.dailybrain.app.di
 
 import androidx.room.Room
 import com.jaroapps.dailybrain.common.data.repository.CompletedTrainingRepositoryImpl
+import com.jaroapps.dailybrain.common.data.repository.StreakPatchRepositoryImpl
 import com.jaroapps.dailybrain.common.domain.repository.CompletedTrainingRepository
+import com.jaroapps.dailybrain.common.domain.repository.StreakPatchRepository
 import com.jaroapps.dailybrain.common.domain.service.TrainingStateChangedNotifier
 import com.jaroapps.dailybrain.common.domain.usecase.DeleteCompletedTrainingUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.ProcessMissedStreakDaysUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.ObservePatchedDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveCompletedTrainingsByDateUseCase
@@ -126,7 +130,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23)
             .build()
     }
 
@@ -165,6 +169,9 @@ val appModule = module {
     factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
     factory { DeleteCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
     factory { InitializeRewardStateUseCase(repository = get()) }
+    single<StreakPatchRepository> { StreakPatchRepositoryImpl(database = get(), activeUserProvider = get()) }
+    factory { ProcessMissedStreakDaysUseCase(repository = get()) }
+    factory { ObservePatchedDatesUseCase(repository = get()) }
 
     // Endorphin wallet primitives for future shop and gift flows.
     single<EndorphinRepository> {
