@@ -362,7 +362,7 @@ val appModule = module {
     }
 
     // History
-    viewModel { CalendarViewModel(observeActiveTrainingDates = get()) }
+    viewModel { CalendarViewModel(observeActiveTrainingDates = get(), observePatchedDates = get(), observeAllCompletedTrainings = get()) }
 
     viewModel {
         DayHistoryViewModel(
@@ -372,6 +372,6 @@ val appModule = module {
         )
     }
 
-    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeActiveTrainingDates = get(), observeTotalTrainingCount = get(), observeUserProfile = get(), initializeRewardState = get()) }
+    viewModel { HomeViewModel(observeAllCompletedTrainings = get(), observeActiveTrainingDates = get(), observePatchedDates = get(), observeTotalTrainingCount = get(), observeUserProfile = get(), initializeRewardState = get()) }
     viewModel { StatisticsViewModel(observeAllCompletedTrainings = get(), observeStatistics = get()) }
 }
