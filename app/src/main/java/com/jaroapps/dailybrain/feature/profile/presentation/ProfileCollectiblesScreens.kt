@@ -22,6 +22,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -329,16 +330,26 @@ fun ProfileCollectibleArtwork(
             }
         }
         if (location != null && bitmap != null) {
-            Image(
-                painter = BitmapPainter(
-                    image = bitmap,
-                    srcOffset = IntOffset(location.second * BADGE_CELL_WIDTH, 0),
-                    srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
-                ),
-                contentDescription = collectibleTitle(item),
-                modifier = modifier,
-                contentScale = contentScale,
-            )
+            Box(modifier = modifier, contentAlignment = Alignment.BottomEnd) {
+                Image(
+                    painter = BitmapPainter(
+                        image = bitmap,
+                        srcOffset = IntOffset(location.second * BADGE_CELL_WIDTH, 0),
+                        srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
+                    ),
+                    contentDescription = collectibleTitle(item),
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = contentScale,
+                )
+                if (item.itemType.startsWith("MONTHLY_CHALLENGE_")) {
+                    Icon(
+                        imageVector = Icons.Filled.CheckCircle,
+                        contentDescription = "Месячное задание выполнено",
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(2.dp).size(25.dp),
+                    )
+                }
+            }
         } else {
             Box(modifier.background(MaterialTheme.colorScheme.surfaceVariant), contentAlignment = Alignment.Center) {
                 Text("★", style = MaterialTheme.typography.displayMedium, color = MaterialTheme.colorScheme.primary)
@@ -360,8 +371,13 @@ private fun badgeSpriteLocation(itemType: String): Pair<Int, Int>? {
     return when {
     itemType == "WEEKLY_STREAK" -> R.drawable.badge_weekly to 0
     itemType == "WEEKLY_CHALLENGE" -> R.drawable.badge_weekly to 1
-    itemType.startsWith("MONTH_") -> {
-        val month = itemType.substringAfter('_').toIntOrNull()?.takeIf { it in 1..12 } ?: return null
+    itemType.startsWith("MONTH_"),
+    itemType.startsWith("MONTHLY_CHALLENGE_") -> {
+        val month = when {
+            itemType.startsWith("MONTHLY_CHALLENGE_") ->
+                itemType.substringAfter("MONTHLY_CHALLENGE_").toIntOrNull()
+            else -> itemType.substringAfter("MONTH_").toIntOrNull()
+        }?.takeIf { it in 1..12 } ?: return null
         val sheet = when (month) {
             in 1..4 -> R.drawable.badge_months_01_04
             in 5..8 -> R.drawable.badge_months_05_08
@@ -384,9 +400,15 @@ private fun badgeDescription(itemType: String): String = when (itemType) {
     "WEEKLY_STREAK" -> "Недельная серия"
     "WEEKLY_CHALLENGE" -> "Задание недели"
     else -> {
-        val month = itemType.substringAfter("MONTH_").toIntOrNull()
+        val isMonthlyChallenge = itemType.startsWith("MONTHLY_CHALLENGE_")
+        val month = if (isMonthlyChallenge) {
+            itemType.substringAfter("MONTHLY_CHALLENGE_").toIntOrNull()
+        } else {
+            itemType.substringAfter("MONTH_").toIntOrNull()
+        }
         if (month != null && month in 1..12) {
-            "Месячная серия — " + Month.of(month).getDisplayName(TextStyle.FULL, Locale("ru"))
+            val monthName = Month.of(month).getDisplayName(TextStyle.FULL, Locale("ru"))
+            if (isMonthlyChallenge) "Все задания месяца — $monthName" else "Месячная серия — $monthName"
         } else {
             "Достижение"
         }
