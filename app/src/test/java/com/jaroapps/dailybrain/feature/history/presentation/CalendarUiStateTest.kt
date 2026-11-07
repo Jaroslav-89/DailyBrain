@@ -26,16 +26,20 @@ class CalendarUiStateTest {
     @Test
     fun patchedDatesCountTowardWeeklyAndMonthlySeriesProgress() {
         val today = LocalDate.of(2026, 10, 27)
+        val patchedDate = today.minusDays(1)
+        val allMonthDatesSoFar = (1..today.dayOfMonth)
+            .map { LocalDate.of(today.year, today.month, it) }
+            .toSet()
         val state = CalendarUiState(
             displayedMonth = YearMonth.from(today),
-            activeDates = setOf(today, today.minusDays(2)),
-            patchedDates = setOf(today.minusDays(1)),
+            activeDates = allMonthDatesSoFar - patchedDate,
+            patchedDates = setOf(patchedDate),
             currentTime = LocalDateTime.of(2026, 10, 27, 12, 0),
         )
 
         assertEquals(3, state.currentStreakDays)
         assertEquals(3, state.weeklyStreakProgress)
-        assertEquals(3, state.monthlyStreakProgress)
+        assertEquals(27, state.monthlyStreakProgress)
         assertEquals(31, state.monthlyStreakTarget)
         assertTrue(state.hasTrainingToday)
     }
