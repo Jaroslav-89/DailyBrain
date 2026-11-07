@@ -165,4 +165,48 @@ class HomeUiStateTest {
         assertEquals(ArithmeticDayStatus.BEFORE_FIRST_TRAINING, state.arithmeticDayStatus(today.minusDays(1)))
         assertEquals(ArithmeticDayStatus.AVAILABLE_TODAY, state.arithmeticDayStatus(today))
     }
+    @Test
+    fun weekPagerStartsAtCurrentWeekAndCanReachFirstTrainingWeek() {
+        val firstWorkout = LocalDate.of(2026, 10, 7)
+        val today = LocalDate.of(2026, 11, 8)
+        val state = HomeUiState(
+            today = today,
+            isTrainingHistoryLoaded = true,
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.ARITHMETIC.storageValue to setOf(firstWorkout, today),
+            ),
+        )
+
+        assertEquals(LocalDate.of(2026, 10, 5), state.firstTrainingWeekStart)
+        assertEquals(5, state.weekPageCount)
+        assertEquals(4, state.currentWeekPageIndex)
+        assertEquals(LocalDate.of(2026, 10, 5), state.weekStartAtPage(0))
+        assertEquals(state.currentWeekStart, state.weekStartAtPage(state.currentWeekPageIndex))
+    }
+
+    @Test
+    fun weekPagerUsesCurrentWeekWhenNoTrainingExists() {
+        val today = LocalDate.of(2026, 11, 8)
+        val state = HomeUiState(today = today, isTrainingHistoryLoaded = true)
+
+        assertEquals(1, state.weekPageCount)
+        assertEquals(0, state.currentWeekPageIndex)
+        assertEquals(state.currentWeekStart, state.weekStartAtPage(0))
+    }
+
+    @Test
+    fun historicalExerciseCompletionIsScopedToDisplayedWeek() {
+        val today = LocalDate.of(2026, 11, 8)
+        val previousWeekStart = today.with(java.time.DayOfWeek.MONDAY).minusWeeks(1)
+        val state = HomeUiState(
+            today = today,
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.MEMORY_WORDS.storageValue to setOf(previousWeekStart.plusDays(2)),
+            ),
+        )
+
+        assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS, previousWeekStart))
+        assertFalse(state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS, state.currentWeekStart))
+    }
+
 }
