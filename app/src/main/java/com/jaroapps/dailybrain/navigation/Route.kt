@@ -9,10 +9,12 @@ object Route {
     const val EXERCISE_ENTRY = "exercise_entry/{exercise}"
     const val EXERCISE_INTRO = "exercise_intro/{exercise}"
     const val EXERCISE_RULES = "exercise_rules/{exercise}"
+    const val EXERCISE_COUNTDOWN = "exercise_countdown/{exercise}"
 
     fun exerciseEntry(exercise: String): String = "exercise_entry/$exercise"
     fun exerciseIntro(exercise: String): String = "exercise_intro/$exercise"
     fun exerciseRules(exercise: String): String = "exercise_rules/$exercise"
+    fun exerciseCountdown(exercise: String): String = "exercise_countdown/$exercise"
     const val HOME = "home"
     const val PROFILE = "profile"
     const val PROFILE_SELECTION = "profile_selection"

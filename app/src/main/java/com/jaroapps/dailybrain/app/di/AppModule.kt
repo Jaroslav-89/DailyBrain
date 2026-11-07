@@ -9,6 +9,12 @@ import com.jaroapps.dailybrain.common.domain.service.TrainingStateChangedNotifie
 import com.jaroapps.dailybrain.common.domain.usecase.DeleteCompletedTrainingUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ProcessMissedStreakDaysUseCase
+import com.jaroapps.dailybrain.common.domain.service.TrainingAchievementAnnouncementPublisher
+import com.jaroapps.dailybrain.feature.announcements.data.DatabaseTrainingAchievementAnnouncementPublisher
+import com.jaroapps.dailybrain.feature.announcements.data.AnnouncementRepositoryImpl
+import com.jaroapps.dailybrain.feature.announcements.domain.repository.AnnouncementRepository
+import com.jaroapps.dailybrain.feature.announcements.domain.usecase.ProcessMissedStreakDaysWithAnnouncementUseCase
+import com.jaroapps.dailybrain.feature.announcements.presentation.AnnouncementViewModel
 import com.jaroapps.dailybrain.common.domain.usecase.ObservePatchedDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
@@ -130,12 +136,33 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23, DatabaseMigrations.MIGRATION_23_24)
             .build()
     }
 
     single(named("profileDeletionScope")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
     single { ActiveUserProvider(database = get()) }
+    single<AnnouncementRepository> {
+        AnnouncementRepositoryImpl(
+            dao = get<AppDatabase>().appAnnouncementDao(),
+            activeUserProvider = get(),
+        )
+    }
+    single<TrainingAchievementAnnouncementPublisher> {
+        DatabaseTrainingAchievementAnnouncementPublisher(
+            database = get(),
+            activeUserProvider = get(),
+            announcementRepository = get(),
+        )
+    }
+    factory {
+        ProcessMissedStreakDaysWithAnnouncementUseCase(
+            processMissedStreakDays = get(),
+            announcementRepository = get(),
+            achievementAnnouncementPublisher = get(),
+        )
+    }
+    viewModel { AnnouncementViewModel(repository = get()) }
     single { BrainStateManager(context = androidContext(), database = get(), activeUserProvider = get()) }
     single<TrainingStateChangedNotifier> { AndroidTrainingStateChangedNotifier(brainStateManager = get()) }
     single<OnboardingProgressRepository> {
@@ -166,7 +193,7 @@ val appModule = module {
     factory { ObserveActiveTrainingDatesUseCase(repository = get()) }
     factory { ObserveTrainingDaysInRangeUseCase(repository = get()) }
     factory { ObserveTotalTrainingCountUseCase(repository = get()) }
-    factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
+    factory { SaveCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get(), trainingAchievementPublisher = get()) }
     factory { DeleteCompletedTrainingUseCase(repository = get(), stateChangedNotifier = get(), feedSyncTrigger = get()) }
     factory { InitializeRewardStateUseCase(repository = get()) }
     single<StreakPatchRepository> { StreakPatchRepositoryImpl(database = get(), activeUserProvider = get()) }
@@ -192,6 +219,7 @@ val appModule = module {
             activeUserProvider = get(),
             endorphinRepository = get(),
             feedSyncTrigger = get(),
+            announcementRepository = get(),
         )
     }
     viewModel {
@@ -337,7 +365,7 @@ val appModule = module {
 
     factory { GetRandomMemoryWordsUseCase(repository = get()) }
     factory { CheckMemoryAnswersUseCase() }
-    factory { SaveMemoryTrainingUseCase(completedTrainingRepository = get(), stateChangedNotifier = get()) }
+    factory { SaveMemoryTrainingUseCase(completedTrainingRepository = get(), stateChangedNotifier = get(), trainingAchievementPublisher = get()) }
     viewModel {
         MemoryTrainingViewModel(
             getRandomMemoryWords = get(),

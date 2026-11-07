@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -70,6 +71,7 @@ import com.jaroapps.dailybrain.feature.onboarding.presentation.BrainTrainingArti
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseEntryScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseIntroScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseRulesScreen
+import com.jaroapps.dailybrain.feature.onboarding.presentation.ExerciseCountdownScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.StartupScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.EditProfileScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileScreen
@@ -83,7 +85,8 @@ import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
-import com.jaroapps.dailybrain.common.domain.usecase.ProcessMissedStreakDaysUseCase
+import com.jaroapps.dailybrain.feature.announcements.domain.usecase.ProcessMissedStreakDaysWithAnnouncementUseCase
+import com.jaroapps.dailybrain.feature.announcements.presentation.AnnouncementHost
 import com.jaroapps.dailybrain.ui.theme.AppThemePreference
 import com.jaroapps.dailybrain.feature.home.presentation.HomeAppearancePreference
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
@@ -100,7 +103,7 @@ import java.time.format.DateTimeFormatter
 fun AppNavHost(startDestination: String = Route.STARTUP) {
     val navController = rememberNavController()
     val observeUserProfile: ObserveUserProfileUseCase = koinInject()
-    val processMissedStreakDays: ProcessMissedStreakDaysUseCase = koinInject()
+    val processMissedStreakDays: ProcessMissedStreakDaysWithAnnouncementUseCase = koinInject()
     val activeProfile by observeUserProfile().collectAsState(initial = null)
     val context = LocalContext.current
     LaunchedEffect(activeProfile?.localAccountId) {
@@ -141,377 +144,399 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             }
         },
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = startDestination,
-            modifier = Modifier.padding(innerPadding),
-            enterTransition = { EnterTransition.None },
-            exitTransition = { ExitTransition.None },
-            popEnterTransition = { EnterTransition.None },
-            popExitTransition = { ExitTransition.None },
-        ) {
-            composable(Route.STARTUP) {
-                StartupScreen(
-                    onDestinationReady = { destination ->
-                        navController.navigate(destination) {
-                            popUpTo(Route.STARTUP) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                    onStartupResolved = {},
-                )
-            }
-
-            composable(Route.APP_ONBOARDING) {
-                AppOnboardingScreen(
-                    onContinue = {
-                        onboardingViewModel.markAppIntroComplete {
-                            navController.navigate(Route.HOME) {
-                                popUpTo(Route.APP_ONBOARDING) { inclusive = true }
+        Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
+            NavHost(
+                navController = navController,
+                startDestination = startDestination,
+                modifier = Modifier.fillMaxSize(),
+                enterTransition = { EnterTransition.None },
+                exitTransition = { ExitTransition.None },
+                popEnterTransition = { EnterTransition.None },
+                popExitTransition = { ExitTransition.None },
+            ) {
+                composable(Route.STARTUP) {
+                    StartupScreen(
+                        onDestinationReady = { destination ->
+                            navController.navigate(destination) {
+                                popUpTo(Route.STARTUP) { inclusive = true }
                                 launchSingleTop = true
                             }
-                        }
-                    },
-                )
-            }
+                        },
+                        onStartupResolved = {},
+                    )
+                }
 
-            composable(Route.BRAIN_ARTICLE) {
-                BrainTrainingArticleScreen(onClose = { navController.popBackStack() })
-            }
-
-            composable(Route.HOME) {
-                HomeScreen(
-                    onOpenCalendar = { navController.navigate(Route.CALENDAR) },
-                    onOpenRewardHistory = { currency -> navController.navigate(Route.rewardHistory(currency)) },
-                    onStartTraining = { navController.navigate(Route.exerciseEntry("arithmetic")) },
-                    onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
-                    onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
-                    onStartCountingTraining = { navController.navigate(Route.exerciseEntry("counting")) },
-                )
-            }
-
-            composable(
-                route = Route.EXERCISE_ENTRY,
-                arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
-            ) { entry ->
-                val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-                ExerciseEntryScreen(
-                    exerciseKey = exerciseKey,
-                    onDestinationReady = { destination ->
-                        navController.navigate(destination) {
-                            popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
-
-            composable(
-                route = Route.EXERCISE_INTRO,
-                arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
-            ) { entry ->
-                val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-                ExerciseIntroScreen(
-                    exerciseKey = exerciseKey,
-                    onBack = { navController.popBackStack() },
-                    onContinue = {
-                        if (navController.previousBackStackEntry?.destination?.route == Route.EXERCISE_RULES) {
-                            navController.popBackStack()
-                        } else {
-                            onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
-                                navController.navigate(Route.exerciseRules(exerciseKey)) {
-                                    popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
+                composable(Route.APP_ONBOARDING) {
+                    AppOnboardingScreen(
+                        onContinue = {
+                            onboardingViewModel.markAppIntroComplete {
+                                navController.navigate(Route.HOME) {
+                                    popUpTo(Route.APP_ONBOARDING) { inclusive = true }
                                     launchSingleTop = true
                                 }
                             }
-                        }
-                    },
-                )
-            }
+                        },
+                    )
+                }
 
-            composable(
-                route = Route.EXERCISE_RULES,
-                arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
-            ) { entry ->
-                val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
-                ExerciseRulesScreen(
-                    exerciseKey = exerciseKey,
-                    onBack = { navController.popBackStack(Route.HOME, false) },
-                    onOpenFullInfo = { navController.navigate(Route.exerciseIntro(exerciseKey)) },
-                    onStart = {
-                        val destination = when (exerciseKey) {
-                            "memory" -> Route.MEMORY_TRAINING
-                            "counting" -> Route.COUNTING_TRAINING
-                            "stroop" -> Route.STROOP_TEST
-                            else -> Route.ARITHMETIC
-                        }
+                composable(Route.BRAIN_ARTICLE) {
+                    BrainTrainingArticleScreen(onClose = { navController.popBackStack() })
+                }
+
+                composable(Route.HOME) {
+                    HomeScreen(
+                        onOpenCalendar = { navController.navigate(Route.CALENDAR) },
+                        onOpenRewardHistory = { currency -> navController.navigate(Route.rewardHistory(currency)) },
+                        onStartTraining = { navController.navigate(Route.exerciseEntry("arithmetic")) },
+                        onStartMemoryTraining = { navController.navigate(Route.exerciseEntry("memory")) },
+                        onStartStroopTest = { navController.navigate(Route.exerciseEntry("stroop")) },
+                        onStartCountingTraining = { navController.navigate(Route.exerciseEntry("counting")) },
+                    )
+                }
+
+                composable(
+                    route = Route.EXERCISE_ENTRY,
+                    arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+                ) { entry ->
+                    val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                    ExerciseEntryScreen(
+                        exerciseKey = exerciseKey,
+                        onDestinationReady = { destination ->
+                            navController.navigate(destination) {
+                                popUpTo(Route.EXERCISE_ENTRY) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+
+                composable(
+                    route = Route.EXERCISE_INTRO,
+                    arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+                ) { entry ->
+                    val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                    ExerciseIntroScreen(
+                        exerciseKey = exerciseKey,
+                        onBack = { navController.popBackStack() },
+                        onContinue = {
+                            if (navController.previousBackStackEntry?.destination?.route == Route.EXERCISE_RULES) {
+                                navController.popBackStack()
+                            } else {
+                                onboardingViewModel.markExerciseIntroComplete(exerciseKey) {
+                                    navController.navigate(Route.exerciseRules(exerciseKey)) {
+                                        popUpTo(Route.EXERCISE_INTRO) { inclusive = true }
+                                        launchSingleTop = true
+                                    }
+                                }
+                            }
+                        },
+                    )
+                }
+
+                composable(
+                    route = Route.EXERCISE_RULES,
+                    arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+                ) { entry ->
+                    val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                    ExerciseRulesScreen(
+                        exerciseKey = exerciseKey,
+                        onBack = { navController.popBackStack(Route.HOME, false) },
+                        onOpenFullInfo = { navController.navigate(Route.exerciseIntro(exerciseKey)) },
+                        onStart = {
+                            navController.navigate(Route.exerciseCountdown(exerciseKey)) {
+                                popUpTo(Route.EXERCISE_RULES) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
+
+                composable(
+                    route = Route.EXERCISE_COUNTDOWN,
+                    arguments = listOf(navArgument("exercise") { type = NavType.StringType }),
+                ) { entry ->
+                    val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
+                    val destination = when (exerciseKey) {
+                        "memory" -> Route.MEMORY_TRAINING
+                        "counting" -> Route.COUNTING_TRAINING
+                        "stroop" -> Route.STROOP_TEST
+                        else -> Route.ARITHMETIC
+                    }
+                    val exerciseName = when (exerciseKey) {
+                        "memory" -> "Запоминание слов"
+                        "counting" -> "Устный счёт"
+                        "stroop" -> "Тест Струпа"
+                        else -> "Арифметика"
+                    }
+                    ExerciseCountdownScreen(exerciseName = exerciseName) {
                         navController.navigate(destination) {
-                            popUpTo(Route.EXERCISE_RULES) { inclusive = true }
+                            popUpTo(Route.EXERCISE_COUNTDOWN) { inclusive = true }
                             launchSingleTop = true
                         }
-                    },
-                )
-            }
+                    }
+                }
 
-            composable(Route.ARITHMETIC) {
-                ArithmeticScreen(onExit = { navController.popBackStack() })
-            }
+                composable(Route.ARITHMETIC) {
+                    ArithmeticScreen(onExit = { navController.popBackStack() })
+                }
 
-            composable(Route.PROFILE_SELECTION) {
-                ProfileSelectionScreen(
-                    onProfileSelected = {
-                        navController.navigate(Route.HOME) {
-                            popUpTo(Route.PROFILE_SELECTION) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                    onProfileCreated = {
-                        navController.navigate(Route.APP_ONBOARDING) {
-                            popUpTo(Route.PROFILE_SELECTION) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
+                composable(Route.PROFILE_SELECTION) {
+                    ProfileSelectionScreen(
+                        onProfileSelected = {
+                            navController.navigate(Route.HOME) {
+                                popUpTo(Route.PROFILE_SELECTION) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                        onProfileCreated = {
+                            navController.navigate(Route.APP_ONBOARDING) {
+                                popUpTo(Route.PROFILE_SELECTION) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
 
-            composable(Route.PROFILE) {
-                ProfileScreen(
-                    onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
-                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
-                    onOpenFriends = { navController.navigate(Route.FRIENDS) },
-                    onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
-                    onOpenCollectibles = { ownerUid, kind ->
-                        navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
-                    },
-                    onOpenCollectible = { ownerUid, kind, itemId ->
-                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
-                    },
-                )
-            }
+                composable(Route.PROFILE) {
+                    ProfileScreen(
+                        onOpenSettings = { navController.navigate(Route.PROFILE_SETTINGS) },
+                        onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
+                        onOpenFriends = { navController.navigate(Route.FRIENDS) },
+                        onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                        onOpenCollectibles = { ownerUid, kind ->
+                            navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
+                        },
+                        onOpenCollectible = { ownerUid, kind, itemId ->
+                            navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                        },
+                    )
+                }
 
-            composable(Route.PROFILE_SETTINGS) {
-                ProfileSettingsScreen(
-                    onBack = { navController.popBackStack() },
-                    onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
-                    onOpenParameters = { navController.navigate(Route.PARAMETERS) },
-                    onOpenPrivacyPolicy = { navController.navigate(Route.PRIVACY_POLICY) },
-                    onExitProfile = {
-                        navController.navigate(Route.PROFILE_SELECTION) {
-                            popUpTo(Route.HOME) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
+                composable(Route.PROFILE_SETTINGS) {
+                    ProfileSettingsScreen(
+                        onBack = { navController.popBackStack() },
+                        onEditProfile = { navController.navigate(Route.EDIT_PROFILE) },
+                        onOpenParameters = { navController.navigate(Route.PARAMETERS) },
+                        onOpenPrivacyPolicy = { navController.navigate(Route.PRIVACY_POLICY) },
+                        onExitProfile = {
+                            navController.navigate(Route.PROFILE_SELECTION) {
+                                popUpTo(Route.HOME) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
 
-            composable(Route.PARAMETERS) {
-                PreferencesScreen(onBack = { navController.popBackStack() })
-            }
+                composable(Route.PARAMETERS) {
+                    PreferencesScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(Route.PRIVACY_POLICY) {
-                PrivacyPolicyScreen(onBack = { navController.popBackStack() })
-            }
+                composable(Route.PRIVACY_POLICY) {
+                    PrivacyPolicyScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(Route.FRIENDS) {
-                FriendsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
-                )
-            }
+                composable(Route.FRIENDS) {
+                    FriendsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                    )
+                }
 
-            composable(Route.FRIENDS_SEARCH) {
-                FriendsScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
-                    openAddFriendsOnStart = true,
-                )
-            }
+                composable(Route.FRIENDS_SEARCH) {
+                    FriendsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                        openAddFriendsOnStart = true,
+                    )
+                }
 
-            composable(
-                route = Route.USER_PROFILE,
-                arguments = listOf(navArgument("userId") { type = NavType.StringType }),
-            ) { entry ->
-                val userId = entry.arguments?.getString("userId").orEmpty()
-                PublicUserProfileScreen(
-                    profileFirebaseUid = userId,
-                    onBack = { navController.popBackStack() },
-                    onOpenConnections = { profileUid, connectionType ->
-                        navController.navigate(Route.userProfileConnections(profileUid, connectionType))
-                    },
-                    onOpenCollectibles = { ownerUid, kind ->
-                        navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
-                    },
-                    onOpenCollectible = { ownerUid, kind, itemId ->
-                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
-                    },
-                )
-            }
+                composable(
+                    route = Route.USER_PROFILE,
+                    arguments = listOf(navArgument("userId") { type = NavType.StringType }),
+                ) { entry ->
+                    val userId = entry.arguments?.getString("userId").orEmpty()
+                    PublicUserProfileScreen(
+                        profileFirebaseUid = userId,
+                        onBack = { navController.popBackStack() },
+                        onOpenConnections = { profileUid, connectionType ->
+                            navController.navigate(Route.userProfileConnections(profileUid, connectionType))
+                        },
+                        onOpenCollectibles = { ownerUid, kind ->
+                            navController.navigate(Route.profileCollectibles(ownerUid, kind.name))
+                        },
+                        onOpenCollectible = { ownerUid, kind, itemId ->
+                            navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                        },
+                    )
+                }
 
-            composable(
-                route = Route.USER_PROFILE_CONNECTIONS,
-                arguments = listOf(
-                    navArgument("userId") { type = NavType.StringType },
-                    navArgument("connectionType") { type = NavType.StringType },
-                ),
-            ) { entry ->
-                val userId = entry.arguments?.getString("userId").orEmpty()
-                val connectionType = entry.arguments?.getString("connectionType").orEmpty()
-                PublicUserConnectionsScreen(
-                    profileFirebaseUid = userId,
-                    connectionType = connectionType,
-                    onBack = { navController.popBackStack() },
-                    onOpenUser = { nestedUserId -> navController.navigate(Route.userProfile(nestedUserId)) },
-                )
-            }
+                composable(
+                    route = Route.USER_PROFILE_CONNECTIONS,
+                    arguments = listOf(
+                        navArgument("userId") { type = NavType.StringType },
+                        navArgument("connectionType") { type = NavType.StringType },
+                    ),
+                ) { entry ->
+                    val userId = entry.arguments?.getString("userId").orEmpty()
+                    val connectionType = entry.arguments?.getString("connectionType").orEmpty()
+                    PublicUserConnectionsScreen(
+                        profileFirebaseUid = userId,
+                        connectionType = connectionType,
+                        onBack = { navController.popBackStack() },
+                        onOpenUser = { nestedUserId -> navController.navigate(Route.userProfile(nestedUserId)) },
+                    )
+                }
 
-            composable(
-                route = Route.PROFILE_COLLECTIBLES,
-                arguments = listOf(
-                    navArgument("ownerUid") { type = NavType.StringType },
-                    navArgument("kind") { type = NavType.StringType },
-                ),
-            ) { entry ->
-                ProfileCollectiblesScreen(
-                    onBack = { navController.popBackStack() },
-                    onOpenItem = { ownerUid, kind, itemId ->
-                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
-                    },
-                )
-            }
+                composable(
+                    route = Route.PROFILE_COLLECTIBLES,
+                    arguments = listOf(
+                        navArgument("ownerUid") { type = NavType.StringType },
+                        navArgument("kind") { type = NavType.StringType },
+                    ),
+                ) { entry ->
+                    ProfileCollectiblesScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenItem = { ownerUid, kind, itemId ->
+                            navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                        },
+                    )
+                }
 
-            composable(
-                route = Route.COLLECTIBLE_DETAIL,
-                arguments = listOf(
-                    navArgument("ownerUid") { type = NavType.StringType },
-                    navArgument("kind") { type = NavType.StringType },
-                    navArgument("itemId") { type = NavType.StringType },
-                ),
-            ) {
-                CollectibleDetailScreen(onBack = { navController.popBackStack() })
-            }
+                composable(
+                    route = Route.COLLECTIBLE_DETAIL,
+                    arguments = listOf(
+                        navArgument("ownerUid") { type = NavType.StringType },
+                        navArgument("kind") { type = NavType.StringType },
+                        navArgument("itemId") { type = NavType.StringType },
+                    ),
+                ) {
+                    CollectibleDetailScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(Route.EDIT_PROFILE) {
-                EditProfileScreen(
-                    onBack = { navController.popBackStack() },
-                    onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
-                    onProfileDeleted = {
-                        navController.navigate(Route.PROFILE_SELECTION) {
-                            popUpTo(Route.HOME) { inclusive = true }
-                            launchSingleTop = true
-                        }
-                    },
-                )
-            }
+                composable(Route.EDIT_PROFILE) {
+                    EditProfileScreen(
+                        onBack = { navController.popBackStack() },
+                        onEditAvatar = { navController.navigate(Route.AVATAR_EDITOR) },
+                        onProfileDeleted = {
+                            navController.navigate(Route.PROFILE_SELECTION) {
+                                popUpTo(Route.HOME) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        },
+                    )
+                }
 
-            composable(Route.AVATAR_EDITOR) {
-                AvatarEditorScreen(onBack = { navController.popBackStack() })
-            }
+                composable(Route.AVATAR_EDITOR) {
+                    AvatarEditorScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(
-                route = Route.REWARD_HISTORY,
-                arguments = listOf(navArgument("currency") { type = NavType.StringType }),
-            ) {
-                RewardHistoryScreen(onBack = { navController.popBackStack() })
-            }
+                composable(
+                    route = Route.REWARD_HISTORY,
+                    arguments = listOf(navArgument("currency") { type = NavType.StringType }),
+                ) {
+                    RewardHistoryScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(Route.STATISTICS) {
-                StatisticsScreen()
-            }
+                composable(Route.STATISTICS) {
+                    StatisticsScreen()
+                }
 
-            composable(Route.FEED) {
-                FeedScreen(
-                    onOpenUserProfile = { userId ->
-                        navController.navigate(Route.userProfile(userId))
-                    },
-                    onOpenCollectible = { ownerUid, kind, itemId ->
-                        navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
-                    },
-                    onOpenFeedItem = { event ->
-                        val itemType = if (event.eventType == "GIFT_RECEIVED" || event.eventType == "GIFT_SENT") {
-                            "GIFT"
-                        } else event.exerciseType.orEmpty()
-                        navController.navigate(
-                            Route.feedItemDetail(
-                                eventType = event.eventType,
-                                itemType = itemType,
-                                itemId = event.periodKey.orEmpty(),
-                                occurredAtEpochMs = event.occurredAtEpochMs,
-                                valueInt = event.valueInt ?: -1,
-                                relatedUserName = event.relatedUserName,
-                            ),
-                        )
-                    },
-                )
-            }
+                composable(Route.FEED) {
+                    FeedScreen(
+                        onOpenUserProfile = { userId ->
+                            navController.navigate(Route.userProfile(userId))
+                        },
+                        onOpenCollectible = { ownerUid, kind, itemId ->
+                            navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
+                        },
+                        onOpenFeedItem = { event ->
+                            val itemType = if (event.eventType == "GIFT_RECEIVED" || event.eventType == "GIFT_SENT") {
+                                "GIFT"
+                            } else event.exerciseType.orEmpty()
+                            navController.navigate(
+                                Route.feedItemDetail(
+                                    eventType = event.eventType,
+                                    itemType = itemType,
+                                    itemId = event.periodKey.orEmpty(),
+                                    occurredAtEpochMs = event.occurredAtEpochMs,
+                                    valueInt = event.valueInt ?: -1,
+                                    relatedUserName = event.relatedUserName,
+                                ),
+                            )
+                        },
+                    )
+                }
 
-            composable(
-                route = Route.FEED_ITEM_DETAIL,
-                arguments = listOf(
-                    navArgument("eventType") { type = NavType.StringType },
-                    navArgument("itemType") { type = NavType.StringType },
-                    navArgument("itemId") { type = NavType.StringType },
-                    navArgument("occurredAtEpochMs") { type = NavType.LongType },
-                    navArgument("valueInt") { type = NavType.IntType },
-                    navArgument("relatedUserName") { type = NavType.StringType },
-                ),
-            ) { entry ->
-                FeedItemDetailScreen(
-                    onBack = { navController.popBackStack() },
-                    eventType = entry.arguments?.getString("eventType").orEmpty(),
-                    itemType = entry.arguments?.getString("itemType").orEmpty(),
-                    itemId = entry.arguments?.getString("itemId").orEmpty(),
-                    occurredAtEpochMs = entry.arguments?.getLong("occurredAtEpochMs") ?: 0L,
-                    valueInt = entry.arguments?.getInt("valueInt") ?: -1,
-                    relatedUserName = entry.arguments?.getString("relatedUserName")?.takeUnless { it == "-" },
-                )
-            }
+                composable(
+                    route = Route.FEED_ITEM_DETAIL,
+                    arguments = listOf(
+                        navArgument("eventType") { type = NavType.StringType },
+                        navArgument("itemType") { type = NavType.StringType },
+                        navArgument("itemId") { type = NavType.StringType },
+                        navArgument("occurredAtEpochMs") { type = NavType.LongType },
+                        navArgument("valueInt") { type = NavType.IntType },
+                        navArgument("relatedUserName") { type = NavType.StringType },
+                    ),
+                ) { entry ->
+                    FeedItemDetailScreen(
+                        onBack = { navController.popBackStack() },
+                        eventType = entry.arguments?.getString("eventType").orEmpty(),
+                        itemType = entry.arguments?.getString("itemType").orEmpty(),
+                        itemId = entry.arguments?.getString("itemId").orEmpty(),
+                        occurredAtEpochMs = entry.arguments?.getLong("occurredAtEpochMs") ?: 0L,
+                        valueInt = entry.arguments?.getInt("valueInt") ?: -1,
+                        relatedUserName = entry.arguments?.getString("relatedUserName")?.takeUnless { it == "-" },
+                    )
+                }
 
-            composable(Route.SHOP) {
-                ShopScreen(
-                    onOpenPurchaseHistory = { navController.navigate(Route.SHOP_PURCHASE_HISTORY) },
-                    onOpenFriendsSearch = { navController.navigate(Route.FRIENDS_SEARCH) },
-                )
-            }
+                composable(Route.SHOP) {
+                    ShopScreen(
+                        onOpenPurchaseHistory = { navController.navigate(Route.SHOP_PURCHASE_HISTORY) },
+                        onOpenFriendsSearch = { navController.navigate(Route.FRIENDS_SEARCH) },
+                    )
+                }
 
-            composable(Route.SHOP_PURCHASE_HISTORY) {
-                ShopPurchaseHistoryScreen(onBack = { navController.popBackStack() })
-            }
+                composable(Route.SHOP_PURCHASE_HISTORY) {
+                    ShopPurchaseHistoryScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(Route.CALENDAR) {
-                CalendarScreen(
-                    onBack = { navController.popBackStack() },
-                    onDateSelected = { date ->
-                        val dateKey = date.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
-                        navController.navigate(Route.dayHistory(dateKey))
-                    },
-                    onStartExercise = {
-                        navController.navigate(Route.exerciseEntry("arithmetic"))
-                    },
-                )
-            }
+                composable(Route.CALENDAR) {
+                    CalendarScreen(
+                        onBack = { navController.popBackStack() },
+                        onDateSelected = { date ->
+                            val dateKey = date.format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
+                            navController.navigate(Route.dayHistory(dateKey))
+                        },
+                        onStartExercise = {
+                            navController.navigate(Route.exerciseEntry("arithmetic"))
+                        },
+                    )
+                }
 
-            composable(
-                route = Route.DAY_HISTORY,
-                arguments = listOf(navArgument("date") { type = NavType.IntType }),
-            ) {
-                DayHistoryScreen(onBack = { navController.popBackStack() })
-            }
+                composable(
+                    route = Route.DAY_HISTORY,
+                    arguments = listOf(navArgument("date") { type = NavType.IntType }),
+                ) {
+                    DayHistoryScreen(onBack = { navController.popBackStack() })
+                }
 
-            composable(Route.MEMORY_TRAINING) {
-                MemoryTrainingScreen(onExit = { navController.popBackStack() })
-            }
+                composable(Route.MEMORY_TRAINING) {
+                    MemoryTrainingScreen(onExit = { navController.popBackStack() })
+                }
 
-            composable(Route.STROOP_TEST) {
-                StroopScreen(onExit = { navController.popBackStack() })
-            }
+                composable(Route.STROOP_TEST) {
+                    StroopScreen(onExit = { navController.popBackStack() })
+                }
 
-            composable(Route.COUNTING_TRAINING) {
-                CountingTrainingScreen(
-                    onExit = {
-                        navController.popBackStack(route = Route.HOME, inclusive = false)
-                    },
-                )
+                composable(Route.COUNTING_TRAINING) {
+                    CountingTrainingScreen(
+                        onExit = {
+                            navController.popBackStack(route = Route.HOME, inclusive = false)
+                        },
+                    )
+                }
             }
+            if (activeProfile != null) AnnouncementHost()
         }
     }
 }

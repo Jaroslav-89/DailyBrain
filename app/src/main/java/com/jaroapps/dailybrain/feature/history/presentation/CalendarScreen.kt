@@ -121,69 +121,6 @@ fun CalendarScreen(
             }
         }
 
-        Spacer(Modifier.height(12.dp))
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                CalendarProgressRow(
-                    title = "7-дневная серия",
-                    completed = state.weeklyStreakProgress,
-                    total = 7,
-                    suffix = "дней",
-                    color = trainingDayColor,
-                )
-                CalendarProgressRow(
-                    title = "Месячная серия",
-                    completed = state.monthlyStreakProgress,
-                    total = state.monthlyStreakTarget,
-                    suffix = "дней",
-                    color = trainingDayColor,
-                )
-            }
-        }
-
-        Spacer(Modifier.height(14.dp))
-        Text(
-            text = "Задание на неделю",
-            style = MaterialTheme.typography.titleMedium,
-            fontWeight = FontWeight.SemiBold,
-        )
-        Spacer(Modifier.height(8.dp))
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.large,
-            color = MaterialTheme.colorScheme.surfaceVariant,
-        ) {
-            Column(
-                modifier = Modifier.padding(14.dp),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
-                state.weeklyChallengeConditions.forEach { condition ->
-                    CalendarProgressRow(
-                        title = condition.title,
-                        completed = condition.completedCount,
-                        total = condition.requiredCount,
-                        suffix = "упр.",
-                        color = challengeColor,
-                    )
-                }
-                if (state.isWeeklyChallengeCompleted) {
-                    Text(
-                        text = "Недельное задание выполнено!",
-                        color = challengeColor,
-                        style = MaterialTheme.typography.labelLarge,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                }
-            }
-        }
-
         if (!state.hasTrainingToday) {
             Spacer(Modifier.height(12.dp))
             Surface(
@@ -323,6 +260,72 @@ fun CalendarScreen(
                 CalendarLegend(todayWithoutTrainingColor, "Сегодня")
             }
         }
+
+        Spacer(Modifier.height(12.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                CalendarProgressRow(
+                    title = "7-дневная серия",
+                    completed = state.weeklyStreakProgress,
+                    total = 7,
+                    suffix = "дней",
+                    color = trainingDayColor,
+                )
+                CalendarProgressRow(
+                    title = "Месячная серия",
+                    completed = state.monthlyStreakProgress,
+                    total = state.monthlyStreakTarget,
+                    suffix = "дней",
+                    color = trainingDayColor,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = "Задание на неделю",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                state.weeklyChallengeConditions.forEach { condition ->
+                    CalendarProgressRow(
+                        title = condition.title,
+                        completed = condition.completedCount,
+                        total = condition.requiredCount,
+                        suffix = "упр.",
+                        color = challengeColor,
+                    )
+                }
+                if (state.isWeeklyChallengeCompleted) {
+                    Text(
+                        text = "Недельное задание выполнено!",
+                        color = challengeColor,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
+
+
+
     }
 }
 

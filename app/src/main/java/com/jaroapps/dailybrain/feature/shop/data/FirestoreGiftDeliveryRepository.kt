@@ -19,6 +19,9 @@ import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.rewards.domain.model.GiftReceiptResult
 import com.jaroapps.dailybrain.feature.rewards.domain.repository.EndorphinRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
+import com.jaroapps.dailybrain.feature.announcements.domain.model.AppAnnouncementType
+import com.jaroapps.dailybrain.feature.announcements.domain.repository.AnnouncementRepository
+import org.json.JSONObject
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -29,6 +32,7 @@ class FirestoreGiftDeliveryRepository(
     private val activeUserProvider: ActiveUserProvider,
     private val endorphinRepository: EndorphinRepository,
     private val feedSyncTrigger: FeedSyncTrigger,
+    private val announcementRepository: AnnouncementRepository,
 ) : GiftDeliveryRepository {
     private val appContext = context.applicationContext
 
@@ -126,7 +130,21 @@ class FirestoreGiftDeliveryRepository(
                         acquiredAtEpochMs = createdAt,
                     ),
                 )
-                if (inserted != -1L) creditedCount++
+                if (inserted != -1L) {
+                    creditedCount++
+                    // Only announce a newly added cosmetic. Older deliveries are still present
+                    // in Firestore and are replayed on every sync.
+                    announcementRepository.enqueue(
+                        announcementId = "collectible:$giftId",
+                        type = AppAnnouncementType.COLLECTIBLE,
+                        payload = JSONObject()
+                            .put("kind", itemType.name)
+                            .put("itemName", item.displayName)
+                            .put("senderName", senderName?.takeIf(String::isNotBlank) ?: "Пользователь DailyBrain")
+                            .toString(),
+                        createdAtEpochMs = createdAt,
+                    )
+                }
 
                 val receiverProfile = database.userProfileDao().getProfile(localUserId) ?: continue
                 val eventId = "cosmetic_gift_received:$giftId"
@@ -166,9 +184,29 @@ class FirestoreGiftDeliveryRepository(
 
             val giftType = EndorphinGiftType.entries.firstOrNull { it.name == giftTypeName } ?: continue
             if (document.getLong("amount")?.toInt() != giftType.price) continue
-            when (endorphinRepository.receiveGift(giftId, giftType, senderUid, senderName)) {
-                is GiftReceiptResult.Credited -> creditedCount++
-                is GiftReceiptResult.AlreadyCredited -> Unit
+            val wasNewlyCredited = when (
+                endorphinRepository.receiveGift(giftId, giftType, senderUid, senderName)
+            ) {
+                is GiftReceiptResult.Credited -> {
+                    creditedCount++
+                    true
+                }
+                is GiftReceiptResult.AlreadyCredited -> false
+            }
+            // Only newly credited gifts are announced. This avoids replaying all historical
+            // Firestore deliveries when an existing profile upgrades to this version.
+            if (wasNewlyCredited) {
+                announcementRepository.enqueue(
+                    announcementId = "collectible:$giftId",
+                    type = AppAnnouncementType.COLLECTIBLE,
+                    payload = JSONObject()
+                        .put("kind", "GIFT")
+                        .put("itemName", giftType.displayName)
+                        .put("senderName", senderName?.takeIf(String::isNotBlank) ?: "Пользователь DailyBrain")
+                        .put("endorphins", giftType.recipientEndorphins)
+                        .toString(),
+                    createdAtEpochMs = createdAt,
+                )
             }
 
             // Backfill metadata on gifts received by older app versions as well.

@@ -21,7 +21,10 @@ class StreakPatchRulesTest {
         )
 
         assertEquals(listOf(monday.plusDays(1), monday.plusDays(2), monday.plusDays(3)), result.newlyPatchedDates)
+        assertEquals(listOf(monday.plusDays(1), monday.plusDays(2), monday.plusDays(3)), result.missedDates)
         assertEquals(monday.plusDays(3), result.lastProcessedDate)
+        assertTrue(result.wasStreakActive)
+        assertTrue(result.isPreviousStreakPreserved)
         assertTrue(result.isStreakActive)
     }
 
@@ -37,6 +40,11 @@ class StreakPatchRulesTest {
         )
 
         assertEquals(listOf(monday.plusDays(1), monday.plusDays(2)), result.newlyPatchedDates)
+        assertEquals(
+            listOf(monday.plusDays(1), monday.plusDays(2), monday.plusDays(3), monday.plusDays(4)),
+            result.missedDates,
+        )
+        assertFalse(result.isPreviousStreakPreserved)
         assertFalse(result.isStreakActive)
     }
 
@@ -52,6 +60,7 @@ class StreakPatchRulesTest {
         )
 
         assertEquals(listOf(monday.plusDays(1)), result.newlyPatchedDates)
+        assertFalse(result.isPreviousStreakPreserved)
         assertFalse(result.isStreakActive)
     }
 
@@ -67,6 +76,8 @@ class StreakPatchRulesTest {
         )
 
         assertTrue(result.newlyPatchedDates.isEmpty())
+        assertTrue(result.missedDates.isEmpty())
+        assertTrue(result.isPreviousStreakPreserved)
         assertTrue(result.isStreakActive)
     }
 
@@ -82,6 +93,12 @@ class StreakPatchRulesTest {
         )
 
         assertEquals(listOf(monday.plusDays(3), monday.plusDays(4)), result.newlyPatchedDates)
+        assertEquals(
+            listOf(monday.plusDays(1), monday.plusDays(2), monday.plusDays(3), monday.plusDays(4)),
+            result.missedDates,
+        )
+        assertFalse(result.wasStreakActive)
+        assertFalse(result.isPreviousStreakPreserved)
         assertTrue(result.isStreakActive)
     }
 

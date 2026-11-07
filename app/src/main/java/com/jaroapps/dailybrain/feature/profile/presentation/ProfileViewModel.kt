@@ -269,7 +269,7 @@ class ProfileViewModel(
             googleLinkDiagnostic.value = null
             try {
                 when (val result = linkGoogleAccountUseCase(localAccountId, signInResult.account, signInResult.idToken)) {
-                    LinkGoogleAccountResult.LINKED -> Unit
+                    LinkGoogleAccountResult.LINKED -> refreshIncomingGifts()
                     LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE -> {
                         googleLinkError.value = GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE
                     }

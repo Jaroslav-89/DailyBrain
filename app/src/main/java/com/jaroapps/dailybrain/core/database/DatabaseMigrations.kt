@@ -669,4 +669,27 @@ object DatabaseMigrations {
         }
     }
 
+    /** Persist profile-scoped informational events and their deduplication/dismissal state. */
+    val MIGRATION_23_24 = object : Migration(23, 24) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE app_announcements (
+                    userId TEXT NOT NULL,
+                    announcementId TEXT NOT NULL,
+                    type TEXT NOT NULL,
+                    payload TEXT NOT NULL,
+                    createdAtEpochMs INTEGER NOT NULL,
+                    isDismissed INTEGER NOT NULL,
+                    PRIMARY KEY(userId, announcementId)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX index_app_announcements_userId_isDismissed_createdAtEpochMs " +
+                    "ON app_announcements(userId, isDismissed, createdAtEpochMs)",
+            )
+        }
+    }
+
 }

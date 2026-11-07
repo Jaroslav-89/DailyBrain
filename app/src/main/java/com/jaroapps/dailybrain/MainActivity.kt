@@ -12,7 +12,7 @@ import androidx.core.content.ContextCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.lifecycleScope
 import com.jaroapps.dailybrain.feature.brain.BrainStateManager
-import com.jaroapps.dailybrain.common.domain.usecase.ProcessMissedStreakDaysUseCase
+import com.jaroapps.dailybrain.feature.announcements.domain.usecase.ProcessMissedStreakDaysWithAnnouncementUseCase
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.onboarding.domain.usecase.GetStartupDestinationUseCase
@@ -37,7 +37,7 @@ class MainActivity : ComponentActivity() {
         super.onResume()
         lifecycleScope.launch {
             runCatching { GlobalContext.get().get<BrainStateManager>().refresh() }
-            runCatching { GlobalContext.get().get<ProcessMissedStreakDaysUseCase>().invoke() }
+            runCatching { GlobalContext.get().get<ProcessMissedStreakDaysWithAnnouncementUseCase>().invoke() }
         }
     }
 
@@ -78,7 +78,7 @@ class MainActivity : ComponentActivity() {
             }
 
             if (startDestination != Route.PROFILE_SELECTION) {
-                runCatching { GlobalContext.get().get<ProcessMissedStreakDaysUseCase>().invoke() }
+                runCatching { GlobalContext.get().get<ProcessMissedStreakDaysWithAnnouncementUseCase>().invoke() }
             }
 
             setContent {
