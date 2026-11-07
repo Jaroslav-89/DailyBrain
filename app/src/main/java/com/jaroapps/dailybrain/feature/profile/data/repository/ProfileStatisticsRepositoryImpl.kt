@@ -38,10 +38,13 @@ class ProfileStatisticsRepositoryImpl(
         database.statisticsDao().observeOverall(userId),
         database.statisticsDao().observeExerciseStatistics(userId),
         database.trainingDayDao().observeAll(userId),
-    ) { sessions, overall, exerciseStats, trainingDays ->
+        database.streakPatchDao().observeDays(userId),
+    ) { sessions, overall, exerciseStats, trainingDays, patchDays ->
         val zone = ZoneId.systemDefault()
         val today = LocalDate.now(zone)
-        val trainingDates = TrainingStreakCalculator.parseDateKeys(trainingDays.map { it.date })
+        val trainingDates = TrainingStreakCalculator.parseDateKeys(
+            trainingDays.map { it.date } + patchDays.map { it.date },
+        )
         val streak = TrainingStreakCalculator.calculate(trainingDates, today)
         val weekStart = today.minusDays(6)
         val recentSessions = sessions.count { session ->
