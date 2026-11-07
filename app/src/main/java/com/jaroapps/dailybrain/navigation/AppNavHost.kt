@@ -1,5 +1,14 @@
 package com.jaroapps.dailybrain.navigation
 
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.ui.graphics.graphicsLayer
+
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -20,6 +29,9 @@ import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.ShoppingBag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
@@ -92,6 +104,8 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     val publicProfileSyncViewModel: PublicProfileSyncViewModel = koinViewModel()
 
     Scaffold(
+        containerColor = MaterialTheme.colorScheme.background,
+        contentColor = MaterialTheme.colorScheme.onBackground,
         bottomBar = {
             if (showBottomNavigation) {
                 AppBottomNavigation(
@@ -111,6 +125,34 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
+            enterTransition = {
+                fadeIn(animationSpec = tween(240)) +
+                    slideInHorizontally(
+                        initialOffsetX = { width -> width / 14 },
+                        animationSpec = tween(300, easing = FastOutSlowInEasing),
+                    )
+            },
+            exitTransition = {
+                fadeOut(animationSpec = tween(180)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { width -> -width / 18 },
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    )
+            },
+            popEnterTransition = {
+                fadeIn(animationSpec = tween(240)) +
+                    slideInHorizontally(
+                        initialOffsetX = { width -> -width / 14 },
+                        animationSpec = tween(300, easing = FastOutSlowInEasing),
+                    )
+            },
+            popExitTransition = {
+                fadeOut(animationSpec = tween(180)) +
+                    slideOutHorizontally(
+                        targetOffsetX = { width -> width / 18 },
+                        animationSpec = tween(220, easing = FastOutSlowInEasing),
+                    )
+            },
         ) {
             composable(Route.STARTUP) {
                 StartupScreen(
@@ -450,62 +492,52 @@ private fun AppBottomNavigation(
         ),
     )
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+    NavigationBar(
+        containerColor = MaterialTheme.colorScheme.surface,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        tonalElevation = 4.dp,
     ) {
-        Spacer(
-            Modifier
-                .fillMaxWidth()
-                .height(1.dp)
-                .background(Color(0xFFD6D6D6)),
-        )
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(40.dp)
-                .padding(horizontal = 16.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            destinations.forEach { destination ->
-                val selected = currentRoute == destination.route
-                Box(
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(CircleShape)
-                        .background(
-                            color = if (selected) {
-                                MaterialTheme.colorScheme.secondaryContainer
-                            } else {
-                                Color.Transparent
-                            },
-                        )
-                        .clickable {
-                            if (!selected) onDestinationSelected(destination.route)
-                        }
-                        .semantics {
-                            contentDescription = destination.label
-                            role = Role.Button
-                        },
-                    contentAlignment = Alignment.Center,
-                ) {
+        destinations.forEach { destination ->
+            val selected = currentRoute == destination.route
+            val iconScale by animateFloatAsState(
+                targetValue = if (selected) 1.08f else 1f,
+                animationSpec = tween(
+                    durationMillis = 180,
+                    easing = FastOutSlowInEasing,
+                ),
+                label = "bottomNavIconScale",
+            )
+            NavigationBarItem(
+                selected = selected,
+                onClick = {
+                    if (!selected) onDestinationSelected(destination.route)
+                },
+                icon = {
                     Icon(
                         imageVector = destination.icon,
                         contentDescription = null,
-                        modifier = Modifier.size(19.dp),
-                        tint = if (selected) {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                        modifier = Modifier.graphicsLayer {
+                            scaleX = iconScale
+                            scaleY = iconScale
                         },
                     )
-                }
-            }
+                },
+                label = {
+                    androidx.compose.material3.Text(
+                        text = destination.label,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                    )
+                },
+                alwaysShowLabel = true,
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                ),
+            )
         }
-
-        // Reserve a small bottom area for system navigation gestures.
-        Spacer(Modifier.height(24.dp))
     }
 }
