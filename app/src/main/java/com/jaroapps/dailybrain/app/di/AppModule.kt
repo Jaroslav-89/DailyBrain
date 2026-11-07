@@ -255,6 +255,7 @@ val appModule = module {
         )
     }
     factory { ObserveUserProfileUseCase(repository = get()) }
+    factory { ObserveSelectedProfileUseCase(repository = get()) }
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }
     factory {
