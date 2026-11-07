@@ -204,6 +204,7 @@ fun ShopScreen(
                     items(EndorphinEconomy.gifts) { gift ->
                         GiftProductCard(
                             giftType = gift,
+                            enabled = !state.isPurchasing,
                             onClick = { selectedProduct = ShopProductDetails.Gift(gift) },
                             onGift = {
                                 if (canAffordOrShowDialog(gift.price)) {
@@ -226,6 +227,7 @@ fun ShopScreen(
                         CosmeticProductCard(
                             item = item,
                             owned = owned,
+                            enabled = !state.isPurchasing,
                             onClick = { selectedProduct = ShopProductDetails.Cosmetic(item) },
                             onBuy = {
                                 if (!owned && canAffordOrShowDialog(item.price)) {
@@ -253,6 +255,7 @@ fun ShopScreen(
                         CosmeticProductCard(
                             item = item,
                             owned = owned,
+                            enabled = !state.isPurchasing,
                             onClick = { selectedProduct = ShopProductDetails.Cosmetic(item) },
                             onBuy = {
                                 if (!owned && canAffordOrShowDialog(item.price)) {
@@ -567,6 +570,7 @@ private fun SectionTitle(title: String) {
 @Composable
 private fun GiftProductCard(
     giftType: EndorphinGiftType,
+    enabled: Boolean,
     onClick: () -> Unit,
     onGift: () -> Unit,
 ) {
@@ -588,6 +592,7 @@ private fun GiftProductCard(
             EndorphinAmount(giftType.price.toString())
             Button(
                 onClick = onGift,
+                enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
                 colors = shopButtonColors(),
             ) {
@@ -601,6 +606,7 @@ private fun GiftProductCard(
 private fun CosmeticProductCard(
     item: AvatarCosmeticItem,
     owned: Boolean,
+    enabled: Boolean,
     onClick: () -> Unit,
     onBuy: () -> Unit,
     onGift: () -> Unit,
@@ -631,6 +637,7 @@ private fun CosmeticProductCard(
             } else {
                 Button(
                     onClick = onBuy,
+                    enabled = enabled,
                     modifier = Modifier.fillMaxWidth(),
                     colors = shopButtonColors(),
                 ) {
@@ -639,6 +646,7 @@ private fun CosmeticProductCard(
             }
             Button(
                 onClick = onGift,
+                enabled = enabled,
                 modifier = Modifier.fillMaxWidth(),
                 colors = shopButtonColors(),
             ) {
