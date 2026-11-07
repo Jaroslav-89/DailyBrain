@@ -2,6 +2,7 @@ package com.jaroapps.dailybrain.feature.publicprofile.presentation
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -21,7 +22,6 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -29,7 +29,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.mutableStateOf
@@ -57,7 +56,6 @@ import java.time.LocalDate
 import java.time.Period
 import java.time.ZoneId
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun PublicUserProfileScreen(
     profileFirebaseUid: String,
@@ -82,25 +80,20 @@ fun PublicUserProfileScreen(
         Period.between(date, today).plusDays(1).takeIf { !it.isNegative }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Профиль пользователя") },
-                navigationIcon = {
-                    IconButton(
-                        onClick = onBack,
-                        modifier = Modifier.padding(bottom = 4.dp),
-                    ) {
-                        Icon(Icons.Filled.Close, contentDescription = "Назад")
-                    }
-                },
-            )
-        },
-    ) { padding ->
-        Column(
-            modifier = Modifier.fillMaxSize().padding(padding).verticalScroll(rememberScrollState())
-                .padding(horizontal = 24.dp, vertical = 0.dp),
-        ) {
+    Scaffold { padding ->
+        Box(modifier = Modifier.fillMaxSize().padding(padding)) {
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier.align(Alignment.TopEnd).padding(end = 12.dp, top = 0.dp),
+            ) {
+                Icon(Icons.Filled.Close, contentDescription = "Назад")
+            }
+            Column(
+                modifier = Modifier.fillMaxSize()
+                    .padding(horizontal = 24.dp)
+                    .padding(top = 48.dp, bottom = 8.dp)
+                    .verticalScroll(rememberScrollState()),
+            ) {
             when {
                 state.isLoading && user == null -> {
                     CircularProgressIndicator(modifier = Modifier.align(Alignment.CenterHorizontally))
@@ -306,6 +299,7 @@ fun PublicUserProfileScreen(
                         }
                     }
                 }
+            }
             }
         }
     }
