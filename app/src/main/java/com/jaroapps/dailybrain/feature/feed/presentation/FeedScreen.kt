@@ -21,6 +21,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -284,18 +285,30 @@ private fun FeedEventCard(
                 }
                 badgeLocation != null && badgeBitmap != null && collectibleId != null && collectibleOwnerUid != null -> {
                     val (_, cellIndex) = badgeLocation
-                    Image(
-                        painter = BitmapPainter(
-                            image = badgeBitmap,
-                            srcOffset = IntOffset(cellIndex * BADGE_CELL_WIDTH, 0),
-                            srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
-                        ),
-                        contentDescription = event.badgeDescription(),
-                        modifier = Modifier.size(width = 68.dp, height = 80.dp)
-                            .clickable {
+                    Box(
+                        modifier = Modifier.size(width = 68.dp, height = 80.dp),
+                        contentAlignment = Alignment.BottomEnd,
+                    ) {
+                        Image(
+                            painter = BitmapPainter(
+                                image = badgeBitmap,
+                                srcOffset = IntOffset(cellIndex * BADGE_CELL_WIDTH, 0),
+                                srcSize = IntSize(BADGE_CELL_WIDTH, BADGE_CELL_HEIGHT),
+                            ),
+                            contentDescription = event.badgeDescription(),
+                            modifier = Modifier.fillMaxSize().clickable {
                                 onOpenCollectible(collectibleOwnerUid, ProfileCollectibleKind.BADGE, collectibleId)
                             },
-                    )
+                        )
+                        if (event.eventType == "MONTHLY_CHALLENGE") {
+                            Icon(
+                                imageVector = Icons.Filled.CheckCircle,
+                                contentDescription = "Месячное задание выполнено",
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(2.dp).size(22.dp),
+                            )
+                        }
+                    }
                 }
             }
         }
@@ -309,7 +322,8 @@ private fun FeedEvent.cosmeticGiftItem() =
 private fun FeedEvent.badgeSpriteLocation(): Pair<Int, Int>? = when (eventType) {
     "WEEKLY_STREAK" -> 0 to 0
     "WEEKLY_CHALLENGE" -> 0 to 1
-    "MONTHLY_STREAK" -> {
+    "MONTHLY_STREAK",
+    "MONTHLY_CHALLENGE" -> {
         val month = (valueInt ?: periodKey?.substringAfterLast("-")?.toIntOrNull() ?: 1).coerceIn(1, 12)
         (1 + (month - 1) / 4) to ((month - 1) % 4)
     }
@@ -321,20 +335,23 @@ private fun FeedEvent.badgeCollectibleId(): String? = when (eventType) {
     "WEEKLY_STREAK" -> periodKey?.let { "weekly_streak:$it" }
     "WEEKLY_CHALLENGE" -> periodKey?.let { "weekly_challenge:$it" }
     "MONTHLY_STREAK" -> periodKey?.let { "monthly_streak:$it" }
+    "MONTHLY_CHALLENGE" -> periodKey?.let { "monthly_challenge:$it" }
     else -> null
 }
 
 private fun FeedEvent.badgeDescription(): String = when (eventType) {
     "WEEKLY_STREAK" -> "Бейджик: недельная серия"
     "WEEKLY_CHALLENGE" -> "Бейджик: задание недели"
-    "MONTHLY_STREAK" -> "Месячный бейджик"
+    "MONTHLY_STREAK" -> "Бейджик за месячную серию"
+    "MONTHLY_CHALLENGE" -> "Бейджик за месячное задание"
     else -> "Достижение"
 }
 
 private fun FeedEvent.message(): String = when (eventType) {
     "WEEKLY_STREAK" -> "Завершил 7 дней непрерывных тренировок и получил бейджик"
     "WEEKLY_CHALLENGE" -> "Выполнил недельное задание и получил бейджик"
-    "MONTHLY_STREAK" -> "Завершил месяц ежедневных тренировок и получил месячный бейджик"
+    "MONTHLY_STREAK" -> "Завершил месяц ежедневных тренировок и получил бейджик за серию"
+    "MONTHLY_CHALLENGE" -> "Выполнил месячное задание по объёму упражнений за четыре недели и получил бейджик"
     "PERSONAL_RECORD" -> {
         val accuracy = accuracyPercent?.let {
             " · точность " + String.format(Locale.getDefault(), "%.1f%%", it)
