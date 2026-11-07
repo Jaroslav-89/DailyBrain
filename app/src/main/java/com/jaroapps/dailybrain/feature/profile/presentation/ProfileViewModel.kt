@@ -160,6 +160,7 @@ class ProfileViewModel(
             isSaving = isSaving,
             saveError = actions.saveError,
             deleteError = actions.deleteError,
+            isDeletingProfile = actions.isDeletingProfile,
             isGoogleLinking = actions.isGoogleLinking,
             googleLinkError = actions.googleLinkError,
             googleLinkDiagnostic = actions.googleLinkDiagnostic,
