@@ -15,6 +15,7 @@ import com.jaroapps.dailybrain.core.database.dao.OnboardingProgressDao
 import com.jaroapps.dailybrain.core.database.dao.UserInventoryDao
 import com.jaroapps.dailybrain.core.database.dao.GiftOutboxDao
 import com.jaroapps.dailybrain.core.database.dao.PendingProfileDeletionDao
+import com.jaroapps.dailybrain.core.database.dao.StreakPatchDao
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
@@ -30,6 +31,8 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.UserInventoryEntity
 import com.jaroapps.dailybrain.core.database.entity.GiftOutboxEntity
 import com.jaroapps.dailybrain.core.database.entity.PendingProfileDeletionEntity
+import com.jaroapps.dailybrain.core.database.entity.StreakPatchDayEntity
+import com.jaroapps.dailybrain.core.database.entity.StreakPatchStateEntity
 
 @Database(
     entities = [
@@ -48,8 +51,10 @@ import com.jaroapps.dailybrain.core.database.entity.PendingProfileDeletionEntity
         UserInventoryEntity::class,
         GiftOutboxEntity::class,
         PendingProfileDeletionEntity::class,
+        StreakPatchDayEntity::class,
+        StreakPatchStateEntity::class,
     ],
-    version = 22,
+    version = 23,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -67,4 +72,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun userInventoryDao(): UserInventoryDao
     abstract fun giftOutboxDao(): GiftOutboxDao
     abstract fun pendingProfileDeletionDao(): PendingProfileDeletionDao
+    abstract fun streakPatchDao(): StreakPatchDao
 }
