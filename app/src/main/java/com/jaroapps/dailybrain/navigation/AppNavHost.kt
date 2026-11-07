@@ -1,9 +1,5 @@
 package com.jaroapps.dailybrain.navigation
 
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInHorizontally
-import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
@@ -142,34 +138,6 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
             navController = navController,
             startDestination = startDestination,
             modifier = Modifier.padding(innerPadding),
-            enterTransition = {
-                fadeIn(animationSpec = tween(240)) +
-                    slideInHorizontally(
-                        initialOffsetX = { width -> width / 14 },
-                        animationSpec = tween(300, easing = FastOutSlowInEasing),
-                    )
-            },
-            exitTransition = {
-                fadeOut(animationSpec = tween(180)) +
-                    slideOutHorizontally(
-                        targetOffsetX = { width -> -width / 18 },
-                        animationSpec = tween(220, easing = FastOutSlowInEasing),
-                    )
-            },
-            popEnterTransition = {
-                fadeIn(animationSpec = tween(240)) +
-                    slideInHorizontally(
-                        initialOffsetX = { width -> -width / 14 },
-                        animationSpec = tween(300, easing = FastOutSlowInEasing),
-                    )
-            },
-            popExitTransition = {
-                fadeOut(animationSpec = tween(180)) +
-                    slideOutHorizontally(
-                        targetOffsetX = { width -> width / 18 },
-                        animationSpec = tween(220, easing = FastOutSlowInEasing),
-                    )
-            },
         ) {
             composable(Route.STARTUP) {
                 StartupScreen(

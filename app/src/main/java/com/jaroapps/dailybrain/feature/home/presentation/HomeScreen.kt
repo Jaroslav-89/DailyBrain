@@ -1,16 +1,15 @@
 package com.jaroapps.dailybrain.feature.home.presentation
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
 import androidx.compose.animation.core.infiniteRepeatable
 import androidx.compose.animation.core.rememberInfiniteTransition
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -35,6 +34,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -44,7 +46,6 @@ import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.foundation.LocalIndication
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.colorResource
@@ -61,6 +62,7 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 private val ArithmeticExerciseRingMaxRadius = 43.dp
 private val AdditionalExerciseRingMaxRadius = 51.dp
@@ -283,13 +285,9 @@ fun HomeScreen(
             )
 
             state.currentWeekDates.forEachIndexed { index, date ->
-                val interactionSource = remember(date) { MutableInteractionSource() }
-                val isPressed by interactionSource.collectIsPressedAsState()
-                val pressOffset by animateDpAsState(
-                    targetValue = if (isPressed) 5.dp else 0.dp,
-                    animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
-                    label = "arithmeticButtonPress",
-                )
+                val pressOffset = remember(date) { Animatable(0f) }
+                val coroutineScope = rememberCoroutineScope()
+                var navigationStarted by remember(date) { mutableStateOf(false) }
                 val status = state.arithmeticDayStatus(date)
                 val color = arithmeticButtonColor(status)
                 val today = date == state.today
@@ -319,7 +317,7 @@ fun HomeScreen(
 
                             Box(
                                 modifier = Modifier
-                                     .offset(y = 4.dp + pressOffset)
+                                     .offset(y = 4.dp + pressOffset.value.dp)
                                     .size(arithmeticButtonSize)
                                     .clip(CircleShape)
                                     .background(depthColor(color)),
@@ -328,7 +326,7 @@ fun HomeScreen(
                                 modifier = Modifier
                                     .size(arithmeticButtonSize)
                                     .graphicsLayer {
-                                        translationY = pressOffset.toPx()
+                                        translationY = pressOffset.value.dp.toPx()
                                         rotationX = 9f
                                         cameraDistance = 12f * density
                                         shadowElevation = 7.dp.toPx()
@@ -337,10 +335,20 @@ fun HomeScreen(
                                     }
                                     .background(color, CircleShape)
                                     .clickable(
-                                        interactionSource = interactionSource,
-                                        indication = LocalIndication.current,
-                                        enabled = today,
-                                        onClick = onStartTraining,
+                                        enabled = today && !navigationStarted,
+                                        onClick = {
+                                            if (!navigationStarted) {
+                                                navigationStarted = true
+                                                coroutineScope.launch {
+                                                    pressOffset.animateTo(5f, animationSpec = tween(durationMillis = 85))
+                                                    pressOffset.animateTo(
+                                                        0f,
+                                                        animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
+                                                    )
+                                                    onStartTraining()
+                                                }
+                                            }
+                                        },
                                     )
                                     .semantics {
                                         contentDescription = when (status) {
@@ -485,13 +493,9 @@ private fun RoundExerciseButton(
     },
 ) {
     val buttonColor = if (completed) colorResource(R.color.color_training_completed) else colorResource(R.color.color_training_disabled)
-    val interactionSource = remember { MutableInteractionSource() }
-    val isPressed by interactionSource.collectIsPressedAsState()
-    val pressOffset by animateDpAsState(
-        targetValue = if (isPressed) 5.dp else 0.dp,
-        animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
-        label = "roundExerciseButtonPress",
-    )
+    val pressOffset = remember { Animatable(0f) }
+    val coroutineScope = rememberCoroutineScope()
+    var navigationStarted by remember { mutableStateOf(false) }
     Box(
         modifier = Modifier
             .offset(x = x, y = y)
@@ -507,7 +511,7 @@ private fun RoundExerciseButton(
 
         Box(
             modifier = Modifier
-                 .offset(y = 4.dp + pressOffset)
+                 .offset(y = 4.dp + pressOffset.value.dp)
                 .size(size)
                 .clip(CircleShape)
                 .background(depthColor(buttonColor)),
@@ -516,7 +520,7 @@ private fun RoundExerciseButton(
             modifier = Modifier
                 .size(size)
                 .graphicsLayer {
-                    translationY = pressOffset.toPx()
+                    translationY = pressOffset.value.dp.toPx()
                     rotationX = 9f
                     cameraDistance = 12f * density
                     shadowElevation = 7.dp.toPx()
@@ -525,9 +529,20 @@ private fun RoundExerciseButton(
                 }
                 .background(buttonColor, CircleShape)
                 .clickable(
-                    interactionSource = interactionSource,
-                    indication = LocalIndication.current,
-                    onClick = onClick,
+                    enabled = !navigationStarted,
+                    onClick = {
+                        if (!navigationStarted) {
+                            navigationStarted = true
+                            coroutineScope.launch {
+                                pressOffset.animateTo(5f, animationSpec = tween(durationMillis = 85))
+                                pressOffset.animateTo(
+                                    0f,
+                                    animationSpec = spring(dampingRatio = 0.38f, stiffness = 900f),
+                                )
+                                onClick()
+                            }
+                        }
+                    },
                 )
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
