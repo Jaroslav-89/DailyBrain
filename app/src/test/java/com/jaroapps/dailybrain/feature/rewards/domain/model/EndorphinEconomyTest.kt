@@ -22,6 +22,7 @@ class EndorphinEconomyTest {
         assertEquals(100, EndorphinEconomy.COSTUME_PRICE)
         assertEquals(100, EndorphinEconomy.BACKGROUND_PRICE)
         assertEquals(listOf(10, 20, 30, 40, 50), EndorphinEconomy.gifts.map { it.price })
+        assertEquals(listOf(5, 15, 25, 35, 45), EndorphinEconomy.gifts.map { it.recipientEndorphins })
     }
 
     @Test
