@@ -76,6 +76,27 @@ class HomeUiStateTest {
     }
 
     @Test
+    fun patchedDateIsPurpleSeriesActivityButNotARealExerciseCompletion() {
+        val today = LocalDate.of(2026, 10, 28)
+        val patchedYesterday = today.minusDays(1)
+        val state = HomeUiState(
+            today = today,
+            completedDates = setOf(patchedYesterday, today),
+            patchedDates = setOf(patchedYesterday),
+            isTrainingHistoryLoaded = true,
+            completedExerciseDatesByType = mapOf(
+                ExerciseType.ARITHMETIC.storageValue to setOf(today),
+            ),
+        )
+
+        assertEquals(ArithmeticDayStatus.PATCHED, state.arithmeticDayStatus(patchedYesterday))
+        assertEquals(2, state.currentStreakDays)
+        assertFalse(state.hasCompletedExerciseThisWeek(ExerciseType.ARITHMETIC) && patchedYesterday in
+            state.completedExerciseDatesByType[ExerciseType.ARITHMETIC.storageValue].orEmpty())
+        assertTrue(state.hasCompletedExerciseThisWeek(ExerciseType.ARITHMETIC))
+    }
+
+    @Test
     fun arithmeticIsMarkedCompletedOnlyWhenArithmeticWasCompleted() {
         val today = LocalDate.of(2026, 10, 27)
         val state = HomeUiState(
