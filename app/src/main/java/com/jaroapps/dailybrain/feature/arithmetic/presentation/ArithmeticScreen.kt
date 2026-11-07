@@ -414,6 +414,10 @@ private fun ResultContent(
             onClick = onFinish,
             enabled = state.isSaved,
             modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
         ) {
             Text(stringResource(R.string.action_finish))
         }

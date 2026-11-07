@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.CircularProgressIndicator
@@ -27,6 +28,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.colorResource
 import com.jaroapps.dailybrain.R
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -310,6 +312,10 @@ private fun StroopResultContent(
                 .fillMaxWidth()
                 .padding(top = 16.dp),
             enabled = isSaved,
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
         ) {
             Text(stringResource(R.string.action_done))
         }

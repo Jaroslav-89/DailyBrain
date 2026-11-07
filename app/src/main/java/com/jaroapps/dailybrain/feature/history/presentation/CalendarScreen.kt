@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -140,6 +141,10 @@ fun CalendarScreen(
                     Button(
                         onClick = onStartExercise,
                         modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = colorResource(R.color.color_button_green),
+                            contentColor = colorResource(R.color.color_on_accent),
+                        ),
                     ) {
                         Text("Начать упражнение")
                     }

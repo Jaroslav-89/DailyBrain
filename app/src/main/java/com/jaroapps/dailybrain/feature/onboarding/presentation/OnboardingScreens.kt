@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -35,6 +36,7 @@ import org.koin.androidx.compose.koinViewModel
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.jaroapps.dailybrain.R
@@ -97,7 +99,14 @@ fun AppOnboardingScreen(onContinue: () -> Unit) {
                 style = MaterialTheme.typography.bodyLarge,
             )
         }
-        Button(onClick = onContinue, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onContinue,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
+        ) {
             Text(stringResource(R.string.action_get_started))
         }
     }
@@ -261,7 +270,14 @@ fun ExerciseRulesScreen(
         }
 
         Spacer(Modifier.height(12.dp))
-        Button(onClick = onStart, modifier = Modifier.fillMaxWidth()) {
+        Button(
+            onClick = onStart,
+            modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_button_green),
+                contentColor = colorResource(R.color.color_on_accent),
+            ),
+        ) {
             Text(stringResource(R.string.action_start_exercise))
         }
     }
