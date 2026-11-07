@@ -20,20 +20,29 @@ class DeleteProfileUseCase(
     private val profileRepository: UserProfileRepository,
     private val userDirectoryRepository: UserDirectoryRepository,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
+    private val applicationScope: CoroutineScope = CoroutineScope(SupervisorJob() + Dispatchers.IO),
 ) {
+    /**
+     * Commits local deletion first and returns immediately. Cloud cleanup runs in an
+     * application-owned scope so the profile screen can leave without cancelling it.
+     * The Room outbox remains authoritative if the process stops or the old auth session
+     * is no longer available.
+     */
     suspend operator fun invoke(localAccountId: String) {
         val pending = profileRepository.deleteProfile(localAccountId) ?: return
         if (firebaseAuthenticationRepository.currentUserId() != pending.firebaseUid) return
 
-        try {
-            completeDeletionWithCurrentSession(pending)
-        } catch (cancelled: CancellationException) {
-            throw cancelled
-        } catch (_: Exception) {
-            // Local deletion is already committed. Keep the outbox for the next Google sign-in
-            // and prevent the old session from publishing anything in the meantime.
-            if (firebaseAuthenticationRepository.currentUserId() == pending.firebaseUid) {
-                firebaseAuthenticationRepository.signOut()
+        applicationScope.launch {
+            try {
+                completeDeletionWithCurrentSession(pending)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // Local deletion is already committed. Keep the outbox for the next Google sign-in
+                // and prevent the old session from publishing anything in the meantime.
+                if (firebaseAuthenticationRepository.currentUserId() == pending.firebaseUid) {
+                    runCatching { firebaseAuthenticationRepository.signOut() }
+                }
             }
         }
     }
