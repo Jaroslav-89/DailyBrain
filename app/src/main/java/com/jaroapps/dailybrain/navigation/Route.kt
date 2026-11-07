@@ -15,6 +15,7 @@ object Route {
     const val PROFILE = "profile"
     const val PROFILE_SELECTION = "profile_selection"
     const val PROFILE_SETTINGS = "profile_settings"
+    const val PRIVACY_POLICY = "privacy_policy"
     const val PARAMETERS = "profile_parameters"
     const val FRIENDS = "friends"
     const val USER_PROFILE = "user_profile/{userId}"
