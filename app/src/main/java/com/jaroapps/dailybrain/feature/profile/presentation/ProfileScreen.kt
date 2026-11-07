@@ -416,7 +416,7 @@ fun ProfileScreen(
         }
     }
 
-    if (showMyQrDialog && state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
+    if (showMyQrDialog && state.cloudSessionStatus == ProfileCloudSessionStatus.READY && profile != null) {
         MyQrCodeDialog(
             profile = profile,
             inviteCode = profile.inviteCode ?: directoryState.inviteCode,

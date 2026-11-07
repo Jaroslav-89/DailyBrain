@@ -38,7 +38,7 @@ class ActiveProfileAuthCoordinatorTest {
         )
         val coordinator = ActiveProfileAuthCoordinator(provider, firebase)
 
-        coordinator.ensureAuthenticated(linkedProfile())
+        coordinator.reauthenticate(linkedProfile())
 
         assertEquals(1, provider.calls)
         assertEquals("token-a", firebase.lastToken)
@@ -54,7 +54,7 @@ class ActiveProfileAuthCoordinatorTest {
         val coordinator = ActiveProfileAuthCoordinator(provider, firebase)
 
         assertThrows(ProfileGoogleAccountMismatchException::class.java) {
-            runBlocking { coordinator.ensureAuthenticated(linkedProfile()) }
+            runBlocking { coordinator.reauthenticate(linkedProfile()) }
         }
 
         assertEquals(0, firebase.signInCalls)
@@ -71,7 +71,7 @@ class ActiveProfileAuthCoordinatorTest {
         val coordinator = ActiveProfileAuthCoordinator(provider, firebase)
 
         assertThrows(ProfileFirebaseUidMismatchException::class.java) {
-            runBlocking { coordinator.ensureAuthenticated(linkedProfile()) }
+            runBlocking { coordinator.reauthenticate(linkedProfile()) }
         }
 
         assertNull(firebase.currentUserId())

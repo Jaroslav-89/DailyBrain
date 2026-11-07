@@ -75,8 +75,11 @@ fun FriendsScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
-    LaunchedEffect(firebaseUid) {
-        if (firebaseUid != null) directoryViewModel.loadInviteCode()
+    LaunchedEffect(firebaseUid, directoryState.cloudSessionStatus) {
+        directoryViewModel.refreshRelationships()
+        if (directoryState.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
+            directoryViewModel.loadInviteCode()
+        }
     }
 
     Scaffold(

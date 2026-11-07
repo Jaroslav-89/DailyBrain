@@ -12,6 +12,7 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
@@ -62,6 +63,7 @@ class FirebaseAuthenticationRepositoryImpl(
 
     override fun currentUserId(): String? = firebaseAuthOrNull()?.currentUser?.uid
 
+    @OptIn(ExperimentalCoroutinesApi::class)
     override fun observeCurrentUserId(): Flow<String?> = callbackFlow {
         val auth = firebaseAuthOrNull()
         if (auth == null) {
