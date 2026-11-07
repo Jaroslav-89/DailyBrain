@@ -448,11 +448,11 @@ fun HomeScreen(
                 }
             }
         }
-        Box(
-            modifier = Modifier.fillMaxWidth().height(48.dp),
-            contentAlignment = Alignment.Center,
-        ) {
-            if (isHistoricalWeek) {
+        if (isHistoricalWeek) {
+            Box(
+                modifier = Modifier.fillMaxWidth().height(48.dp),
+                contentAlignment = Alignment.Center,
+            ) {
                 TextButton(
                     onClick = {
                         screenScope.launch {
