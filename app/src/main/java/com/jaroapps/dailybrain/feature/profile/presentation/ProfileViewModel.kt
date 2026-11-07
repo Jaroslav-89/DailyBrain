@@ -90,6 +90,7 @@ class ProfileViewModel(
     private val saving = MutableStateFlow(false)
     private val saveError = MutableStateFlow(false)
     private val deleteError = MutableStateFlow(false)
+    private val deletingProfile = MutableStateFlow(false)
     private val googleLinking = MutableStateFlow(false)
     private val googleLinkError = MutableStateFlow<GoogleLinkError?>(null)
     private val googleLinkDiagnostic = MutableStateFlow<String?>(null)
