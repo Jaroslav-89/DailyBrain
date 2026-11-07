@@ -101,6 +101,7 @@ fun HomeScreen(
     val selectedWeekStart = state.weekStartAtPage(selectedPage)
     val selectedWeekDates = state.weekDates(selectedWeekStart)
     val isHistoricalWeek = selectedPage < state.currentWeekPageIndex
+    val isHistoricalWeek = selectedPage < state.currentWeekPageIndex
     val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
     val homeTextColor = when {
         dynamicBackgroundEnabled && AppThemePreference.isDarkTheme -> Color.White
@@ -230,6 +231,7 @@ fun HomeScreen(
             key = { page -> state.weekStartAtPage(page) },
         ) { page ->
             val weekStart = state.weekStartAtPage(page)
+            val isHistoricalPage = page < state.currentWeekPageIndex
             val weekDates = state.weekDates(weekStart)
             val dayButtonsDescription = weekDates.zip(WeekdayLabels)
             BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
@@ -254,7 +256,7 @@ fun HomeScreen(
                 x = 0.dp,
                 y = maxHeight * 0.25f - additionalRingSize / 2,
                 completed = state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS, weekStart),
-                enabled = !isHistoricalWeek,
+                enabled = !isHistoricalPage,
                 onClick = onStartMemoryTraining,
             )
             RoundExerciseButton(
@@ -446,7 +448,6 @@ fun HomeScreen(
                     }
                 }
             }
-            }
         }
         Box(
             modifier = Modifier.fillMaxWidth().height(48.dp),
@@ -463,6 +464,7 @@ fun HomeScreen(
                     Text("Вернуться к текущей неделе")
                 }
             }
+        }
         }
     }
 }
