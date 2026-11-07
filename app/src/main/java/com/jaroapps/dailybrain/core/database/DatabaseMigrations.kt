@@ -621,4 +621,23 @@ object DatabaseMigrations {
         }
     }
 
+    /** Persist cloud cleanup work before a linked local profile is removed. */
+    val MIGRATION_21_22 = object : Migration(21, 22) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE pending_profile_deletions (
+                    firebaseUid TEXT NOT NULL PRIMARY KEY,
+                    googleSubject TEXT,
+                    status TEXT NOT NULL,
+                    requestedAtEpochMs INTEGER NOT NULL
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX index_pending_profile_deletions_googleSubject ON pending_profile_deletions(googleSubject)",
+            )
+        }
+    }
+
 }
