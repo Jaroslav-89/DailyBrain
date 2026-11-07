@@ -39,6 +39,7 @@ class FeedViewModel(
     private val isLoadingMore = MutableStateFlow(false)
     private val hasMore = MutableStateFlow(false)
     private val errorMessage = MutableStateFlow<String?>(null)
+    private var refreshPending = false
 
     val uiState: StateFlow<FeedUiState> = combine(
         events,
@@ -92,7 +93,10 @@ class FeedViewModel(
     }
 
     fun refresh() {
-        if (isRefreshing.value) return
+        if (isRefreshing.value) {
+            refreshPending = true
+            return
+        }
         viewModelScope.launch {
             isRefreshing.value = true
             errorMessage.value = null
@@ -121,6 +125,10 @@ class FeedViewModel(
                 }
             } finally {
                 isRefreshing.value = false
+                if (refreshPending) {
+                    refreshPending = false
+                    refresh()
+                }
             }
         }
     }
