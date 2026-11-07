@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -206,7 +207,13 @@ private fun StroopTrainingContent(
                             ) {
                                 Text(
                                     text = stimulus.word,
-                                    color = Color(stimulus.inkColor.argb.toInt()),
+                                    color = Color.White,
+                                    modifier = Modifier
+                                        .background(
+                                            Color(stimulus.inkColor.argb.toInt()),
+                                            RoundedCornerShape(6.dp),
+                                        )
+                                        .padding(horizontal = 4.dp, vertical = 2.dp),
                                     fontSize = fontSize,
                                     lineHeight = fontSize,
                                     maxLines = 1,
