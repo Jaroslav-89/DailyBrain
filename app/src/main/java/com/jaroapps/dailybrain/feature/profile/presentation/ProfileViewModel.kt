@@ -103,18 +103,19 @@ class ProfileViewModel(
         deletingProfile,
         googleLinking,
         googleLinkError,
-        googleLinkDiagnostic,
-    ) { hasSaveError, hasDeleteError, isDeleting, isLinking, linkError, diagnostic ->
+    ) { hasSaveError, hasDeleteError, isDeleting, isLinking, linkError ->
         ProfileActionState(
             saveError = hasSaveError,
             deleteError = hasDeleteError,
             isDeletingProfile = isDeleting,
             isGoogleLinking = isLinking,
             googleLinkError = linkError,
-            googleLinkDiagnostic = diagnostic,
+            googleLinkDiagnostic = null,
             isGoogleReauthenticating = false,
             googleReauthenticationError = null,
         )
+    }.combine(googleLinkDiagnostic) { state, diagnostic ->
+        state.copy(googleLinkDiagnostic = diagnostic)
     }
     private val actionState = combine(
         baseActionState,
