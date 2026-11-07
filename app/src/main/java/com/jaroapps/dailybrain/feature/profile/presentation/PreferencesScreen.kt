@@ -24,6 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
@@ -35,6 +36,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -240,6 +242,11 @@ private fun SettingToggle(
             checked = checked,
             onCheckedChange = onCheckedChange,
             enabled = enabled,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = colorResource(R.color.color_on_accent),
+                checkedTrackColor = colorResource(R.color.color_button_green),
+                checkedBorderColor = colorResource(R.color.color_button_green),
+            ),
         )
     }
 }
