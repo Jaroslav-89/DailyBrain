@@ -20,6 +20,7 @@ import com.jaroapps.dailybrain.navigation.AppNavHost
 import com.jaroapps.dailybrain.navigation.Route
 import com.jaroapps.dailybrain.ui.theme.DailyBrainTheme
 import com.jaroapps.dailybrain.ui.theme.AppThemePreference
+import com.jaroapps.dailybrain.feature.home.presentation.HomeAppearancePreference
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import org.koin.core.context.GlobalContext
@@ -48,18 +49,23 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         GlobalContext.get().get<GoogleSignInClient>().attachActivity(this)
 
-        AppThemePreference.ensureLoaded(applicationContext)
-        val startupBackground = if (AppThemePreference.isDarkTheme) {
-            R.color.dark_background
-        } else {
-            R.color.light_background
-        }
-        window.setBackgroundDrawable(ColorDrawable(ContextCompat.getColor(this, startupBackground)))
-
         lifecycleScope.launch {
+            val database = runCatching { GlobalContext.get().get<AppDatabase>() }.getOrNull()
+            val selectedLocalAccountId = runCatching {
+                database?.appSettingsDao()?.getActiveLocalAccountId()?.takeIf(String::isNotBlank)
+            }.getOrNull()
+            AppThemePreference.ensureLoaded(applicationContext, selectedLocalAccountId)
+            HomeAppearancePreference.ensureLoaded(applicationContext, selectedLocalAccountId)
+            val startupBackground = if (AppThemePreference.isDarkTheme) {
+                R.color.dark_background
+            } else {
+                R.color.light_background
+            }
+            window.setBackgroundDrawable(ColorDrawable(ContextCompat.getColor(this@MainActivity, startupBackground)))
+
             val startDestination = try {
-                val database = GlobalContext.get().get<AppDatabase>()
-                if (database.appSettingsDao().isProfileSelectionRequired() == true) {
+                val activeDatabase = requireNotNull(database)
+                if (activeDatabase.appSettingsDao().isProfileSelectionRequired() == true) {
                     Route.PROFILE_SELECTION
                 } else {
                     when (GlobalContext.get().get<GetStartupDestinationUseCase>().invoke().first()) {

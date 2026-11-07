@@ -35,10 +35,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
@@ -80,17 +83,30 @@ import com.jaroapps.dailybrain.feature.profile.presentation.CollectibleDetailScr
 import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.ui.theme.AppThemePreference
+import com.jaroapps.dailybrain.feature.home.presentation.HomeAppearancePreference
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsScreen
 import com.jaroapps.dailybrain.feature.statistics.presentation.StatisticsScreen
 import com.jaroapps.dailybrain.feature.shop.presentation.ShopScreen
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopScreen
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 import java.time.format.DateTimeFormatter
 
 @Composable
 fun AppNavHost(startDestination: String = Route.STARTUP) {
     val navController = rememberNavController()
+    val observeUserProfile: ObserveUserProfileUseCase = koinInject()
+    val activeProfile by observeUserProfile().collectAsState(initial = null)
+    val context = LocalContext.current
+    LaunchedEffect(activeProfile?.localAccountId) {
+        activeProfile?.localAccountId?.let { localAccountId ->
+            AppThemePreference.ensureLoaded(context, localAccountId)
+            HomeAppearancePreference.ensureLoaded(context, localAccountId)
+        }
+    }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val showBottomNavigation = currentRoute in setOf(

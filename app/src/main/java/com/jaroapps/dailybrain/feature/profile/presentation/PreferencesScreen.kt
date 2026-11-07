@@ -47,10 +47,6 @@ fun PreferencesScreen(onBack: () -> Unit) {
         },
     ) { padding ->
         val context = LocalContext.current
-        LaunchedEffect(context) {
-            AppThemePreference.ensureLoaded(context)
-            HomeAppearancePreference.ensureLoaded(context)
-        }
         val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
 
         Column(

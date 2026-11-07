@@ -84,10 +84,6 @@ fun HomeScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val dayButtonsDescription = state.currentWeekDates.zip(WeekdayLabels)
-    val context = LocalContext.current
-    LaunchedEffect(context) {
-        HomeAppearancePreference.ensureLoaded(context)
-    }
     val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
     val homeTextColor = if (dynamicBackgroundEnabled) {
         colorResource(R.color.color_home_dynamic_text)
@@ -433,11 +429,23 @@ private fun depthColor(color: Color): Color = Color(
 
 @Composable
 private fun dynamicWeekBackground(state: HomeUiState): Brush {
-    // The dynamic gradient uses the same warm orange base as completed exercises.
+    val completedArithmeticDates = state.completedExerciseDatesByType[
+        ExerciseType.ARITHMETIC.storageValue
+    ].orEmpty()
+    if (state.currentWeekDates.none { it in completedArithmeticDates }) {
+        return SolidColor(MaterialTheme.colorScheme.background)
+    }
+
+    // Only dates with a completed arithmetic workout contribute orange to the gradient.
     val orange = colorResource(R.color.color_training_completed)
+    val neutral = MaterialTheme.colorScheme.background
     val tintLevels = listOf(0.54f, 0.62f, 0.70f)
-    val colors = state.currentWeekDates.mapIndexed { index, _ ->
-        lightenForBackground(orange, tintLevels[index % tintLevels.size])
+    val colors = state.currentWeekDates.mapIndexed { index, date ->
+        if (date in completedArithmeticDates) {
+            lightenForBackground(orange, tintLevels[index % tintLevels.size])
+        } else {
+            neutral
+        }
     }
     val stops = buildList {
         add(0f to colors.first())
