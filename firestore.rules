@@ -195,6 +195,12 @@ service cloud.firestore {
               request.resource.data.kind == 'BADGE'
               && request.resource.data.itemType in [
                 'WEEKLY_STREAK', 'WEEKLY_CHALLENGE',
+                'MONTHLY_CHALLENGE_01', 'MONTHLY_CHALLENGE_02',
+                'MONTHLY_CHALLENGE_03', 'MONTHLY_CHALLENGE_04',
+                'MONTHLY_CHALLENGE_05', 'MONTHLY_CHALLENGE_06',
+                'MONTHLY_CHALLENGE_07', 'MONTHLY_CHALLENGE_08',
+                'MONTHLY_CHALLENGE_09', 'MONTHLY_CHALLENGE_10',
+                'MONTHLY_CHALLENGE_11', 'MONTHLY_CHALLENGE_12',
                 'MONTH_01', 'MONTH_02', 'MONTH_03', 'MONTH_04',
                 'MONTH_05', 'MONTH_06', 'MONTH_07', 'MONTH_08',
                 'MONTH_09', 'MONTH_10', 'MONTH_11', 'MONTH_12'
@@ -358,7 +364,7 @@ service cloud.firestore {
           && request.resource.data.authorName.size() <= 80
           && request.resource.data.eventType in [
             'WEEKLY_STREAK', 'WEEKLY_CHALLENGE', 'MONTHLY_STREAK',
-            'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE',
+            'MONTHLY_CHALLENGE', 'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE',
             'GIFT_RECEIVED', 'GIFT_SENT',
             'COSMETIC_GIFT_SENT', 'COSMETIC_GIFT_RECEIVED',
             'COSMETIC_PURCHASED', 'FOLLOWED_USER'
