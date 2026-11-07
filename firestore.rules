@@ -299,7 +299,10 @@ service cloud.firestore {
     }
 
     match /publicFollowers/{profileUid}/users/{followerUid} {
-      allow get, list: if signedIn()
+      allow get: if signedIn()
+        && (request.auth.uid == profileUid || request.auth.uid == followerUid
+          || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)));
+      allow list: if signedIn()
         && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
       allow create: if activeUser()
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
