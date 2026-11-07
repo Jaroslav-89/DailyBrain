@@ -36,19 +36,21 @@ class FirestoreGiftDeliveryRepository(
 ) : GiftDeliveryRepository {
     private val appContext = context.applicationContext
 
-    override suspend fun syncPendingOutgoing(): Int {
+    override suspend fun syncPendingOutgoing(giftId: String?): Boolean {
         val localUserId = activeUserProvider.currentUserId()
-        val profile = database.userProfileDao().getProfile(localUserId) ?: return 0
-        val firebaseUid = profile.firebaseUid ?: return 0
-        val app = configuredApp() ?: return 0
+        val profile = database.userProfileDao().getProfile(localUserId) ?: return false
+        val firebaseUid = profile.firebaseUid ?: return false
+        val app = configuredApp() ?: return false
         requireCurrentFirebaseUser(app, firebaseUid)
 
         val firestore = FirebaseFirestore.getInstance(app)
         val pending = database.giftOutboxDao().getPendingForUser(localUserId)
         var sentCount = 0
+        var requestedGiftSent = false
         var feedEventsUpdated = false
         for (gift in pending) {
             if (gift.senderFirebaseUid != firebaseUid) continue
+            if (giftId != null && gift.giftId != giftId) continue
             val payload = mapOf(
                 "giftId" to gift.giftId,
                 "senderUid" to gift.senderFirebaseUid,
@@ -88,9 +90,10 @@ class FirestoreGiftDeliveryRepository(
             }
             database.giftOutboxDao().markSent(localUserId, gift.giftId)
             sentCount++
+            if (gift.giftId == giftId) requestedGiftSent = true
         }
         if (feedEventsUpdated) feedSyncTrigger.requestSync()
-        return sentCount
+        return if (giftId == null) sentCount > 0 else requestedGiftSent
     }
 
     override suspend fun syncIncoming(): Int {
