@@ -213,7 +213,7 @@ fun HomeScreen(
                 .weight(1f),
         ) {
             val arithmeticButtonSize = 56.dp
-            val arithmeticRingSize = 100.dp
+            val arithmeticRingSize = 88.dp
             val dayItemWidth = arithmeticRingSize + 36.dp
             val dayItemHeight = 100.dp
             val additionalButtonSize = 72.dp
@@ -315,8 +315,8 @@ fun HomeScreen(
                             if (today) {
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
-                                    initialRadius = 36.dp,
-                                    targetRadius = 45.dp,
+                                    initialRadius = 30.dp,
+                                    targetRadius = 39.dp,
                                 )
                             }
 
