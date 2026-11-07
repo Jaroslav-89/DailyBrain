@@ -4,6 +4,7 @@ import android.content.Context
 import com.google.android.gms.tasks.Task
 import com.google.firebase.FirebaseApp
 import com.google.firebase.auth.FirebaseAuth
+import com.google.firebase.firestore.CollectionReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
 import com.google.firebase.firestore.FirebaseFirestore
@@ -15,6 +16,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryNotConfiguredException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryProfileMissingException
+import com.jaroapps.dailybrain.feature.profile.domain.repository.PublicProfileDeletedException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UsernameTakenException
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -239,6 +241,100 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             .forEach { it.reference.delete().awaitResult() }
     }
 
+    /**
+     * Erases data owned by a profile. Gifts already delivered to other users are deliberately
+     * retained: their balances and received-gift history belong to the recipients.
+     */
+    override suspend fun deleteProfileData(firebaseUid: String) {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val deletedProfileRef = firestore.collection(DELETED_PROFILES).document(firebaseUid)
+        if (deletedProfileRef.get().awaitResult().exists()) return
+
+        deleteDocumentsInBatches(
+            firestore,
+            firestore.collection(PUBLIC_PROFILE_CARDS).document(firebaseUid).collection(COLLECTIBLES),
+        )
+        deleteDocumentsInBatches(
+            firestore,
+            firestore.collection(GIFT_DELIVERIES).document(firebaseUid).collection(GIFT_ITEMS),
+        )
+        deleteFollowRelationships(firestore, firebaseUid, "followerUid")
+        deleteFollowRelationships(firestore, firebaseUid, "followingUid")
+        deleteDocumentsInBatches(
+            firestore,
+            firestore.collection(BLOCKED_USERS).document(firebaseUid).collection(PUBLIC_CONNECTIONS),
+        )
+        deleteOwnFeedEvents(firestore, firebaseUid)
+
+        // Main docs and reservations are removed after their owned subcollections.
+        // Sent gifts live under other recipients' paths and are intentionally untouched.
+        unlinkProfile(firebaseUid)
+
+        deletedProfileRef.set(
+            mapOf("uid" to firebaseUid, "deletedAt" to FieldValue.serverTimestamp()),
+        ).awaitResult()
+    }
+
+    private suspend fun deleteDocumentsInBatches(
+        firestore: FirebaseFirestore,
+        collection: CollectionReference,
+    ) {
+        while (true) {
+            val snapshot = collection.limit(100).get().awaitResult()
+            if (snapshot.isEmpty) return
+            val batch = firestore.batch()
+            snapshot.documents.forEach { batch.delete(it.reference) }
+            batch.commit().awaitResult()
+        }
+    }
+
+    private suspend fun deleteFollowRelationships(
+        firestore: FirebaseFirestore,
+        firebaseUid: String,
+        participantField: String,
+    ) {
+        while (true) {
+            val snapshot = firestore.collection(FOLLOWS)
+                .whereEqualTo(participantField, firebaseUid)
+                .limit(80)
+                .get()
+                .awaitResult()
+            if (snapshot.isEmpty) return
+
+            val batch = firestore.batch()
+            for (relationship in snapshot.documents) {
+                val followerUid = relationship.getString("followerUid")
+                val followingUid = relationship.getString("followingUid")
+                batch.delete(relationship.reference)
+                if (followerUid.isNullOrBlank() || followingUid.isNullOrBlank()) continue
+
+                val followingProjection = firestore.collection(PUBLIC_FOLLOWING).document(followerUid)
+                    .collection(PUBLIC_CONNECTIONS).document(followingUid)
+                val followerProjection = firestore.collection(PUBLIC_FOLLOWERS).document(followingUid)
+                    .collection(PUBLIC_CONNECTIONS).document(followerUid)
+                if (followingProjection.get().awaitResult().exists()) batch.delete(followingProjection)
+                if (followerProjection.get().awaitResult().exists()) batch.delete(followerProjection)
+            }
+            batch.commit().awaitResult()
+        }
+    }
+
+    private suspend fun deleteOwnFeedEvents(firestore: FirebaseFirestore, firebaseUid: String) {
+        while (true) {
+            val snapshot = firestore.collection(FEED_EVENTS)
+                .whereEqualTo("authorUid", firebaseUid)
+                .limit(10)
+                .get()
+                .awaitResult()
+            if (snapshot.isEmpty) return
+            val batch = firestore.batch()
+            snapshot.documents.forEach { batch.delete(it.reference) }
+            batch.commit().awaitResult()
+        }
+    }
+
     override suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile? {
         val normalized = UsernamePolicy.normalize(username)
         require(UsernamePolicy.isValid(normalized)) { "Invalid username." }
@@ -441,6 +537,9 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         val app = configuredApp()
         requireCurrentUser(app, viewerFirebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
+        if (firestore.collection(DELETED_PROFILES).document(profileFirebaseUid).get().awaitResult().exists()) {
+            throw PublicProfileDeletedException()
+        }
         if (isBlockedByProfile(profileFirebaseUid, viewerFirebaseUid)) {
             return firestore.collection(PUBLIC_PROFILE_CARDS).document(profileFirebaseUid)
                 .get().awaitResult().toPublicProfile(profileFirebaseUid)?.copy(isRestricted = true)
@@ -614,5 +713,10 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         const val PUBLIC_FOLLOWING = "publicFollowing"
         const val PUBLIC_FOLLOWERS = "publicFollowers"
         const val PUBLIC_CONNECTIONS = "users"
+        const val COLLECTIBLES = "collectibles"
+        const val GIFT_DELIVERIES = "giftDeliveries"
+        const val GIFT_ITEMS = "items"
+        const val FEED_EVENTS = "feedEvents"
+        const val DELETED_PROFILES = "deletedProfiles"
     }
 }

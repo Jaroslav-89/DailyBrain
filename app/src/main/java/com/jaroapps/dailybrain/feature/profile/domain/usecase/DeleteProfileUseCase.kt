@@ -1,0 +1,98 @@
+package com.jaroapps.dailybrain.feature.profile.domain.usecase
+
+import com.jaroapps.dailybrain.feature.profile.domain.model.PendingProfileDeletion
+import com.jaroapps.dailybrain.feature.profile.domain.model.PendingProfileDeletionStatus
+import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
+import kotlinx.coroutines.CancellationException
+
+/**
+ * Removes local data immediately and completes cloud deletion whenever the old Firebase
+ * identity is available. Failed/offline cloud work remains durable in Room for the next
+ * explicit Google sign-in.
+ */
+class DeleteProfileUseCase(
+    private val profileRepository: UserProfileRepository,
+    private val userDirectoryRepository: UserDirectoryRepository,
+    private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
+) {
+    suspend operator fun invoke(localAccountId: String) {
+        val pending = profileRepository.deleteProfile(localAccountId) ?: return
+        if (firebaseAuthenticationRepository.currentUserId() != pending.firebaseUid) return
+
+        try {
+            completeDeletionWithCurrentSession(pending)
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Local deletion is already committed. Keep the outbox for the next Google sign-in
+            // and prevent the old session from publishing anything in the meantime.
+            if (firebaseAuthenticationRepository.currentUserId() == pending.firebaseUid) {
+                firebaseAuthenticationRepository.signOut()
+            }
+        }
+    }
+
+    /**
+     * Called after the user explicitly signs into Google but before ensureProfile().
+     * If the old Firebase user still exists, clean it, delete it, and exchange the same
+     * in-memory Google token again so Firebase creates a fresh UID for the new local profile.
+     */
+    suspend fun completePendingDeletionAfterGoogleSignIn(
+        googleSubject: String,
+        signedInFirebaseUid: String,
+        googleIdToken: String,
+    ): String {
+        val pending = profileRepository.findPendingProfileDeletion(
+            googleSubject = googleSubject,
+            firebaseUid = signedInFirebaseUid,
+        ) ?: return signedInFirebaseUid
+
+        if (signedInFirebaseUid != pending.firebaseUid) {
+            if (pending.status == PendingProfileDeletionStatus.CLOUD_DATA_DELETED) {
+                profileRepository.completePendingProfileDeletion(pending.firebaseUid)
+                return signedInFirebaseUid
+            }
+            throw IllegalStateException(
+                "Cloud cleanup for the deleted Firebase profile has not completed; a new profile cannot be created yet.",
+            )
+        }
+
+        cleanCloudDataIfNeeded(pending)
+        firebaseAuthenticationRepository.deleteCurrentUser(pending.firebaseUid)
+        firebaseAuthenticationRepository.signOut()
+
+        val recreated = firebaseAuthenticationRepository.signInWithGoogle(
+            idToken = googleIdToken,
+            expectedGoogleSubject = googleSubject,
+        )
+        val newUid = when (recreated) {
+            is com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.Success ->
+                recreated.firebaseUid
+            com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.NotConfigured ->
+                throw IllegalStateException("Firebase is not configured.")
+            is com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult.Failed ->
+                throw IllegalStateException("Firebase could not create a new identity: ${recreated.diagnosticCode}")
+        }
+        check(newUid != pending.firebaseUid) {
+            "Firebase returned the deleted UID after account deletion; profile creation was stopped."
+        }
+        profileRepository.completePendingProfileDeletion(pending.firebaseUid)
+        return newUid
+    }
+
+    private suspend fun completeDeletionWithCurrentSession(pending: PendingProfileDeletion) {
+        cleanCloudDataIfNeeded(pending)
+        firebaseAuthenticationRepository.deleteCurrentUser(pending.firebaseUid)
+        firebaseAuthenticationRepository.signOut()
+        profileRepository.completePendingProfileDeletion(pending.firebaseUid)
+    }
+
+    private suspend fun cleanCloudDataIfNeeded(pending: PendingProfileDeletion) {
+        if (pending.status == PendingProfileDeletionStatus.CLOUD_CLEANUP_PENDING) {
+            userDirectoryRepository.deleteProfileData(pending.firebaseUid)
+            profileRepository.markPendingProfileDeletionCloudDataDeleted(pending.firebaseUid)
+        }
+    }
+}

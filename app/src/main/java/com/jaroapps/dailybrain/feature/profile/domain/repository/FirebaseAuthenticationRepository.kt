@@ -20,5 +20,6 @@ interface FirebaseAuthenticationRepository {
 
     fun currentUserId(): String?
     fun observeCurrentUserId(): Flow<String?>
+    suspend fun deleteCurrentUser(expectedFirebaseUid: String)
     fun signOut()
 }

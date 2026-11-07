@@ -18,12 +18,14 @@ fun requireMatchingFirebaseSession(expectedUid: String, currentUid: String?) {
 
 class UsernameTakenException : IllegalStateException("The username is already reserved.")
 class UserDirectoryProfileMissingException : IllegalStateException("The cloud user profile does not exist.")
+class PublicProfileDeletedException : IllegalStateException("Профиль удалён.")
 
 interface UserDirectoryRepository {
     suspend fun ensureProfile(firebaseUid: String, email: String?, displayName: String?, avatarUrl: String?): String
     suspend fun isUsernameAvailable(firebaseUid: String, username: String): Boolean
     suspend fun updateUsername(firebaseUid: String, username: String)
     suspend fun unlinkProfile(firebaseUid: String)
+    suspend fun deleteProfileData(firebaseUid: String)
     suspend fun findUserByUsername(firebaseUid: String, username: String): PublicUserProfile?
     suspend fun getOrCreateInviteCode(firebaseUid: String): String
     suspend fun findUserByInviteCode(firebaseUid: String, inviteCode: String): PublicUserProfile?

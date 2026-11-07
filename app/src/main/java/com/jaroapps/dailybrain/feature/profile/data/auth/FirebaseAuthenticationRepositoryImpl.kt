@@ -78,6 +78,17 @@ class FirebaseAuthenticationRepositoryImpl(
         awaitClose { auth.removeAuthStateListener(listener) }
     }
 
+    override suspend fun deleteCurrentUser(expectedFirebaseUid: String) {
+        val auth = firebaseAuthOrNull()
+            ?: throw IllegalStateException("Firebase is not configured.")
+        val user = auth.currentUser
+            ?: throw IllegalStateException("There is no signed-in Firebase user.")
+        if (user.uid != expectedFirebaseUid) {
+            throw IllegalStateException("The Firebase session does not match the profile being deleted.")
+        }
+        user.delete().awaitResult()
+    }
+
     override fun signOut() {
         runCatching { firebaseAuthOrNull()?.signOut() }
     }

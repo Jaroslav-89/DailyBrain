@@ -12,6 +12,7 @@ class LinkGoogleAccountUseCase(
     private val repository: UserProfileRepository,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
     private val userDirectoryRepository: UserDirectoryRepository,
+    private val deleteProfileUseCase: DeleteProfileUseCase,
 ) {
     suspend operator fun invoke(
         localAccountId: String,
@@ -35,9 +36,23 @@ class LinkGoogleAccountUseCase(
             is FirebaseGoogleSignInResult.Success -> result
         }
 
+        val firebaseUid = try {
+            deleteProfileUseCase.completePendingDeletionAfterGoogleSignIn(
+                googleSubject = googleAccount.subject,
+                signedInFirebaseUid = authentication.firebaseUid,
+                googleIdToken = idToken,
+            )
+        } catch (cancelled: CancellationException) {
+            firebaseAuthenticationRepository.signOut()
+            throw cancelled
+        } catch (_: Exception) {
+            firebaseAuthenticationRepository.signOut()
+            return LinkGoogleAccountResult.SAVE_FAILED
+        }
+
         val remoteUsername = try {
             userDirectoryRepository.ensureProfile(
-                firebaseUid = authentication.firebaseUid,
+                firebaseUid = firebaseUid,
                 email = googleAccount.email,
                 displayName = googleAccount.displayName,
                 avatarUrl = googleAccount.photoUrl,
@@ -54,7 +69,7 @@ class LinkGoogleAccountUseCase(
             val linkResult = repository.linkGoogleAccount(
                 localAccountId = localAccountId,
                 googleAccount = googleAccount,
-                firebaseUid = authentication.firebaseUid,
+                firebaseUid = firebaseUid,
                 username = remoteUsername.takeIf(String::isNotBlank),
             )
             if (linkResult == LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE) {
