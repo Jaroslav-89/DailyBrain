@@ -30,7 +30,8 @@ class DeleteProfileUseCase(
      */
     suspend operator fun invoke(localAccountId: String) {
         val pending = profileRepository.deleteProfile(localAccountId) ?: return
-        if (firebaseAuthenticationRepository.currentUserId() != pending.firebaseUid) return
+        val currentFirebaseUid = runCatching { firebaseAuthenticationRepository.currentUserId() }.getOrNull()
+        if (currentFirebaseUid != pending.firebaseUid) return
 
         applicationScope.launch {
             try {
