@@ -89,6 +89,17 @@ fun ShopScreen(
     var selectedProduct by remember { mutableStateOf<ShopProductDetails?>(null) }
     var pendingPurchase by remember { mutableStateOf<PendingShopPurchase?>(null) }
     var pendingGift by remember { mutableStateOf<PendingShopGift?>(null) }
+    var insufficientFundsRequired by remember { mutableStateOf<Int?>(null) }
+
+    fun canAffordOrShowDialog(requiredAmount: Int): Boolean {
+        val balance = state.profile?.endorphinBalance ?: 0
+        if (EndorphinEconomy.canSpend(balance, requiredAmount)) return true
+        selectedProduct = null
+        pendingPurchase = null
+        pendingGift = null
+        insufficientFundsRequired = requiredAmount
+        return false
+    }
 
     fun requestGift(gift: PendingShopGift) {
         if (directoryState.cloudSessionStatus != ProfileCloudSessionStatus.READY) {
@@ -167,7 +178,11 @@ fun ShopScreen(
                                 ),
                             )
                             Button(
-                                onClick = { pendingPurchase = PendingShopPurchase.Patch },
+                                onClick = {
+                                    if (canAffordOrShowDialog(EndorphinEconomy.PATCH_PRICE)) {
+                                        pendingPurchase = PendingShopPurchase.Patch
+                                    }
+                                },
                                 enabled = !state.isPurchasing &&
                                     (state.profile?.patchCount ?: 0) < EndorphinEconomy.MAX_PATCH_COUNT,
                                 colors = ButtonDefaults.buttonColors(
@@ -187,7 +202,15 @@ fun ShopScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(EndorphinEconomy.gifts) { gift ->
-                        GiftProductCard(gift) { selectedProduct = ShopProductDetails.Gift(gift) }
+                        GiftProductCard(
+                            giftType = gift,
+                            onClick = { selectedProduct = ShopProductDetails.Gift(gift) },
+                            onGift = {
+                                if (canAffordOrShowDialog(gift.price)) {
+                                    requestGift(PendingShopGift.Gift(gift))
+                                }
+                            },
+                        )
                     }
                 }
             }
@@ -199,10 +222,21 @@ fun ShopScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(AvatarCosmeticCatalog.costumes, key = { it.id }) { item ->
+                        val owned = state.inventory.any { it.itemId == item.id && it.itemType == item.type }
                         CosmeticProductCard(
                             item = item,
-                            owned = state.inventory.any { it.itemId == item.id && it.itemType == item.type },
+                            owned = owned,
                             onClick = { selectedProduct = ShopProductDetails.Cosmetic(item) },
+                            onBuy = {
+                                if (!owned && canAffordOrShowDialog(item.price)) {
+                                    pendingPurchase = PendingShopPurchase.Cosmetic(item)
+                                }
+                            },
+                            onGift = {
+                                if (canAffordOrShowDialog(item.price)) {
+                                    requestGift(PendingShopGift.Cosmetic(item))
+                                }
+                            },
                         )
                     }
                 }
@@ -215,10 +249,21 @@ fun ShopScreen(
                     horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     items(AvatarCosmeticCatalog.backgrounds, key = { it.id }) { item ->
+                        val owned = state.inventory.any { it.itemId == item.id && it.itemType == item.type }
                         CosmeticProductCard(
                             item = item,
-                            owned = state.inventory.any { it.itemId == item.id && it.itemType == item.type },
+                            owned = owned,
                             onClick = { selectedProduct = ShopProductDetails.Cosmetic(item) },
+                            onBuy = {
+                                if (!owned && canAffordOrShowDialog(item.price)) {
+                                    pendingPurchase = PendingShopPurchase.Cosmetic(item)
+                                }
+                            },
+                            onGift = {
+                                if (canAffordOrShowDialog(item.price)) {
+                                    requestGift(PendingShopGift.Cosmetic(item))
+                                }
+                            },
                         )
                     }
                 }
@@ -290,7 +335,9 @@ fun ShopScreen(
                     when (product) {
                         is ShopProductDetails.Gift -> Button(
                             onClick = {
-                                requestGift(PendingShopGift.Gift(product.item))
+                                if (canAffordOrShowDialog(product.item.price)) {
+                                    requestGift(PendingShopGift.Gift(product.item))
+                                }
                             },
                             enabled = !state.isPurchasing,
                             colors = shopButtonColors(),
@@ -299,8 +346,10 @@ fun ShopScreen(
                             if (!owned) {
                                 Button(
                                     onClick = {
-                                        pendingPurchase = PendingShopPurchase.Cosmetic(product.item)
-                                        selectedProduct = null
+                                        if (canAffordOrShowDialog(product.item.price)) {
+                                            pendingPurchase = PendingShopPurchase.Cosmetic(product.item)
+                                            selectedProduct = null
+                                        }
                                     },
                                     enabled = !state.isPurchasing,
                                     colors = shopButtonColors(),
@@ -308,7 +357,9 @@ fun ShopScreen(
                             }
                             Button(
                                 onClick = {
-                                    requestGift(PendingShopGift.Cosmetic(product.item))
+                                    if (canAffordOrShowDialog(product.item.price)) {
+                                        requestGift(PendingShopGift.Cosmetic(product.item))
+                                    }
                                 },
                                 enabled = !state.isPurchasing,
                                 colors = shopButtonColors(),
@@ -339,12 +390,14 @@ fun ShopScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        when (purchase) {
-                            PendingShopPurchase.Patch -> viewModel.purchasePatch()
-                            is PendingShopPurchase.Cosmetic ->
-                                viewModel.purchaseCosmetic(purchase.item.type, purchase.item.id)
+                        if (canAffordOrShowDialog(price)) {
+                            when (purchase) {
+                                PendingShopPurchase.Patch -> viewModel.purchasePatch()
+                                is PendingShopPurchase.Cosmetic ->
+                                    viewModel.purchaseCosmetic(purchase.item.type, purchase.item.id)
+                            }
+                            pendingPurchase = null
                         }
-                        pendingPurchase = null
                     },
                     enabled = !state.isPurchasing,
                     colors = shopButtonColors(),
@@ -443,11 +496,17 @@ fun ShopScreen(
                             } else {
                                 state.followingUsers.forEach { recipient ->
                                     RecipientRow(recipient) {
-                                        when (gift) {
-                                            is PendingShopGift.Gift -> viewModel.sendGift(gift.item, recipient)
-                                            is PendingShopGift.Cosmetic -> viewModel.sendCosmeticGift(gift.item, recipient)
+                                        val requiredAmount = when (gift) {
+                                            is PendingShopGift.Gift -> gift.item.price
+                                            is PendingShopGift.Cosmetic -> gift.item.price
                                         }
-                                        pendingGift = null
+                                        if (canAffordOrShowDialog(requiredAmount)) {
+                                            when (gift) {
+                                                is PendingShopGift.Gift -> viewModel.sendGift(gift.item, recipient)
+                                                is PendingShopGift.Cosmetic -> viewModel.sendCosmeticGift(gift.item, recipient)
+                                            }
+                                            pendingGift = null
+                                        }
                                     }
                                 }
                             }
@@ -459,6 +518,26 @@ fun ShopScreen(
                 )
             }
         }
+    }
+
+    insufficientFundsRequired?.let { requiredAmount ->
+        val currentBalance = state.profile?.endorphinBalance ?: 0
+        AlertDialog(
+            onDismissRequest = { insufficientFundsRequired = null },
+            title = { Text("Недостаточно эндорфинов") },
+            text = {
+                Text(
+                    "У вас $currentBalance эндорфинов, а для этого действия требуется $requiredAmount. " +
+                        "Пополните баланс, выполнив тренировки.",
+                )
+            },
+            confirmButton = {
+                Button(
+                    onClick = { insufficientFundsRequired = null },
+                    colors = shopButtonColors(),
+                ) { Text("Понятно") }
+            },
+        )
     }
 
     state.message?.let { message ->
@@ -486,7 +565,11 @@ private fun SectionTitle(title: String) {
 }
 
 @Composable
-private fun GiftProductCard(giftType: EndorphinGiftType, onClick: () -> Unit) {
+private fun GiftProductCard(
+    giftType: EndorphinGiftType,
+    onClick: () -> Unit,
+    onGift: () -> Unit,
+) {
     Card(
         modifier = Modifier.width(148.dp).clickable(onClick = onClick),
         colors = CardDefaults.cardColors(containerColor = androidx.compose.material3.MaterialTheme.colorScheme.surfaceVariant),
@@ -494,7 +577,7 @@ private fun GiftProductCard(giftType: EndorphinGiftType, onClick: () -> Unit) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             Image(
                 painter = painterResource(giftIcon(giftType)),
@@ -503,11 +586,13 @@ private fun GiftProductCard(giftType: EndorphinGiftType, onClick: () -> Unit) {
             )
             Text(giftType.displayName, fontWeight = FontWeight.SemiBold)
             EndorphinAmount(giftType.price.toString())
-            Text(
-                "Подробнее",
-                color = colorResource(R.color.color_success),
-                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-            )
+            Button(
+                onClick = onGift,
+                modifier = Modifier.fillMaxWidth(),
+                colors = shopButtonColors(),
+            ) {
+                Text("Подарить")
+            }
         }
     }
 }
@@ -517,6 +602,8 @@ private fun CosmeticProductCard(
     item: AvatarCosmeticItem,
     owned: Boolean,
     onClick: () -> Unit,
+    onBuy: () -> Unit,
+    onGift: () -> Unit,
 ) {
     Card(
         modifier = Modifier.width(154.dp).clickable(onClick = onClick),
@@ -525,7 +612,7 @@ private fun CosmeticProductCard(
         Column(
             modifier = Modifier.fillMaxWidth().padding(10.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(5.dp),
+            verticalArrangement = Arrangement.spacedBy(7.dp),
         ) {
             AvatarAssetPreview(
                 assetPath = item.assetPath,
@@ -534,16 +621,29 @@ private fun CosmeticProductCard(
                 modifier = Modifier.size(104.dp),
             )
             Text(item.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            EndorphinAmount(item.price.toString())
             if (owned) {
-                Text("Куплено", color = androidx.compose.material3.MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text(
+                    "Куплено",
+                    color = androidx.compose.material3.MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold,
+                )
             } else {
-                EndorphinAmount(item.price.toString())
+                Button(
+                    onClick = onBuy,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = shopButtonColors(),
+                ) {
+                    Text("Купить")
+                }
             }
-            Text(
-                "Подробнее",
-                color = colorResource(R.color.color_success),
-                style = androidx.compose.material3.MaterialTheme.typography.labelMedium,
-            )
+            Button(
+                onClick = onGift,
+                modifier = Modifier.fillMaxWidth(),
+                colors = shopButtonColors(),
+            ) {
+                Text("Подарить")
+            }
         }
     }
 }
