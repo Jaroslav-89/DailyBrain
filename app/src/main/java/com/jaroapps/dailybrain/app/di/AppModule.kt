@@ -273,7 +273,7 @@ val appModule = module {
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteProfileUseCase = get(), linkGoogleAccountUseCase = get(), reauthenticateGoogleAccountUseCase = get(), firebaseAuthenticationRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
     viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteProfileUseCase = get()) }
     viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get(), firebaseAuthenticationRepository = get()) }
-    viewModel { PublicProfileSyncViewModel(observeUserProfile = get(), observeProfileStatistics = get(), observeAvatar = get(), firebaseAuthenticationRepository = get(), userDirectoryRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
+    viewModel { PublicProfileSyncViewModel(observeSelectedProfile = get(), observeProfileStatistics = get(), observeAvatar = get(), firebaseAuthenticationRepository = get(), userDirectoryRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
     viewModel { PublicUserProfileViewModel(observeUserProfile = get(), userDirectoryRepository = get(), profileCollectiblesRepository = get()) }
     viewModel { PublicUserConnectionsViewModel(observeUserProfile = get(), userDirectoryRepository = get()) }
     viewModel { ProfileCollectiblesViewModel(savedStateHandle = get(), repository = get()) }
