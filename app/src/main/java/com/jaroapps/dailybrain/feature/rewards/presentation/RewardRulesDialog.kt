@@ -101,9 +101,9 @@ private fun monthlyChallengeDescription(): String {
     val targets = requirements.joinToString(separator = ", ") { requirement ->
         val label = when (ExerciseType.fromStorage(requirement.exerciseType)) {
             ExerciseType.ARITHMETIC -> "арифметических тренировок"
-            ExerciseType.MEMORY_WORDS -> "тренировок памяти"
-            ExerciseType.STROOP_TEST -> "тестов Струпа"
-            ExerciseType.COUNTING_TRAINING -> "тренировок устного счёта"
+            ExerciseType.MEMORY_WORDS -> "тренировки памяти"
+            ExerciseType.STROOP_TEST -> "теста Струпа"
+            ExerciseType.COUNTING_TRAINING -> "тренировки устного счёта"
             null -> "упражнений «${requirement.exerciseType}»"
         }
         "${requirement.requiredCount} $label"
