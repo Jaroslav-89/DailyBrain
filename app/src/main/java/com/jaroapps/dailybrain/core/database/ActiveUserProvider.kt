@@ -53,6 +53,9 @@ class ActiveUserProvider(
      * must observe this nullable stream so they stop watching a deleted profile instead of
      * recreating it from an empty Room row.
      */
+    fun observeProfileSelectionRequired(): Flow<Boolean?> =
+        database.appSettingsDao().observeProfileSelectionRequired()
+
     fun observeSelectedUserId(): Flow<String?> = flow {
         val initialId = try {
             currentUserId()
