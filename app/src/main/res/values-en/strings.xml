@@ -42,7 +42,7 @@
     <!-- Home screen -->
     <string name="home_tagline">Your daily brain workout</string>
     <string name="home_training_done_today">Training completed today</string>
-    <string name="home_not_trained_today">You haven\'t trained today yet</string>
+    <string name="home_not_trained_today">You haven&apos;t trained today yet</string>
     <string name="home_statistics">My statistics</string>
     <string name="exercise_arithmetic">Arithmetic</string>
     <string name="exercise_memory">Word memorization</string>
@@ -111,7 +111,7 @@
     <string name="memory_instruction">Memorize the words. You have 120 seconds.</string>
     <string name="memory_progress_hint">The bar fills up when the time is over.</string>
     <string name="memory_recall_title">Recall the words</string>
-    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn\'t matter; you can leave fields empty.</string>
+    <string name="memory_recall_instruction">Enter the words you remember in any fields. Order doesn&apos;t matter; you can leave fields empty.</string>
     <string name="memory_word_number">Word %1$d</string>
     <string name="memory_result_title">Training completed!</string>
     <string name="memory_score">%1$d of %2$d</string>
@@ -272,7 +272,7 @@
     <string name="privacy_policy_third_party_title">4. Third-party services</string>
     <string name="privacy_policy_third_party_body">Google and Firebase services are used for sign-in and online synchronization. When you use them, those providers may process technical identifiers and connection data under their own terms and privacy policies. The app does not sell personal data or use it to create advertising profiles for sale.</string>
     <string name="privacy_policy_permissions_title">5. Permissions and location</string>
-    <string name="privacy_policy_permissions_body">The app does not request access to your device's precise location. Country and city fields, if completed, are entered by you manually. Notification permission is used for exercise reminders.</string>
+    <string name="privacy_policy_permissions_body">The app does not request access to your device location. Country and city fields are entered manually by you. Notification permission is used for exercise reminders.</string>
     <string name="privacy_policy_retention_title">6. Storage and deletion</string>
     <string name="privacy_policy_retention_body">Local data remains on your device until you delete the profile or app data. Uninstalling the app does not by itself guarantee deletion of data previously sent to the cloud. Cloud data is used to operate linked profiles and social features; deletion or changes to individual cloud records depend on the actions available in the app and the relevant service rules.</string>
     <string name="privacy_policy_children_title">7. Security</string>
