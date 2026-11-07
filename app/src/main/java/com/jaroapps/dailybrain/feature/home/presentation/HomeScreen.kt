@@ -207,10 +207,10 @@ fun HomeScreen(
                 .weight(1f),
         ) {
             val arithmeticButtonSize = 56.dp
-            val arithmeticRingSize = 88.dp
+            val arithmeticRingSize = 108.dp
             val dayItemHeight = 112.dp
             val additionalButtonSize = 72.dp
-            val additionalRingSize = 96.dp
+            val additionalRingSize = 120.dp
 
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
@@ -301,8 +301,8 @@ fun HomeScreen(
                             if (today) {
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
-                                    initialRadius = 31.dp,
-                                    targetRadius = 38.dp,
+                                    initialRadius = 40.dp,
+                                    targetRadius = 50.dp,
                                 )
                             }
 
@@ -469,7 +469,7 @@ private fun RoundExerciseButton(
         if (!completed) {
             StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                radius = size / 2 + 12.dp,
+                radius = size / 2 + 24.dp,
             )
         }
 
@@ -507,13 +507,15 @@ private fun StaticRing(
 ) {
     val innerGlow = colorResource(R.color.color_exercise_glow_inner)
     val middleGlow = colorResource(R.color.color_exercise_glow_middle)
+    val outerGlow = colorResource(R.color.color_exercise_glow_outer)
     Canvas(modifier = modifier) {
         val glowRadius = radius.toPx()
         drawCircle(
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
                     0f to innerGlow,
-                    0.62f to middleGlow,
+                    0.58f to middleGlow,
+                    0.82f to outerGlow,
                     1f to Color.Transparent,
                 ),
                 center = center,
@@ -546,13 +548,15 @@ private fun PulsingRing(
 
     val innerGlow = colorResource(R.color.color_exercise_glow_inner)
     val middleGlow = colorResource(R.color.color_exercise_glow_middle)
+    val outerGlow = colorResource(R.color.color_exercise_glow_outer)
     Canvas(modifier = modifier) {
         val glowRadius = radiusDp.dp.toPx()
         drawCircle(
             brush = Brush.radialGradient(
                 colorStops = arrayOf(
                     0f to innerGlow,
-                    0.62f to middleGlow,
+                    0.58f to middleGlow,
+                    0.82f to outerGlow,
                     1f to Color.Transparent,
                 ),
                 center = center,
