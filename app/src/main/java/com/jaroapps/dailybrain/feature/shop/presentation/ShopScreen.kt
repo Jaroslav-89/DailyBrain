@@ -52,6 +52,8 @@ import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarAssetPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
+import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.rewards.presentation.EndorphinAmount
