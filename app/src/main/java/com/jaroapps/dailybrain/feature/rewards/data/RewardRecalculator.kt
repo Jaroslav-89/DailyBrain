@@ -4,6 +4,7 @@ import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.WeeklyAchievementRules
+import com.jaroapps.dailybrain.feature.rewards.domain.model.MonthlyChallengeRules
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
@@ -274,6 +275,30 @@ object RewardRecalculator {
                 addBadgeAt(key, badgeType, monthKey, occurredAt, trigger?.id)
                 addEventAt(key, "MONTHLY_STREAK", occurredAt, monthKey, valueInt = month.monthValue)
             }
+        }
+
+        // The independent monthly challenge counts the total volume of sessions in a
+        // calendar month. It does not depend on weekly challenge completion and patches do
+        // not count as exercise sessions.
+        val exerciseTypesByMonth = dated.groupBy { (date, _) -> YearMonth.from(date) }
+            .mapValues { (_, monthItems) -> monthItems.map { it.second.exerciseType } }
+        MonthlyChallengeRules.completedMonths(exerciseTypesByMonth).forEach { month ->
+            val monthItems = dated.filter { (date, _) -> YearMonth.from(date) == month }
+            val qualifyingSessions = MonthlyChallengeRules.DEFAULT_MONTHLY_CHALLENGE_REQUIREMENTS.mapNotNull { requirement ->
+                monthItems.asSequence()
+                    .filter { it.second.exerciseType == requirement.exerciseType }
+                    .sortedBy { it.second.finishedAtEpochMs }
+                    .take(requirement.requiredCount)
+                    .lastOrNull()
+                    ?.second
+            }
+            val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
+            val monthKey = month.toString()
+            val key = "monthly_challenge:$monthKey"
+            val badgeType = "MONTHLY_CHALLENGE_${month.monthValue.toString().padStart(2, '0')}"
+            addReward(key, MonthlyChallengeRules.XP_REWARD, 0, "MONTHLY_CHALLENGE", trigger, monthKey)
+            addBadge(key, badgeType, monthKey, trigger)
+            addEvent(key, "MONTHLY_CHALLENGE", trigger, monthKey, valueInt = month.monthValue)
         }
 
         // The first seven arithmetic sessions are practice. New records require >=95% accuracy
