@@ -8,12 +8,6 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleAccountMismatchException
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleAccountNotLinkedException
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleSignInCancelledException
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseUidMismatchException
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseNotConfiguredException
-import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseAuthenticationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.SharingStarted
@@ -91,21 +85,8 @@ class ProfileSelectionViewModel(
         }
     }
 
-    private fun profileActionError(error: Exception): String = when (error) {
-        is ProfileGoogleSignInCancelledException ->
-            "Вход в Google отменён. Профиль не переключён."
-        is ProfileGoogleAccountMismatchException ->
-            "Выбран другой Google-аккаунт. Войдите в аккаунт, привязанный к этому локальному профилю."
-        is ProfileGoogleAccountNotLinkedException ->
-            "Не найдена Google-привязка этого профиля. Переподключите Google-аккаунт."
-        is ProfileFirebaseUidMismatchException ->
-            "Firebase вернул другой аккаунт. Профиль не переключён; повторите вход."
-        is ProfileFirebaseNotConfiguredException ->
-            "Firebase не настроен в приложении. Проверьте конфигурацию Google Sign-In."
-        is ProfileFirebaseAuthenticationException ->
-            firebaseDiagnosticDescription(error.diagnosticCode)
-        else -> "Не удалось выполнить действие с профилем. Попробуйте ещё раз."
-    }
+    private fun profileActionError(error: Exception): String =
+        "Не удалось выполнить действие с профилем. Попробуйте ещё раз."
 
     private suspend fun runAction(action: suspend () -> Unit) {
         if (isWorking.value) return

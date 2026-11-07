@@ -12,6 +12,9 @@ import com.google.firebase.auth.GoogleAuthProvider
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleSignInResult
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONObject
 import kotlin.coroutines.resume
@@ -58,6 +61,20 @@ class FirebaseAuthenticationRepositoryImpl(
     }
 
     override fun currentUserId(): String? = firebaseAuthOrNull()?.currentUser?.uid
+
+    override fun observeCurrentUserId(): Flow<String?> = callbackFlow {
+        val auth = firebaseAuthOrNull()
+        if (auth == null) {
+            trySend(null)
+            close()
+            return@callbackFlow
+        }
+        val listener = FirebaseAuth.AuthStateListener { currentAuth ->
+            trySend(currentAuth.currentUser?.uid)
+        }
+        auth.addAuthStateListener(listener)
+        awaitClose { auth.removeAuthStateListener(listener) }
+    }
 
     override fun signOut() {
         runCatching { firebaseAuthOrNull()?.signOut() }

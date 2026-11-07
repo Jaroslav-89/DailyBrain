@@ -7,6 +7,8 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseGoogleS
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileFirebaseUidMismatchException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleAccountMismatchException
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
@@ -20,7 +22,7 @@ class ActiveProfileAuthCoordinatorTest {
         val firebase = FakeFirebaseAuthenticationRepository(currentUid = "firebase-a")
         val coordinator = ActiveProfileAuthCoordinator(provider, firebase)
 
-        coordinator.ensureAuthenticated(linkedProfile())
+        coordinator.reauthenticate(linkedProfile())
 
         assertEquals(0, provider.calls)
         assertEquals(0, firebase.signInCalls)
@@ -77,16 +79,18 @@ class ActiveProfileAuthCoordinatorTest {
     }
 
     @Test
-    fun unlinkedLocalProfileSignsOutWithoutOpeningGoogleSignIn() = runBlocking {
+    fun unlinkedLocalProfileIsRejectedWithoutChangingFirebaseSession() = runBlocking {
         val provider = FakeGoogleSignInProvider(googleResult("google-a", "token-a"))
         val firebase = FakeFirebaseAuthenticationRepository(currentUid = "firebase-b")
         val coordinator = ActiveProfileAuthCoordinator(provider, firebase)
 
-        coordinator.ensureAuthenticated(linkedProfile(firebaseUid = null, googleSubject = null))
+        assertThrows(com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleAccountNotLinkedException::class.java) {
+            runBlocking { coordinator.reauthenticate(linkedProfile(firebaseUid = null, googleSubject = null)) }
+        }
 
         assertEquals(0, provider.calls)
-        assertNull(firebase.currentUserId())
-        assertEquals(1, firebase.signOutCalls)
+        assertEquals("firebase-b", firebase.currentUserId())
+        assertEquals(0, firebase.signOutCalls)
     }
 
     private fun linkedProfile(
@@ -128,6 +132,7 @@ class ActiveProfileAuthCoordinatorTest {
             private set
 
         override fun currentUserId(): String? = currentUid
+        override fun observeCurrentUserId(): Flow<String?> = flowOf(currentUid)
 
         override suspend fun signInWithGoogle(
             idToken: String,

@@ -5,6 +5,17 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisti
 
 class UserDirectoryNotConfiguredException : IllegalStateException("Firebase is not configured.")
 class FirebaseSessionMismatchException : IllegalStateException("The active Firebase account does not match the selected local profile.")
+
+/**
+ * Shared guard used immediately before every Firebase/Firestore operation that belongs to a local profile.
+ * A stored Google binding is not enough: FirebaseAuth must hold the matching UID.
+ */
+fun requireMatchingFirebaseSession(expectedUid: String, currentUid: String?) {
+    if (expectedUid.isBlank() || currentUid != expectedUid) {
+        throw FirebaseSessionMismatchException()
+    }
+}
+
 class UsernameTakenException : IllegalStateException("The username is already reserved.")
 class UserDirectoryProfileMissingException : IllegalStateException("The cloud user profile does not exist.")
 
