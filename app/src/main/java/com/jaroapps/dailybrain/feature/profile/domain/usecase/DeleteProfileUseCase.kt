@@ -6,6 +6,10 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthent
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 
 /**
  * Removes local data immediately and completes cloud deletion whenever the old Firebase
