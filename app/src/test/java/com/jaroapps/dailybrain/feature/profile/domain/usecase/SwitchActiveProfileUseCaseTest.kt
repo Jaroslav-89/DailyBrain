@@ -34,6 +34,7 @@ class SwitchActiveProfileUseCaseTest {
         var switchedProfileId: String? = null
 
         override fun observeProfile(): Flow<UserProfile> = emptyFlow()
+        override fun observeSelectedProfile(): Flow<UserProfile?> = emptyFlow()
         override fun observeProfiles(): Flow<List<UserProfile>> = emptyFlow()
         override suspend fun getProfile(localAccountId: String): UserProfile? = null
         override suspend fun createLocalProfile(): UserProfile = error("Not used by the switch operation.")
