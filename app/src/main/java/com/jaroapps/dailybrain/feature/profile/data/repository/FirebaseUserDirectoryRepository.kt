@@ -584,12 +584,30 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         if (firestore.collection(DELETED_PROFILES).document(profileFirebaseUid).get().awaitResult().exists()) {
             throw PublicProfileDeletedException()
         }
+        val publicCard = firestore.collection(PUBLIC_PROFILE_CARDS)
+            .document(profileFirebaseUid)
+            .get()
+            .awaitResult()
         if (isBlockedByProfile(profileFirebaseUid, viewerFirebaseUid)) {
-            return firestore.collection(PUBLIC_PROFILE_CARDS).document(profileFirebaseUid)
-                .get().awaitResult().toPublicProfile(profileFirebaseUid)?.copy(isRestricted = true)
+            return publicCard.toPublicProfile(profileFirebaseUid)?.copy(isRestricted = true)
         }
-        return firestore.collection(PUBLIC_PROFILES).document(profileFirebaseUid)
-            .get().awaitResult().toPublicProfile(profileFirebaseUid)
+
+        val publicProfile = firestore.collection(PUBLIC_PROFILES)
+            .document(profileFirebaseUid)
+            .get()
+            .awaitResult()
+            .toPublicProfile(profileFirebaseUid)
+            ?: return null
+
+        // Friend lists and public profile cards use this projection as the canonical
+        // avatar source. Read it by the requested target UID, never by the viewer UID,
+        // to avoid showing the other local account's avatar when both accounts follow
+        // each other on the same device.
+        val cardAvatar = publicCard.getString("avatarConfigurationJson")
+            ?.takeIf(String::isNotBlank)
+        return publicProfile.copy(
+            avatarConfigurationJson = cardAvatar ?: publicProfile.avatarConfigurationJson,
+        )
     }
 
     override suspend fun blockUser(blockerFirebaseUid: String, blockedFirebaseUid: String) {
