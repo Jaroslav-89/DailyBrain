@@ -195,16 +195,21 @@ class ProfileViewModel(
         }
     }
 
-    fun deleteProfile(onDeleted: () -> Unit) {
+    fun deleteProfile(localAccountId: String, onDeleted: () -> Unit) {
+        if (localAccountId.isBlank() || deletingProfile.value) return
         viewModelScope.launch {
+            if (deletingProfile.value) return@launch
+            deletingProfile.value = true
             deleteError.value = false
             try {
-                val localAccountId = uiState.value.profile?.localAccountId
-                    ?: throw IllegalStateException("Active local profile is unavailable.")
                 deleteProfileUseCase(localAccountId)
                 onDeleted()
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (_: Exception) {
                 deleteError.value = true
+            } finally {
+                deletingProfile.value = false
             }
         }
     }
