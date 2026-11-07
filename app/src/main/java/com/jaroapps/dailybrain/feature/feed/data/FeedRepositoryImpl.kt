@@ -236,6 +236,29 @@ class FeedRepositoryImpl(
         requireCurrentFirebaseUser(app, firebaseUid)
         val dao = database.feedEventDao()
         val localEvents = dao.getLocalEvents(localAccountId)
+        val feedUpdatesEnabled = firestore.collection(USERS)
+            .document(firebaseUid)
+            .get()
+            .awaitResult()
+            .getBoolean("feedUpdatesEnabled") ?: true
+
+        if (!feedUpdatesEnabled) {
+            firestore.collection(FEED_EVENTS)
+                .whereEqualTo("authorUid", firebaseUid)
+                .limit(MAX_PUBLIC_EVENTS.toLong())
+                .get()
+                .awaitResult()
+                .documents
+                .forEach { it.reference.delete().awaitResult() }
+
+            localEvents.filter {
+                it.authorFirebaseUid == firebaseUid && it.isRevoked && it.syncState == PENDING_DELETE
+            }.forEach { dao.markSynced(localAccountId, it.eventId) }
+            localEvents.filter {
+                it.authorFirebaseUid == firebaseUid && !it.isRevoked && it.syncState != LOCAL_ONLY
+            }.forEach { dao.updateSyncState(localAccountId, it.eventId, LOCAL_ONLY) }
+            return
+        }
 
         localEvents.filter {
             it.authorFirebaseUid == firebaseUid && it.isRevoked && it.syncState == PENDING_DELETE
@@ -334,6 +357,7 @@ class FeedRepositoryImpl(
 
     private companion object {
         const val FOLLOWS = "follows"
+        const val USERS = "users"
         const val PUBLIC_PROFILE_CARDS = "publicProfileCards"
         const val FEED_EVENTS = "feedEvents"
         const val MAX_CONCURRENT_AUTHOR_QUERIES = 9

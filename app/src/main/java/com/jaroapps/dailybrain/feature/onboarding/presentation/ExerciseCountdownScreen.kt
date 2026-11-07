@@ -24,10 +24,13 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.jaroapps.dailybrain.R
+import com.jaroapps.dailybrain.core.presentation.FeedbackController
+import org.koin.compose.koinInject
 import kotlinx.coroutines.delay
 
 @Composable
 fun ExerciseCountdownScreen(exerciseName: String, onFinished: () -> Unit) {
+    val feedbackController: FeedbackController = koinInject()
     val scale = remember { Animatable(0.65f) }
     var currentNumber by remember { mutableIntStateOf(3) }
     val finish by rememberUpdatedState(onFinished)
@@ -35,6 +38,7 @@ fun ExerciseCountdownScreen(exerciseName: String, onFinished: () -> Unit) {
     LaunchedEffect(Unit) {
         for (number in 3 downTo 1) {
             currentNumber = number
+            feedbackController.onCountdownDigit()
             scale.snapTo(0.65f)
             scale.animateTo(
                 targetValue = 1.55f,

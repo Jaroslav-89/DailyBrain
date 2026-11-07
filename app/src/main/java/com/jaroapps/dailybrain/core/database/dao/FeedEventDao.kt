@@ -49,6 +49,9 @@ interface FeedEventDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun upsertAll(events: List<FeedEventEntity>)
 
+    @Query("UPDATE feed_events SET syncState = 'LOCAL_ONLY' WHERE localAccountId = :localAccountId AND authorFirebaseUid = :firebaseUid AND isLocal = 1 AND isRevoked = 0")
+    suspend fun markOwnEventsLocalOnly(localAccountId: String, firebaseUid: String)
+
     @Query("UPDATE feed_events SET syncState = 'SYNCED' WHERE localAccountId = :localAccountId AND eventId = :eventId")
     suspend fun markSynced(localAccountId: String, eventId: String)
 

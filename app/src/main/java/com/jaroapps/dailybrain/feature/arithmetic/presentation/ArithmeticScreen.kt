@@ -31,6 +31,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.res.stringResource
 import com.jaroapps.dailybrain.R
@@ -48,7 +49,10 @@ import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.feature.arithmetic.domain.model.ArithmeticTaskResult
 import com.jaroapps.dailybrain.core.presentation.ExerciseExitConfirmationDialog
+import com.jaroapps.dailybrain.core.presentation.FeedbackController
+import com.jaroapps.dailybrain.core.presentation.FeedbackPreferences
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun ArithmeticScreen(
@@ -56,6 +60,14 @@ fun ArithmeticScreen(
     viewModel: ArithmeticViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val feedbackController: FeedbackController = koinInject()
+    var completionFeedbackPlayed by rememberSaveable { mutableStateOf(false) }
+    LaunchedEffect(state.isCompleted) {
+        if (state.isCompleted && !completionFeedbackPlayed) {
+            completionFeedbackPlayed = true
+            feedbackController.onExerciseCompleted()
+        }
+    }
     var showExitConfirmation by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -112,6 +124,7 @@ fun ArithmeticScreen(
     } else {
         TrainingContent(
             state = state,
+            isLeftHanded = FeedbackPreferences.isLeftHanded,
             onExit = { showExitConfirmation = true },
             onDigitPressed = viewModel::onDigitPressed,
             onDeletePressed = viewModel::onDeletePressed,
@@ -133,6 +146,7 @@ fun ArithmeticScreen(
 @Composable
 private fun TrainingContent(
     state: ArithmeticUiState,
+    isLeftHanded: Boolean,
     onExit: () -> Unit,
     onDigitPressed: (Int) -> Unit,
     onDeletePressed: () -> Unit,
@@ -148,34 +162,33 @@ private fun TrainingContent(
                 .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(
-                modifier = Modifier
-                    .weight(1.1f)
-                    .fillMaxHeight()
-                    .padding(end = 16.dp),
-            ) {
-                ArithmeticTrainingHeader(state = state, onExit = onExit)
-                Spacer(Modifier.height(12.dp))
-                LinearProgressIndicator(
-                    progress = { state.progress },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = colorResource(R.color.color_success),
-                    trackColor = MaterialTheme.colorScheme.surfaceVariant,
+            if (isLeftHanded) {
+                NumberKeyboard(
+                    modifier = Modifier.weight(0.9f).fillMaxHeight(),
+                    onDigitPressed = onDigitPressed,
+                    onDeletePressed = onDeletePressed,
+                    onSubmit = onSubmit,
+                    canSubmit = state.answerInput.isNotBlank(),
                 )
-                ArithmeticProblemAndAnswer(
+                ArithmeticTaskPanel(
                     state = state,
-                    modifier = Modifier.weight(1f).fillMaxWidth(),
+                    onExit = onExit,
+                    modifier = Modifier.weight(1.1f).fillMaxHeight().padding(start = 16.dp),
+                )
+            } else {
+                ArithmeticTaskPanel(
+                    state = state,
+                    onExit = onExit,
+                    modifier = Modifier.weight(1.1f).fillMaxHeight().padding(end = 16.dp),
+                )
+                NumberKeyboard(
+                    modifier = Modifier.weight(0.9f).fillMaxHeight(),
+                    onDigitPressed = onDigitPressed,
+                    onDeletePressed = onDeletePressed,
+                    onSubmit = onSubmit,
+                    canSubmit = state.answerInput.isNotBlank(),
                 )
             }
-            NumberKeyboard(
-                modifier = Modifier
-                    .weight(0.9f)
-                    .fillMaxHeight(),
-                onDigitPressed = onDigitPressed,
-                onDeletePressed = onDeletePressed,
-                onSubmit = onSubmit,
-                canSubmit = state.answerInput.isNotBlank(),
-            )
         }
     } else {
         Column(
@@ -228,6 +241,28 @@ private fun ArithmeticTrainingHeader(
         Text(
             text = "${state.completedTaskCount + 1} / ${state.totalTaskCount}",
             style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+@Composable
+private fun ArithmeticTaskPanel(
+    state: ArithmeticUiState,
+    onExit: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Column(modifier = modifier) {
+        ArithmeticTrainingHeader(state = state, onExit = onExit)
+        Spacer(Modifier.height(12.dp))
+        LinearProgressIndicator(
+            progress = { state.progress },
+            modifier = Modifier.fillMaxWidth(),
+            color = colorResource(R.color.color_success),
+            trackColor = MaterialTheme.colorScheme.surfaceVariant,
+        )
+        ArithmeticProblemAndAnswer(
+            state = state,
+            modifier = Modifier.weight(1f).fillMaxWidth(),
         )
     }
 }

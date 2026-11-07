@@ -88,6 +88,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfile
 import com.jaroapps.dailybrain.feature.announcements.domain.usecase.ProcessMissedStreakDaysWithAnnouncementUseCase
 import com.jaroapps.dailybrain.feature.announcements.presentation.AnnouncementHost
 import com.jaroapps.dailybrain.ui.theme.AppThemePreference
+import com.jaroapps.dailybrain.core.presentation.FeedbackPreferences
 import com.jaroapps.dailybrain.feature.home.presentation.HomeAppearancePreference
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserConnectionsScreen
@@ -110,6 +111,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
         activeProfile?.localAccountId?.let { localAccountId ->
             AppThemePreference.ensureLoaded(context, localAccountId)
             HomeAppearancePreference.ensureLoaded(context, localAccountId)
+            FeedbackPreferences.ensureLoaded(context, localAccountId)
             runCatching { processMissedStreakDays() }
         }
     }

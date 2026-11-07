@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.profile.domain.repository
 
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.UserPrivacySettings
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatistics
 
 class UserDirectoryNotConfiguredException : IllegalStateException("Firebase is not configured.")
@@ -34,6 +35,8 @@ interface UserDirectoryRepository {
     suspend fun unfollowUser(firebaseUid: String, targetFirebaseUid: String)
     suspend fun getFollowing(firebaseUid: String): List<PublicUserProfile>
     suspend fun getFollowers(firebaseUid: String): List<PublicUserProfile>
+    suspend fun getPrivacySettings(firebaseUid: String): UserPrivacySettings?
+    suspend fun updatePrivacySettings(firebaseUid: String, profileInfoVisible: Boolean, feedUpdatesEnabled: Boolean)
     suspend fun updatePublicProfile(
         firebaseUid: String,
         displayName: String?,

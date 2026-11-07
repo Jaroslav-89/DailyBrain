@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarJsonCodec
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
+import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
@@ -26,6 +27,7 @@ class PublicProfileSyncViewModel(
     observeAvatar: ObserveAvatarUseCase,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
     private val userDirectoryRepository: UserDirectoryRepository,
+    private val userProfileRepository: UserProfileRepository,
     private val profileCollectiblesRepository: ProfileCollectiblesRepository,
     private val giftDeliveryRepository: GiftDeliveryRepository,
 ) : ViewModel() {
@@ -38,6 +40,34 @@ class PublicProfileSyncViewModel(
             observeSelectedProfile().collectLatest { profile ->
                 if (profile == null) return@collectLatest
                 val firebaseUid = profile.firebaseUid ?: return@collectLatest
+
+                // Cloud privacy controls are account-level and remain authoritative across devices.
+                try {
+                    val remotePrivacy = userDirectoryRepository.getPrivacySettings(firebaseUid)
+                    if (remotePrivacy == null) {
+                        // First rollout or a newly linked Google account: keep the local choices,
+                        // then seed the account-level document so future devices inherit them.
+                        userDirectoryRepository.updatePrivacySettings(
+                            firebaseUid = firebaseUid,
+                            profileInfoVisible = profile.profileInfoVisible,
+                            feedUpdatesEnabled = profile.feedUpdatesEnabled,
+                        )
+                    } else if (
+                        profile.profileInfoVisible != remotePrivacy.profileInfoVisible ||
+                        profile.feedUpdatesEnabled != remotePrivacy.feedUpdatesEnabled
+                    ) {
+                        userProfileRepository.savePrivacySettings(
+                            localAccountId = profile.localAccountId,
+                            profileInfoVisible = remotePrivacy.profileInfoVisible,
+                            feedUpdatesEnabled = remotePrivacy.feedUpdatesEnabled,
+                        )
+                        return@collectLatest
+                    }
+                } catch (cancelled: CancellationException) {
+                    throw cancelled
+                } catch (error: Exception) {
+                    Log.w(TAG, "Could not refresh cloud privacy settings", error)
+                }
 
                 // Start the dependent active-profile streams only after the selected profile
                 // is known. This prevents combine() from pairing profile B with profile A's

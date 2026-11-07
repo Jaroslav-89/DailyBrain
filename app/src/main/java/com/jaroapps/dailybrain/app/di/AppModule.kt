@@ -25,6 +25,7 @@ import com.jaroapps.dailybrain.common.domain.usecase.SaveCompletedTrainingUseCas
 import com.jaroapps.dailybrain.core.database.AppDatabase
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.DatabaseMigrations
+import com.jaroapps.dailybrain.core.presentation.FeedbackController
 import com.jaroapps.dailybrain.core.resources.AndroidStringProvider
 import com.jaroapps.dailybrain.core.resources.StringProvider
 import com.jaroapps.dailybrain.feature.brain.AndroidTrainingStateChangedNotifier
@@ -104,6 +105,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteLocalProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ExitActiveProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveProfilePrivacySettingsUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
 import com.jaroapps.dailybrain.feature.profile.presentation.ProfileSelectionViewModel
@@ -136,12 +138,13 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23, DatabaseMigrations.MIGRATION_23_24)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23, DatabaseMigrations.MIGRATION_23_24, DatabaseMigrations.MIGRATION_24_25)
             .build()
     }
 
     single(named("profileDeletionScope")) { CoroutineScope(SupervisorJob() + Dispatchers.IO) }
     single { ActiveUserProvider(database = get()) }
+    single { FeedbackController(context = androidContext()) }
     single<AnnouncementRepository> {
         AnnouncementRepositoryImpl(
             dao = get<AppDatabase>().appAnnouncementDao(),
@@ -311,12 +314,13 @@ val appModule = module {
     factory { DeleteLocalProfileUseCase(repository = get()) }
     factory { ExitActiveProfileUseCase(repository = get()) }
     factory { SaveUserProfileUseCase(repository = get()) }
+    factory { SaveProfilePrivacySettingsUseCase(profileRepository = get(), userDirectoryRepository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
     viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteProfileUseCase = get(), linkGoogleAccountUseCase = get(), reauthenticateGoogleAccountUseCase = get(), firebaseAuthenticationRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
     viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteProfileUseCase = get()) }
     viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get(), firebaseAuthenticationRepository = get()) }
-    viewModel { PublicProfileSyncViewModel(observeSelectedProfile = get(), observeProfileStatistics = get(), observeAvatar = get(), firebaseAuthenticationRepository = get(), userDirectoryRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
+    viewModel { PublicProfileSyncViewModel(observeSelectedProfile = get(), observeProfileStatistics = get(), observeAvatar = get(), firebaseAuthenticationRepository = get(), userDirectoryRepository = get(), userProfileRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
     viewModel { PublicUserProfileViewModel(observeUserProfile = get(), userDirectoryRepository = get(), profileCollectiblesRepository = get()) }
     viewModel { PublicUserConnectionsViewModel(observeUserProfile = get(), userDirectoryRepository = get()) }
     viewModel { ProfileCollectiblesViewModel(savedStateHandle = get(), repository = get()) }

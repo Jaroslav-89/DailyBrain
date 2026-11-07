@@ -69,6 +69,21 @@ class PublicUserProfileViewModel(
                 )
                 return
             }
+
+            // A private profile exposes only its avatar and privacy state to other users.
+            // Keep the follow relationship available without loading hidden statistics or collections.
+            if (!self && !user.profileInfoVisible) {
+                val isFollowing = userDirectoryRepository.isFollowing(viewerUid, profileFirebaseUid)
+                _uiState.value = PublicUserProfileUiState(
+                    viewerFirebaseUid = viewerUid,
+                    user = user,
+                    isSelf = false,
+                    isFollowing = isFollowing,
+                    isBlockedByViewer = isBlockedByViewer,
+                    isLoading = false,
+                )
+                return
+            }
             val collectibles = runCatching { profileCollectiblesRepository.getForOwner(profileFirebaseUid) }
                 .getOrDefault(emptyList())
             val result = coroutineScope {

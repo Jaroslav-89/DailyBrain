@@ -13,6 +13,7 @@ data class PublicUserProfile(
     val memberSinceEpochMs: Long? = null,
     val statistics: PublicUserStatistics = PublicUserStatistics(),
     val isRestricted: Boolean = false,
+    val profileInfoVisible: Boolean = true,
 )
 
 data class PublicUserStatistics(

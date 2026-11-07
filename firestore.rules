@@ -159,6 +159,7 @@ service cloud.firestore {
       function canViewCollectibles() {
         return signedIn()
           && exists(/databases/$(database)/documents/publicProfiles/$(uid))
+          && get(/databases/$(database)/documents/publicProfiles/$(uid)).data.get('profileInfoVisible', true) == true
           && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid))
           && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(uid));
       }
@@ -198,7 +199,7 @@ service cloud.firestore {
           );
       }
 
-      allow get, list: if canViewCollectibles();
+      allow get, list: if isOwner(uid) || canViewCollectibles();
       allow create, update: if isOwner(uid) && validCollectible()
         && exists(/databases/$(database)/documents/publicProfiles/$(uid));
       allow delete: if canDeleteOwnData(uid);
@@ -281,11 +282,16 @@ service cloud.firestore {
     // Public relationship projections let signed-in users inspect another profile's lists
     // without granting access to arbitrary documents in the internal follows collection.
     match /publicFollowing/{profileUid}/users/{followingUid} {
+      function profileAllowsConnectionList() {
+        return get(/databases/$(database)/documents/publicProfiles/$(profileUid)).data.get('profileInfoVisible', true) == true;
+      }
       allow get: if signedIn()
-        && (request.auth.uid == profileUid || request.auth.uid == followingUid
-          || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)));
+        && (request.auth.uid == profileUid || (profileAllowsConnectionList()
+          && (request.auth.uid == followingUid
+            || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)))));
       allow list: if signedIn()
-        && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
+        && (request.auth.uid == profileUid || (profileAllowsConnectionList()
+          && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid))));
       allow create: if activeUser()
         && request.auth.uid == profileUid
         && request.resource.data.keys().hasOnly(['uid'])
@@ -299,11 +305,16 @@ service cloud.firestore {
     }
 
     match /publicFollowers/{profileUid}/users/{followerUid} {
+      function profileAllowsConnectionList() {
+        return get(/databases/$(database)/documents/publicProfiles/$(profileUid)).data.get('profileInfoVisible', true) == true;
+      }
       allow get: if signedIn()
-        && (request.auth.uid == profileUid || request.auth.uid == followerUid
-          || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)));
+        && (request.auth.uid == profileUid || (profileAllowsConnectionList()
+          && (request.auth.uid == followerUid
+            || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)))));
       allow list: if signedIn()
-        && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
+        && (request.auth.uid == profileUid || (profileAllowsConnectionList()
+          && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid))));
       allow create: if activeUser()
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && request.resource.data.keys().hasOnly(['uid'])

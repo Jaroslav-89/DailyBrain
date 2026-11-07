@@ -57,7 +57,7 @@ import com.jaroapps.dailybrain.core.database.entity.AppAnnouncementEntity
         StreakPatchStateEntity::class,
         AppAnnouncementEntity::class,
     ],
-    version = 24,
+    version = 25,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {

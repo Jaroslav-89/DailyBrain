@@ -27,6 +27,8 @@ data class UserProfile(
     val xpPoints: Int = 0,
     val endorphinBalance: Int = 0,
     val patchCount: Int = 0,
+    val profileInfoVisible: Boolean = true,
+    val feedUpdatesEnabled: Boolean = true,
 ) {
     val effectiveDisplayName: String
         get() = displayName?.trim()?.takeIf(String::isNotEmpty) ?: generatedAlias

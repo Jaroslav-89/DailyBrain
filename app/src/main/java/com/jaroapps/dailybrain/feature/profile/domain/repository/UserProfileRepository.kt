@@ -37,6 +37,11 @@ interface UserProfileRepository {
     suspend fun updateUsername(localAccountId: String, username: String?)
     suspend fun cacheInviteCode(localAccountId: String, firebaseUid: String, inviteCode: String)
     suspend fun unlinkGoogleAccount(localAccountId: String)
+    suspend fun savePrivacySettings(
+        localAccountId: String,
+        profileInfoVisible: Boolean,
+        feedUpdatesEnabled: Boolean,
+    )
     suspend fun saveProfile(
         displayName: String?,
         gender: String?,

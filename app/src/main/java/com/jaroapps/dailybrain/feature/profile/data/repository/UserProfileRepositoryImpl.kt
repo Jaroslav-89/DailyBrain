@@ -252,6 +252,33 @@ class UserProfileRepositoryImpl(
         }
     }
 
+    override suspend fun savePrivacySettings(
+        localAccountId: String,
+        profileInfoVisible: Boolean,
+        feedUpdatesEnabled: Boolean,
+    ) {
+        database.withTransaction {
+            val dao = database.userProfileDao()
+            val current = requireNotNull(dao.getProfile(localAccountId)) {
+                "Local profile does not exist: $localAccountId"
+            }
+            // Any events accumulated during the disabled period stay in local history
+            // even when publication is enabled again before the next feed sync.
+            if (!feedUpdatesEnabled || !current.feedUpdatesEnabled) {
+                current.firebaseUid?.let { firebaseUid ->
+                    database.feedEventDao().markOwnEventsLocalOnly(localAccountId, firebaseUid)
+                }
+            }
+            dao.save(
+                current.copy(
+                    profileInfoVisible = profileInfoVisible,
+                    feedUpdatesEnabled = feedUpdatesEnabled,
+                    updatedAtEpochMs = System.currentTimeMillis(),
+                ),
+            )
+        }
+    }
+
     override suspend fun saveProfile(
         displayName: String?,
         gender: String?,
@@ -316,5 +343,7 @@ class UserProfileRepositoryImpl(
         xpPoints = xpPoints,
         endorphinBalance = endorphinBalance,
         patchCount = patchCount,
+        profileInfoVisible = profileInfoVisible,
+        feedUpdatesEnabled = feedUpdatesEnabled,
     )
 }

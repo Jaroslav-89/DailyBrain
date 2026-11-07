@@ -692,4 +692,16 @@ object DatabaseMigrations {
         }
     }
 
+    /** Add account privacy switches while preserving the previous public defaults. */
+    val MIGRATION_24_25 = object : Migration(24, 25) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                "ALTER TABLE user_profile ADD COLUMN profileInfoVisible INTEGER NOT NULL DEFAULT 1",
+            )
+            database.execSQL(
+                "ALTER TABLE user_profile ADD COLUMN feedUpdatesEnabled INTEGER NOT NULL DEFAULT 1",
+            )
+        }
+    }
+
 }

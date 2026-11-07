@@ -40,4 +40,6 @@ data class UserProfileEntity(
     @ColumnInfo(defaultValue = "0") val endorphinBalance: Int = 0,
     @ColumnInfo(defaultValue = "0") val patchCount: Int = 0,
     @ColumnInfo(defaultValue = "0") val rewardsInitialized: Boolean = false,
+    @ColumnInfo(defaultValue = "1") val profileInfoVisible: Boolean = true,
+    @ColumnInfo(defaultValue = "1") val feedUpdatesEnabled: Boolean = true,
 )

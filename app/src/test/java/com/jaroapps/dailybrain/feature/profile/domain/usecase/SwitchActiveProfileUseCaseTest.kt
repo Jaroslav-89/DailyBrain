@@ -63,6 +63,12 @@ class SwitchActiveProfileUseCaseTest {
         override suspend fun updateUsername(localAccountId: String, username: String?) = Unit
         override suspend fun cacheInviteCode(localAccountId: String, firebaseUid: String, inviteCode: String) = Unit
         override suspend fun unlinkGoogleAccount(localAccountId: String) = Unit
+        override suspend fun savePrivacySettings(
+            localAccountId: String,
+            profileInfoVisible: Boolean,
+            feedUpdatesEnabled: Boolean,
+        ) = Unit
+
         override suspend fun saveProfile(
             displayName: String?,
             gender: String?,

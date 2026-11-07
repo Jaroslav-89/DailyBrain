@@ -107,14 +107,18 @@ fun PublicUserProfileScreen(
                         shape = MaterialTheme.shapes.large,
                         color = MaterialTheme.colorScheme.surfaceVariant,
                     ) {
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                verticalAlignment = Alignment.Top,
-                            ) {
+                        Column(
+                            modifier = Modifier.padding(16.dp),
+                            horizontalAlignment = if (!user.isRestricted && !user.profileInfoVisible && !state.isSelf) {
+                                Alignment.CenterHorizontally
+                            } else {
+                                Alignment.Start
+                            },
+                        ) {
+                            if (!user.isRestricted && !user.profileInfoVisible && !state.isSelf) {
                                 Surface(
-                                    modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
-                                    shape = MaterialTheme.shapes.medium,
+                                    modifier = Modifier.size(132.dp),
+                                    shape = MaterialTheme.shapes.large,
                                     color = MaterialTheme.colorScheme.surface,
                                 ) {
                                     AvatarPreview(
@@ -122,41 +126,64 @@ fun PublicUserProfileScreen(
                                         modifier = Modifier.fillMaxSize(),
                                     )
                                 }
-                                Column(
-                                    modifier = Modifier.weight(1f),
-                                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                                Spacer(Modifier.height(16.dp))
+                                Text(
+                                    "Информация профиля скрыта настройками приватности",
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                )
+                            } else {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.Top,
                                 ) {
-                                    Text(
-                                        text = user.displayName?.takeIf(String::isNotBlank)
-                                            ?: "Пользователь DailyBrain",
-                                        style = MaterialTheme.typography.headlineSmall,
-                                        fontWeight = FontWeight.Bold,
-                                    )
-                                    if (user.username.isNotBlank()) {
-                                        Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
+                                    Surface(
+                                        modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
+                                        shape = MaterialTheme.shapes.medium,
+                                        color = MaterialTheme.colorScheme.surface,
+                                    ) {
+                                        AvatarPreview(
+                                            configuration = AvatarJsonCodec.decode(user.avatarConfigurationJson),
+                                            modifier = Modifier.fillMaxSize(),
+                                        )
                                     }
-                                    if (!user.isRestricted) {
-                                        user.country?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                                        user.city?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
-                                        user.gender?.let { gender ->
-                                            val label = when (gender) {
-                                                "FEMALE" -> "Женский"
-                                                "MALE" -> "Мужской"
-                                                else -> null
+                                    Column(
+                                        modifier = Modifier.weight(1f),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                    ) {
+                                        Text(
+                                            text = user.displayName?.takeIf(String::isNotBlank)
+                                                ?: "Пользователь DailyBrain",
+                                            style = MaterialTheme.typography.headlineSmall,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                        if (user.username.isNotBlank()) {
+                                            Text("@${user.username}", color = MaterialTheme.colorScheme.primary)
+                                        }
+                                        if (!user.isRestricted) {
+                                            user.country?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                                            user.city?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
+                                            user.gender?.let { gender ->
+                                                val label = when (gender) {
+                                                    "FEMALE" -> "Женский"
+                                                    "MALE" -> "Мужской"
+                                                    else -> null
+                                                }
+                                                label?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                                             }
-                                            label?.let { Text(it, style = MaterialTheme.typography.bodyMedium) }
                                         }
                                     }
                                 }
-                            }
-                            if (!user.isRestricted) {
-                                memberPeriod?.let { period ->
-                                    Spacer(Modifier.height(12.dp))
-                                    Text(
-                                        "В DailyBrain: ${formatPublicPeriod(period)}",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                if (!user.isRestricted) {
+                                    memberPeriod?.let { period ->
+                                        Spacer(Modifier.height(12.dp))
+                                        Text(
+                                            "В DailyBrain: ${formatPublicPeriod(period)}",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -170,6 +197,25 @@ fun PublicUserProfileScreen(
                             color = MaterialTheme.colorScheme.error,
                             modifier = Modifier.fillMaxWidth(),
                         )
+                    } else if (!user.profileInfoVisible && !state.isSelf) {
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = viewModel::toggleFollow,
+                            enabled = !state.isUpdatingFollow,
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (state.isFollowing) colorResource(R.color.color_danger) else colorResource(R.color.color_success),
+                                contentColor = colorResource(R.color.color_on_accent),
+                            ),
+                        ) {
+                            Text(
+                                when {
+                                    state.isUpdatingFollow -> "Обновляем подписку..."
+                                    state.isFollowing -> "Отписаться"
+                                    else -> "Подписаться"
+                                },
+                            )
+                        }
                     } else {
                     Spacer(Modifier.height(12.dp))
                     Surface(

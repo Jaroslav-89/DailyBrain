@@ -12,6 +12,7 @@ import com.google.firebase.firestore.SetOptions
 import com.google.firebase.firestore.Transaction
 import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.UserPrivacySettings
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryNotConfiguredException
@@ -533,6 +534,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             val publicProfile = transaction.get(publicRef)
             val publicCard = transaction.get(publicCardRef)
             if (!privateProfile.exists() || !publicProfile.exists()) throw UserDirectoryProfileMissingException()
+            val profileInfoVisible = publicProfile.getBoolean("profileInfoVisible") ?: true
             val bestResults = statistics.bestExerciseStats.map { result ->
                 mapOf(
                     "exerciseType" to result.exerciseType,
@@ -564,14 +566,81 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             )
             transaction.set(publicCardRef, mapOf(
                 "uid" to firebaseUid,
-                "displayName" to displayName?.trim().orEmpty(),
+                "displayName" to if (profileInfoVisible) displayName?.trim().orEmpty() else "",
                 "username" to username,
                 "usernameLower" to username,
                 "avatarConfigurationJson" to avatarConfigurationJson,
+                "profileInfoVisible" to profileInfoVisible,
                 "updatedAt" to FieldValue.serverTimestamp(),
             ), SetOptions.merge())
             true
         }.awaitResult()
+    }
+
+    override suspend fun getPrivacySettings(firebaseUid: String): UserPrivacySettings? {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val privateProfile = firestore.collection(USERS).document(firebaseUid).get().awaitResult()
+        val publicProfile = firestore.collection(PUBLIC_PROFILES).document(firebaseUid).get().awaitResult()
+        if (!privateProfile.exists() || !publicProfile.exists()) return null
+        val hasProfilePrivacy = publicProfile.contains("profileInfoVisible")
+        val hasFeedPrivacy = privateProfile.contains("feedUpdatesEnabled")
+        if (!hasProfilePrivacy && !hasFeedPrivacy) return null
+        return UserPrivacySettings(
+            profileInfoVisible = if (hasProfilePrivacy) publicProfile.getBoolean("profileInfoVisible") ?: true else true,
+            feedUpdatesEnabled = if (hasFeedPrivacy) privateProfile.getBoolean("feedUpdatesEnabled") ?: true else true,
+        )
+    }
+
+    override suspend fun updatePrivacySettings(
+        firebaseUid: String,
+        profileInfoVisible: Boolean,
+        feedUpdatesEnabled: Boolean,
+    ) {
+        val app = configuredApp()
+        requireCurrentUser(app, firebaseUid)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val privateRef = firestore.collection(USERS).document(firebaseUid)
+        val publicRef = firestore.collection(PUBLIC_PROFILES).document(firebaseUid)
+        val publicCardRef = firestore.collection(PUBLIC_PROFILE_CARDS).document(firebaseUid)
+
+        firestore.runTransaction { transaction ->
+            val privateProfile = transaction.get(privateRef)
+            val publicProfile = transaction.get(publicRef)
+            val publicCard = transaction.get(publicCardRef)
+            if (!privateProfile.exists() || !publicProfile.exists() || !publicCard.exists()) {
+                throw UserDirectoryProfileMissingException()
+            }
+            val savedDisplayName = publicProfile.getString("displayName")
+                ?: publicCard.getString("displayName").orEmpty()
+            val now = FieldValue.serverTimestamp()
+            transaction.set(privateRef, mapOf(
+                "profileInfoVisible" to profileInfoVisible,
+                "feedUpdatesEnabled" to feedUpdatesEnabled,
+                "updatedAt" to now,
+            ), SetOptions.merge())
+            transaction.set(publicRef, mapOf(
+                "profileInfoVisible" to profileInfoVisible,
+                "updatedAt" to now,
+            ), SetOptions.merge())
+            transaction.set(publicCardRef, mapOf(
+                "profileInfoVisible" to profileInfoVisible,
+                "displayName" to if (profileInfoVisible) savedDisplayName else "",
+                "updatedAt" to now,
+            ), SetOptions.merge())
+            true
+        }.awaitResult()
+
+        if (!feedUpdatesEnabled) {
+            firestore.collection(FEED_EVENTS)
+                .whereEqualTo("authorUid", firebaseUid)
+                .limit(10)
+                .get()
+                .awaitResult()
+                .documents
+                .forEach { it.reference.delete().awaitResult() }
+        }
     }
 
     override suspend fun getPublicUserProfile(
@@ -591,6 +660,19 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
         if (isBlockedByProfile(profileFirebaseUid, viewerFirebaseUid)) {
             return publicCard.toPublicProfile(profileFirebaseUid)?.copy(isRestricted = true)
         }
+        val isOwner = viewerFirebaseUid == profileFirebaseUid
+        val isProfileInfoVisible = publicCard.getBoolean("profileInfoVisible") ?: true
+        if (!isOwner && !isProfileInfoVisible) {
+            return publicCard.toPublicProfile(profileFirebaseUid)?.copy(
+                displayName = null,
+                country = null,
+                city = null,
+                gender = null,
+                memberSinceEpochMs = null,
+                statistics = com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserStatistics(),
+                profileInfoVisible = false,
+            )
+        }
 
         val publicProfile = firestore.collection(PUBLIC_PROFILES)
             .document(profileFirebaseUid)
@@ -607,6 +689,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             ?.takeIf(String::isNotBlank)
         return publicProfile.copy(
             avatarConfigurationJson = cardAvatar ?: publicProfile.avatarConfigurationJson,
+            profileInfoVisible = publicProfile.profileInfoVisible,
         )
     }
 
@@ -723,6 +806,7 @@ class FirebaseUserDirectoryRepository(context: Context) : UserDirectoryRepositor
             gender = getString("gender")?.takeIf(String::isNotBlank),
             memberSinceEpochMs = getLong("memberSinceEpochMs"),
             statistics = getPublicStatistics(get("statistics") as? Map<*, *>),
+            profileInfoVisible = getBoolean("profileInfoVisible") ?: true,
         )
     }
 
