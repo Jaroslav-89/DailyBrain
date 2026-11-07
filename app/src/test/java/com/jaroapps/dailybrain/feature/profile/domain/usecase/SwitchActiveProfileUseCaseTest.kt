@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.feature.profile.domain.usecase
 import com.jaroapps.dailybrain.common.domain.service.TrainingStateChangedNotifier
 import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
+import com.jaroapps.dailybrain.feature.profile.domain.model.PendingProfileDeletion
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import kotlinx.coroutines.flow.Flow
@@ -40,7 +41,13 @@ class SwitchActiveProfileUseCaseTest {
             switchedProfileId = localAccountId
         }
         override suspend fun exitActiveProfile() = Unit
-        override suspend fun deleteProfile(localAccountId: String) = Unit
+        override suspend fun deleteProfile(localAccountId: String): PendingProfileDeletion? = null
+        override suspend fun findPendingProfileDeletion(
+            googleSubject: String?,
+            firebaseUid: String,
+        ): PendingProfileDeletion? = null
+        override suspend fun markPendingProfileDeletionCloudDataDeleted(firebaseUid: String) = Unit
+        override suspend fun completePendingProfileDeletion(firebaseUid: String) = Unit
         override suspend fun deleteActiveProfile() = Unit
         override suspend fun isGoogleSubjectLinkedToAnotherProfile(
             localAccountId: String,

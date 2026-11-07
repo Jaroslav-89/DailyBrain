@@ -147,6 +147,11 @@ class ActiveProfileAuthCoordinatorTest {
             return signInResult
         }
 
+        override suspend fun deleteCurrentUser(expectedFirebaseUid: String) {
+            check(currentUid == expectedFirebaseUid)
+            currentUid = null
+        }
+
         override fun signOut() {
             signOutCalls++
             currentUid = null
