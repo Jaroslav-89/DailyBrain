@@ -46,6 +46,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import org.koin.androidx.compose.koinViewModel
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
@@ -116,7 +117,21 @@ fun FriendsScreen(
                 ) { Text("Добавить друзей") }
                 Spacer(Modifier.height(16.dp))
             }
-            if (directoryState.isLoadingRelationships) {
+            if (directoryState.cloudSessionStatus != ProfileCloudSessionStatus.READY) {
+                Text(
+                    if (directoryState.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
+                        "Для этого профиля требуется повторный вход в привязанный Google-аккаунт."
+                    } else {
+                        "Подключите Google-аккаунт, чтобы пользоваться списком друзей."
+                    },
+                    style = MaterialTheme.typography.bodyLarge,
+                )
+                Button(onClick = { showAddFriendsDialog = true }, modifier = Modifier.fillMaxWidth()) {
+                    Text(if (directoryState.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
+                        "Восстановить подключение"
+                    } else "Подключить Google")
+                }
+            } else if (directoryState.isLoadingRelationships) {
                 CircularProgressIndicator()
             } else if (directoryState.relationshipError != null) {
                 Text(directoryState.relationshipError.orEmpty(), color = MaterialTheme.colorScheme.error)

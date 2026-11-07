@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
@@ -25,6 +26,7 @@ import kotlinx.coroutines.launch
 
 data class UserDirectoryUiState(
     val profile: UserProfile? = null,
+    val cloudSessionStatus: ProfileCloudSessionStatus = ProfileCloudSessionStatus.NOT_LINKED,
     val isSavingUsername: Boolean = false,
     val usernameMessage: String? = null,
     val usernameError: Boolean = false,
@@ -80,9 +82,23 @@ class UserDirectoryViewModel(
     private val actions = MutableStateFlow(UserDirectoryActionState())
     private var dataOwnerUid: String? = null
 
-    val uiState: StateFlow<UserDirectoryUiState> = combine(profile, actions) { activeProfile, action ->
+    private val profileSession = combine(
+        profile,
+        firebaseAuthenticationRepository.observeCurrentUserId(),
+    ) { activeProfile, firebaseUid ->
+        activeProfile to firebaseUid
+    }
+
+    val uiState: StateFlow<UserDirectoryUiState> = combine(profileSession, actions) { session, action ->
+        val activeProfile = session.first
+        val cloudSessionStatus = when {
+            activeProfile?.firebaseUid.isNullOrBlank() -> ProfileCloudSessionStatus.NOT_LINKED
+            session.second == activeProfile?.firebaseUid -> ProfileCloudSessionStatus.READY
+            else -> ProfileCloudSessionStatus.REAUTH_REQUIRED
+        }
         UserDirectoryUiState(
             profile = activeProfile,
+            cloudSessionStatus = cloudSessionStatus,
             isSavingUsername = action.isSavingUsername,
             usernameMessage = action.usernameMessage,
             usernameError = action.usernameError,
@@ -384,6 +400,26 @@ class UserDirectoryViewModel(
             )
             return
         }
+        if (firebaseAuthenticationRepository.currentUserId() != uid) {
+            dataOwnerUid = uid
+            actions.value = actions.value.copy(
+                followingUsers = emptyList(),
+                followerUsers = emptyList(),
+                isLoadingRelationships = false,
+                relationshipError = null,
+                inviteCode = null,
+                isLoadingInviteCode = false,
+                inviteCodeError = null,
+                isSearching = false,
+                searchHasRun = false,
+                searchResult = null,
+                searchError = null,
+                isFollowingSearchResult = false,
+                isFollowingAction = false,
+                followError = null,
+            )
+            return
+        }
         if (dataOwnerUid != uid) {
             dataOwnerUid = uid
             actions.value = actions.value.copy(
@@ -439,6 +475,16 @@ class UserDirectoryViewModel(
         val uid = activeProfile?.firebaseUid
         if (activeProfile == null || uid == null) {
             dataOwnerUid = null
+            actions.value = actions.value.copy(
+                inviteCode = null,
+                isLoadingInviteCode = false,
+                inviteCodeError = null,
+            )
+            return
+        }
+
+        if (firebaseAuthenticationRepository.currentUserId() != uid) {
+            dataOwnerUid = uid
             actions.value = actions.value.copy(
                 inviteCode = null,
                 isLoadingInviteCode = false,
@@ -519,7 +565,7 @@ class UserDirectoryViewModel(
 
     private fun errorMessage(error: Exception): String = when (error) {
         is UsernameTakenException -> "Этот ник уже занят."
-        is FirebaseSessionMismatchException -> "Активный Google-аккаунт не совпадает с выбранным локальным профилем."
+        is FirebaseSessionMismatchException -> "Войдите в Google-аккаунт, привязанный к выбранному локальному профилю."
         is UserDirectoryNotConfiguredException -> "Firebase не настроен в приложении."
         is UserDirectoryProfileMissingException -> "Облачный профиль не найден. Переподключите Google-аккаунт."
         else -> "Не удалось связаться с сервером. Проверьте подключение и попробуйте ещё раз."

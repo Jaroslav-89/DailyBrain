@@ -35,6 +35,7 @@ import com.google.mlkit.vision.codescanner.GmsBarcodeScanning
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInConfigurationException
 import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.model.UsernamePolicy
 import kotlinx.coroutines.launch
 import org.koin.compose.koinInject
@@ -63,7 +64,8 @@ fun AddFriendsDialog(
         )
     }
     val activeProfile = profileState.profile ?: directoryState.profile
-    val googleLinked = activeProfile?.firebaseUid != null
+    val cloudSessionReady = directoryState.cloudSessionStatus == ProfileCloudSessionStatus.READY
+    val requiresReauthentication = directoryState.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED
 
     fun connectGoogle() {
         coroutineScope.launch {
@@ -119,12 +121,19 @@ fun AddFriendsDialog(
                 modifier = Modifier.fillMaxWidth().heightIn(max = 500.dp).verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(10.dp),
             ) {
-                if (!googleLinked) {
+                if (!cloudSessionReady) {
                     Text(
-                        "Чтобы искать пользователей и подписываться на них, сначала подключите Google-аккаунт.",
+                        if (requiresReauthentication) {
+                            "Этот профиль уже связан с Google, но сейчас активно другое подключение. Войдите в привязанный аккаунт, чтобы использовать облачные функции."
+                        } else {
+                            "Чтобы искать пользователей и подписываться на них, сначала подключите Google-аккаунт."
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                     )
                     googleSignInError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                    profileState.googleReauthenticationError?.let {
+                        Text(it, color = MaterialTheme.colorScheme.error)
+                    }
                     when (profileState.googleLinkError) {
                         GoogleLinkError.ALREADY_LINKED_TO_ANOTHER_PROFILE -> Text(
                             "Этот Google-аккаунт уже привязан к другому профилю на устройстве.",
@@ -145,12 +154,19 @@ fun AddFriendsDialog(
                         null -> Unit
                     }
                     Button(
-                        onClick = ::connectGoogle,
-                        enabled = !isGoogleSignInInProgress && !profileState.isGoogleLinking,
+                        onClick = {
+                            if (requiresReauthentication) profileViewModel.reauthenticateGoogleAccount()
+                            else connectGoogle()
+                        },
+                        enabled = if (requiresReauthentication) {
+                            !profileState.isGoogleReauthenticating
+                        } else !isGoogleSignInInProgress && !profileState.isGoogleLinking,
                         modifier = Modifier.fillMaxWidth(),
                     ) {
-                        if (isGoogleSignInInProgress || profileState.isGoogleLinking) CircularProgressIndicator()
-                        else Text("Продолжить с Google")
+                        if (profileState.isGoogleReauthenticating ||
+                            isGoogleSignInInProgress || profileState.isGoogleLinking
+                        ) CircularProgressIndicator()
+                        else Text(if (requiresReauthentication) "Войти в привязанный Google" else "Продолжить с Google")
                     }
                 } else {
                     Text(
