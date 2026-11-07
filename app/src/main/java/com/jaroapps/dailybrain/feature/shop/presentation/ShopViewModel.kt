@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.feature.shop.presentation
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
+import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
@@ -131,6 +132,54 @@ class ShopViewModel(
                     is ShopPurchaseResult.InsufficientFunds ->
                         showMessage("Недостаточно эндорфинов: требуется " + result.requiredAmount + ".")
                     is ShopPurchaseResult.AlreadyProcessed -> showMessage("Эта отправка подарка уже обработана.")
+                    else -> showMessage("Не удалось отправить подарок.")
+                }
+            } catch (_: Exception) {
+                showMessage("Не удалось отправить подарок. Попробуйте ещё раз.")
+            } finally {
+                actions.value = actions.value.copy(isPurchasing = false)
+            }
+        }
+    }
+
+    fun sendCosmeticGift(item: AvatarCosmeticItem, recipient: PublicUserProfile) {
+        val profile = uiState.value.profile ?: return
+        val senderUid = profile.firebaseUid
+        if (senderUid.isNullOrBlank()) {
+            showMessage("Чтобы дарить подарки, подключите Google-аккаунт в профиле.")
+            return
+        }
+        if (recipient.firebaseUid == senderUid) {
+            showMessage("Нельзя подарить предмет самому себе.")
+            return
+        }
+        if (actions.value.isPurchasing) return
+
+        viewModelScope.launch {
+            actions.value = actions.value.copy(isPurchasing = true, message = null)
+            try {
+                val giftId = System.currentTimeMillis().toString() + "_" + UUID.randomUUID()
+                when (val result = shopRepository.purchaseCosmeticGift(
+                    recipientFirebaseUid = recipient.firebaseUid,
+                    itemType = item.type,
+                    itemId = item.id,
+                    giftId = giftId,
+                )) {
+                    is ShopPurchaseResult.Purchased -> {
+                        val sent = runCatching { giftDeliveryRepository.syncPendingOutgoing() }.getOrDefault(0) > 0
+                        showMessage(
+                            if (sent) "Подарок отправлен!"
+                            else "Подарок сохранён и будет отправлен при восстановлении соединения.",
+                        )
+                    }
+                    is ShopPurchaseResult.InsufficientFunds ->
+                        showMessage("Недостаточно эндорфинов: требуется " + result.requiredAmount + ".")
+                    is ShopPurchaseResult.AlreadyProcessed ->
+                        showMessage("Эта отправка подарка уже обработана.")
+                    ShopPurchaseResult.AccountNotLinked ->
+                        showMessage("Чтобы дарить подарки, подключите Google-аккаунт в профиле.")
+                    ShopPurchaseResult.InvalidRecipient ->
+                        showMessage("Нельзя подарить предмет самому себе.")
                     else -> showMessage("Не удалось отправить подарок.")
                 }
             } catch (_: Exception) {

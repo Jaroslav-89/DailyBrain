@@ -13,5 +13,11 @@ interface ShopRepository {
     suspend fun purchasePatch(transactionId: String): ShopPurchaseResult
     suspend fun purchaseCosmetic(itemType: AvatarCosmeticType, itemId: String, transactionId: String): ShopPurchaseResult
     suspend fun purchaseGift(recipientFirebaseUid: String, giftType: EndorphinGiftType, giftId: String): ShopPurchaseResult
+    suspend fun purchaseCosmeticGift(
+        recipientFirebaseUid: String,
+        itemType: AvatarCosmeticType,
+        itemId: String,
+        giftId: String,
+    ): ShopPurchaseResult
     suspend fun markGiftOpened(giftId: String)
 }

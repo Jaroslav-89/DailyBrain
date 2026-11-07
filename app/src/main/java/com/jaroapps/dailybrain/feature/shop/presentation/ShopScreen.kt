@@ -78,6 +78,7 @@ fun ShopScreen(
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
     var selectedGift by remember { mutableStateOf<EndorphinGiftType?>(null) }
+    var selectedCosmetic by remember { mutableStateOf<AvatarCosmeticItem?>(null) }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -173,6 +174,7 @@ fun ShopScreen(
                             owned = state.inventory.owns(item),
                             enabled = !state.isPurchasing,
                             onBuy = { viewModel.purchaseCosmetic(AvatarCosmeticType.COSTUME, item.id) },
+                            onGift = { selectedCosmetic = item; viewModel.refreshRecipients() },
                         )
                     }
                 }
@@ -190,6 +192,7 @@ fun ShopScreen(
                             owned = state.inventory.owns(item),
                             enabled = !state.isPurchasing,
                             onBuy = { viewModel.purchaseCosmetic(AvatarCosmeticType.BACKGROUND, item.id) },
+                            onGift = { selectedCosmetic = item; viewModel.refreshRecipients() },
                         )
                     }
                 }
@@ -220,6 +223,34 @@ fun ShopScreen(
                 }
             }
         }
+    }
+
+    selectedCosmetic?.let { item ->
+        AlertDialog(
+            onDismissRequest = { selectedCosmetic = null },
+            title = { Text("Кому подарить «" + item.displayName + "»?") },
+            text = {
+                Column(
+                    modifier = Modifier.fillMaxWidth().height(300.dp).verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                ) {
+                    when {
+                        state.isLoadingRecipients -> Text("Загрузка подписок…")
+                        state.followingUsers.isEmpty() ->
+                            Text("Нет доступных пользователей. Подпишитесь на пользователя DailyBrain, чтобы отправить ему подарок.")
+                        else -> state.followingUsers.forEach { recipient ->
+                            RecipientRow(recipient) {
+                                viewModel.sendCosmeticGift(item, recipient)
+                                selectedCosmetic = null
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { selectedCosmetic = null }) { Text("Закрыть") }
+            },
+        )
     }
 
     selectedGift?.let { gift ->
@@ -291,6 +322,7 @@ private fun CosmeticProductCard(
     owned: Boolean,
     enabled: Boolean,
     onBuy: () -> Unit,
+    onGift: () -> Unit,
 ) {
     Card(
         modifier = Modifier.width(154.dp),
@@ -309,12 +341,23 @@ private fun CosmeticProductCard(
             )
             Text(item.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1)
             if (owned) {
-                Text("Куплено", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                Text("Есть в инвентаре", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             } else {
                 EndorphinAmount(item.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
                 Button(onClick = onBuy, enabled = enabled, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent))) {
                     Text("Купить")
                 }
+            }
+            Button(
+                onClick = onGift,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorResource(R.color.color_button_green),
+                    contentColor = colorResource(R.color.color_on_accent),
+                ),
+            ) {
+                Text("Подарить")
             }
         }
     }

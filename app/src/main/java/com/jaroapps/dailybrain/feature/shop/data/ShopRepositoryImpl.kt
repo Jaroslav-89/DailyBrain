@@ -153,6 +153,67 @@ class ShopRepositoryImpl(
         }
     }
 
+    override suspend fun purchaseCosmeticGift(
+        recipientFirebaseUid: String,
+        itemType: AvatarCosmeticType,
+        itemId: String,
+        giftId: String,
+    ): ShopPurchaseResult {
+        require(giftId.isNotBlank())
+        require(recipientFirebaseUid.isNotBlank())
+        val catalogItem = AvatarCosmeticCatalog.find(itemType, itemId)
+            ?: throw IllegalArgumentException("Unknown cosmetic item: " + itemId)
+        val userId = activeUserProvider.currentUserId()
+        return database.withTransaction {
+            val profileDao = database.userProfileDao()
+            val profile = requireNotNull(profileDao.getProfile(userId)) { "Active profile does not exist." }
+            val senderUid = profile.firebaseUid ?: return@withTransaction ShopPurchaseResult.AccountNotLinked
+            if (recipientFirebaseUid == senderUid) {
+                return@withTransaction ShopPurchaseResult.InvalidRecipient
+            }
+
+            val outboxDao = database.giftOutboxDao()
+            if (outboxDao.exists(userId, giftId)) {
+                return@withTransaction ShopPurchaseResult.AlreadyProcessed(
+                    database.rewardLedgerDao().getEndorphinBalance(userId),
+                )
+            }
+
+            when (val spend = recordSpend(
+                userId = userId,
+                amount = catalogItem.price,
+                transactionId = "gift:" + giftId,
+                reason = EndorphinSpendReason.GIFT_PURCHASE,
+            )) {
+                is SpendAttempt.Insufficient ->
+                    ShopPurchaseResult.InsufficientFunds(spend.balance, spend.required)
+                SpendAttempt.AlreadyProcessed ->
+                    ShopPurchaseResult.AlreadyProcessed(database.rewardLedgerDao().getEndorphinBalance(userId))
+                is SpendAttempt.Completed -> {
+                    val now = System.currentTimeMillis()
+                    outboxDao.insert(
+                        GiftOutboxEntity(
+                            ownerUserId = userId,
+                            giftId = giftId,
+                            senderFirebaseUid = senderUid,
+                            recipientFirebaseUid = recipientFirebaseUid,
+                            senderName = (
+                                profile.displayName?.trim()?.takeIf(String::isNotEmpty)
+                                    ?: profile.generatedAlias
+                                ).take(80),
+                            giftType = "COSMETIC:${itemType.name}:${catalogItem.id}",
+                            amount = catalogItem.price,
+                            createdAtEpochMs = now,
+                            isSent = false,
+                        ),
+                    )
+                    profileDao.save(profile.copy(endorphinBalance = spend.balance, updatedAtEpochMs = now))
+                    ShopPurchaseResult.Purchased(spend.balance)
+                }
+            }
+        }
+    }
+
     override suspend fun markGiftOpened(giftId: String) {
         database.userGiftDao().markOpened(activeUserProvider.currentUserId(), giftId)
     }
