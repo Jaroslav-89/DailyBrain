@@ -272,7 +272,7 @@
     <string name="privacy_policy_third_party_title">4. Third-party services</string>
     <string name="privacy_policy_third_party_body">Google and Firebase services are used for sign-in and online synchronization. When you use them, those providers may process technical identifiers and connection data under their own terms and privacy policies. The app does not sell personal data or use it to create advertising profiles for sale.</string>
     <string name="privacy_policy_permissions_title">5. Permissions and location</string>
-    <string name="privacy_policy_permissions_body">The app does not request access to your device's precise location. Country and city fields, if completed, are entered by you manually. Notification permission is used for exercise reminders. Camera or photo access may be used only in features where you explicitly choose the relevant action and grant access.</string>
+    <string name="privacy_policy_permissions_body">The app does not request access to your device's precise location. Country and city fields, if completed, are entered by you manually. Notification permission is used for exercise reminders.</string>
     <string name="privacy_policy_retention_title">6. Storage and deletion</string>
     <string name="privacy_policy_retention_body">Local data remains on your device until you delete the profile or app data. Uninstalling the app does not by itself guarantee deletion of data previously sent to the cloud. Cloud data is used to operate linked profiles and social features; deletion or changes to individual cloud records depend on the actions available in the app and the relevant service rules.</string>
     <string name="privacy_policy_children_title">7. Security</string>
