@@ -42,6 +42,7 @@ fun ProfileSettingsScreen(
     onBack: () -> Unit,
     onEditProfile: () -> Unit,
     onOpenParameters: () -> Unit,
+    onOpenPrivacyPolicy: () -> Unit,
     onExitProfile: () -> Unit,
 ) {
     var pendingAction by remember { mutableStateOf<String?>(null) }
@@ -111,7 +112,7 @@ fun ProfileSettingsScreen(
                 Text(if (isExitingProfile) "Выходим..." else "Выйти из профиля")
             }
             TextButton(
-                onClick = { pendingAction = "Страница политики конфиденциальности будет добавлена позже." },
+                onClick = onOpenPrivacyPolicy,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 Text("Политика конфиденциальности", textAlign = TextAlign.Center)
