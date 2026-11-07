@@ -15,6 +15,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
@@ -28,6 +29,9 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -60,6 +64,7 @@ fun RewardHistoryScreen(
     viewModel: RewardHistoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    var showRules by remember { mutableStateOf(false) }
     val titleRes = when (state.balanceType) {
         RewardBalanceType.XP -> R.string.reward_history_title_xp
         RewardBalanceType.ENDORPHINS -> R.string.reward_history_title_endorphins
@@ -76,6 +81,11 @@ fun RewardHistoryScreen(
                 navigationIcon = {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Filled.Close, contentDescription = stringResource(R.string.action_back))
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { showRules = true }) {
+                        Icon(Icons.Filled.Info, contentDescription = "Правила начисления")
                     }
                 },
             )
@@ -172,6 +182,17 @@ fun RewardHistoryScreen(
             }
         }
     }
+
+    if (showRules) {
+        RewardRulesDialog(
+            topic = if (state.balanceType == RewardBalanceType.XP) {
+                RewardRulesTopic.EXPERIENCE
+            } else {
+                RewardRulesTopic.ENDORPHINS
+            },
+            onDismiss = { showRules = false },
+        )
+    }
 }
 
 @Composable
@@ -255,6 +276,8 @@ private fun RewardHistoryEntryCard(
         null
     }
     val reasonText = when {
+        entry.reason == "MONTHLY_CHALLENGE" ->
+            "Выполнение месячного задания: объём упражнений за четыре недели"
         entry.reason == "FIRST_EXERCISE_TYPE_OF_WEEK" && exerciseRes != null ->
             stringResource(
                 R.string.reward_reason_first_exercise_week_with_type,
