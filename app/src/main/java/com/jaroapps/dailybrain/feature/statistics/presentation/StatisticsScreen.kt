@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.statistics.presentation
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.wrapContentSize
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,6 +29,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Tab
 import androidx.compose.material3.TabRow
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -35,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
@@ -55,6 +59,7 @@ fun StatisticsScreen(
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     var selectedTab by remember { mutableIntStateOf(0) }
+    val statisticsTextColor = MaterialTheme.colorScheme.onSurface
 
     val tabs = listOf(
         Icons.Filled.Calculate to R.string.exercise_arithmetic,
@@ -124,15 +129,30 @@ fun StatisticsScreen(
 
         Spacer(Modifier.height(20.dp))
 
-        TabRow(selectedTabIndex = selectedTab) {
+        TabRow(
+            selectedTabIndex = selectedTab,
+            contentColor = statisticsTextColor,
+            indicator = { tabPositions ->
+                Box(
+                    Modifier.fillMaxWidth()
+                        .wrapContentSize(Alignment.BottomStart)
+                        .offset(x = tabPositions[selectedTab].left)
+                        .width(tabPositions[selectedTab].width)
+                        .height(2.dp)
+                        .background(statisticsTextColor),
+                )
+            },
+        ) {
             tabs.forEachIndexed { index, tab ->
                 Tab(
                     selected = selectedTab == index,
                     onClick = { selectedTab = index },
+                    selectedContentColor = statisticsTextColor,
                     icon = {
                         Icon(
                             imageVector = tab.first,
                             contentDescription = stringResource(tab.second),
+                            tint = statisticsTextColor,
                         )
                     },
                 )
@@ -166,6 +186,7 @@ fun StatisticsScreen(
                     onClick = { viewModel.selectChartPeriod(period) },
                     modifier = Modifier.weight(1f),
                     contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 2.dp, vertical = 4.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = statisticsTextColor),
                 ) {
                     Text(
                         text = when (period) {
@@ -177,6 +198,7 @@ fun StatisticsScreen(
                             ChartPeriod.ALL_TIME -> "все"
                         },
                         style = MaterialTheme.typography.labelSmall,
+                        color = statisticsTextColor,
                     )
                 }
             }
@@ -419,7 +441,7 @@ private fun DailyResultChart(
                         Text(
                             text = formatChartValue(averageValue, isMemory, showDecimal = false),
                             style = axisLabelStyle,
-                            color = MaterialTheme.colorScheme.tertiary,
+                            color = statisticsTextColor,
                             modifier = Modifier.align(androidx.compose.ui.Alignment.TopEnd).offset(y = maxHeight * (1f - averageFraction) - 8.dp),
                             maxLines = 1,
                         )

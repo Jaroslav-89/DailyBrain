@@ -71,7 +71,7 @@
 
     <!-- Shared semantic colors for exercise states, achievements and endorphins. -->
     <color name="color_endorphin_molecule">#FF8E24AA</color>
-    <color name="color_training_completed">#FFE98A23</color>
+    <color name="color_training_completed">#FFFB7730</color>
     <color name="color_training_missed">#FF378FC5</color>
     <color name="color_training_neutral">#FF858B94</color>
     <color name="color_success">#FF3B8A61</color>
@@ -86,10 +86,11 @@
     <color name="color_on_action_green">#FF173D27</color>
     <color name="color_home_dynamic_text">#FF282D35</color>
     <color name="color_home_dynamic_text_secondary">#FF424A54</color>
-    <color name="color_exercise_glow_inner">#F2FFE5A8</color>
-    <color name="color_exercise_glow_middle">#E6FF8A24</color>
-    <color name="color_exercise_glow_outer">#99FF5B12</color>
+    <color name="color_exercise_glow_inner">#B3FB7730</color>
+    <color name="color_exercise_glow_middle">#80FB7730</color>
+    <color name="color_exercise_glow_outer">#40FB7730</color>
     <color name="color_on_accent">#FFFFFFFF</color>
+    <color name="color_button_green">#FF41BA46</color>
     <color name="color_positive_amount">#FF2F805A</color>
     <color name="color_streak_ring_shadow">#FFA85A0B</color>
     <color name="color_streak_ring_highlight">#FFFFE0B5</color>

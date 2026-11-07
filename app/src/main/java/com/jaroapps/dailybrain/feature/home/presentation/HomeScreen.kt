@@ -64,6 +64,8 @@ import org.koin.androidx.compose.koinViewModel
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+private val ExerciseRingMaxRadius = 39.dp
+
 private val WeekDateFormatter = DateTimeFormatter.ofPattern("dd.MM.yyyy", Locale.getDefault())
 
 private val WeekdayLabels = listOf("пн", "вт", "ср", "чт", "пт", "сб", "вс")
@@ -217,7 +219,7 @@ fun HomeScreen(
             val dayItemWidth = arithmeticRingSize + 36.dp
             val dayItemHeight = 100.dp
             val additionalButtonSize = 72.dp
-            val additionalRingSize = 112.dp
+            val additionalRingSize = arithmeticRingSize
 
             fun x(fraction: Float, size: Dp) = (maxWidth - size) * fraction
             fun y(fraction: Float, size: Dp) = (maxHeight - size) * fraction
@@ -316,7 +318,7 @@ fun HomeScreen(
                                 PulsingRing(
                                     modifier = Modifier.fillMaxSize(),
                                     initialRadius = 30.dp,
-                                    targetRadius = 39.dp,
+                                    targetRadius = ExerciseRingMaxRadius,
                                 )
                             }
 
@@ -430,10 +432,11 @@ private fun depthColor(color: Color): Color = Color(
 
 @Composable
 private fun dynamicWeekBackground(state: HomeUiState): Brush {
-    // The gradient is derived from the exact button colors, so future exercise colors (for example
-    // violet) can be added once in arithmeticButtonColor and will get a matching pastel background.
-    val colors = state.currentWeekDates.map { date ->
-        lightenForBackground(arithmeticButtonColor(state.arithmeticDayStatus(date)))
+    // The dynamic gradient uses the same warm orange base as completed exercises.
+    val orange = colorResource(R.color.color_training_completed)
+    val tintLevels = listOf(0.54f, 0.62f, 0.70f)
+    val colors = state.currentWeekDates.mapIndexed { index, _ ->
+        lightenForBackground(orange, tintLevels[index % tintLevels.size])
     }
     val stops = buildList {
         add(0f to colors.first())
@@ -446,10 +449,10 @@ private fun dynamicWeekBackground(state: HomeUiState): Brush {
     return Brush.verticalGradient(colorStops = stops)
 }
 
-private fun lightenForBackground(color: Color): Color = Color(
-    red = color.red + (1f - color.red) * 0.58f,
-    green = color.green + (1f - color.green) * 0.58f,
-    blue = color.blue + (1f - color.blue) * 0.58f,
+private fun lightenForBackground(color: Color, amount: Float = 0.58f): Color = Color(
+    red = color.red + (1f - color.red) * amount,
+    green = color.green + (1f - color.green) * amount,
+    blue = color.blue + (1f - color.blue) * amount,
     alpha = 1f,
 )
 
@@ -491,7 +494,7 @@ private fun RoundExerciseButton(
         if (!completed) {
             StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                radius = size / 2 + 20.dp,
+                radius = ExerciseRingMaxRadius,
             )
         }
 

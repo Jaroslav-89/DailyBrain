@@ -115,7 +115,7 @@ fun ProfileSettingsScreen(
                 onClick = onOpenPrivacyPolicy,
                 modifier = Modifier.fillMaxWidth(),
             ) {
-                Text("Политика конфиденциальности", textAlign = TextAlign.Center)
+                Text("Политика конфиденциальности", textAlign = TextAlign.Center, color = MaterialTheme.colorScheme.onSurface)
             }
         }
     }

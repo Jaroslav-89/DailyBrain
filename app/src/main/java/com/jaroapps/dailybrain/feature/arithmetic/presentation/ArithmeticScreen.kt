@@ -6,6 +6,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.foundation.layout.size
 import androidx.activity.compose.BackHandler
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -19,6 +20,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -260,13 +262,12 @@ private fun NumberKeyboard(
     onSubmit: () -> Unit,
     canSubmit: Boolean,
 ) {
-    // A compact 3-column / 4-row keypad, following the proportions of the supplied
-    // stopwatch layout. The confirmation action occupies the otherwise empty bottom-left cell.
+    // Delete is at the bottom-left and confirmation is at the bottom-right.
     val keys = listOf(
         listOf("1", "2", "3"),
         listOf("4", "5", "6"),
         listOf("7", "8", "9"),
-        listOf("submit", "0", "delete"),
+        listOf("delete", "0", "submit"),
     )
     Column(
         modifier = modifier.padding(horizontal = 2.dp, vertical = 3.dp),
@@ -289,6 +290,8 @@ private fun NumberKeyboard(
                                 .padding(2.dp),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
+                            border = BorderStroke(1.dp, colorResource(R.color.color_training_completed)),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = colorResource(R.color.color_training_completed)),
                         ) {
                             Text("⌫", style = MaterialTheme.typography.headlineSmall)
                         }
@@ -301,6 +304,7 @@ private fun NumberKeyboard(
                                 .padding(2.dp),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_training_completed), contentColor = colorResource(R.color.color_on_accent)),
                         ) {
                             Text("✓", style = MaterialTheme.typography.headlineSmall)
                         }
@@ -312,6 +316,7 @@ private fun NumberKeyboard(
                                 .padding(2.dp),
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(0.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_training_completed), contentColor = colorResource(R.color.color_on_accent)),
                         ) {
                             Text(key, style = MaterialTheme.typography.headlineSmall)
                         }

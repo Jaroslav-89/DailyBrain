@@ -15,6 +15,7 @@ import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -104,12 +105,12 @@ fun FriendsScreen(
                 Tab(
                     selected = selectedTab == 0,
                     onClick = { selectedTab = 0 },
-                    text = { Text("Подписки ${directoryState.followingUsers.size}") },
+                    text = { Text("Подписки ${directoryState.followingUsers.size}", color = MaterialTheme.colorScheme.onSurface) },
                 )
                 Tab(
                     selected = selectedTab == 1,
                     onClick = { selectedTab = 1 },
-                    text = { Text("Подписчики ${directoryState.followerUsers.size}") },
+                    text = { Text("Подписчики ${directoryState.followerUsers.size}", color = MaterialTheme.colorScheme.onSurface) },
                 )
             }
             Spacer(Modifier.height(20.dp))
@@ -117,6 +118,7 @@ fun FriendsScreen(
                 Button(
                     onClick = { showAddFriendsDialog = true },
                     modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent)),
                 ) { Text("Добавить друзей") }
                 Spacer(Modifier.height(16.dp))
             }
