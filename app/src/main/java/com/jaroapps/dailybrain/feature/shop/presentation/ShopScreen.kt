@@ -340,10 +340,10 @@ private fun CosmeticProductCard(
                 modifier = Modifier.size(104.dp),
             )
             Text(item.displayName, fontWeight = FontWeight.SemiBold, maxLines = 1)
+            EndorphinAmount(item.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
             if (owned) {
                 Text("Есть в инвентаре", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             } else {
-                EndorphinAmount(item.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
                 Button(onClick = onBuy, enabled = enabled, modifier = Modifier.fillMaxWidth(), colors = ButtonDefaults.buttonColors(containerColor = colorResource(R.color.color_button_green), contentColor = colorResource(R.color.color_on_accent))) {
                     Text("Купить")
                 }
