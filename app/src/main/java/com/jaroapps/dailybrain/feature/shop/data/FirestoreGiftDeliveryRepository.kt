@@ -93,7 +93,15 @@ class FirestoreGiftDeliveryRepository(
             if (gift.giftId == giftId) requestedGiftSent = true
         }
         if (feedEventsUpdated) feedSyncTrigger.requestSync()
-        return if (giftId == null) sentCount > 0 else requestedGiftSent
+        if (giftId == null) return sentCount > 0
+
+        // Another resume-triggered sync may have delivered this item concurrently.
+        // Consult the durable outbox state so the purchase dialog still reports its real status.
+        val wasAlreadySent = database.giftOutboxDao()
+            .getById(localUserId, giftId)
+            ?.let { it.senderFirebaseUid == firebaseUid && it.isSent }
+            ?: false
+        return requestedGiftSent || wasAlreadySent
     }
 
     override suspend fun syncIncoming(): Int {
