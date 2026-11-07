@@ -12,6 +12,7 @@ enum class StartupDestination {
     HOME,
 }
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class GetStartupDestinationUseCase(
     private val repository: OnboardingProgressRepository,
 ) {
