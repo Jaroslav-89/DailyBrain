@@ -63,20 +63,12 @@ class FirestoreGiftDeliveryRepository(
             // Persist the local feed event before marking the outbox item complete.
             // If the app stops after the Firestore write, the next sync safely retries the
             // same document ID and still creates the sender's feed event.
-            val recipientCard = firestore.collection("publicProfileCards")
-                .document(gift.recipientFirebaseUid)
-                .get()
-                .awaitResult()
-            val recipientName = recipientCard.getString("displayName")
-                ?.takeIf(String::isNotBlank)
-                ?: recipientCard.getString("username")?.takeIf(String::isNotBlank)?.let { "@$it" }
             if (addOutgoingFeedEvent(
                     localUserId = localUserId,
                     firebaseUid = firebaseUid,
                     senderName = profile.displayName?.trim()?.takeIf(String::isNotEmpty)
                         ?: profile.generatedAlias,
                     senderUsername = profile.username,
-                    recipientName = recipientName,
                     gift = gift,
                 )
             ) {
@@ -196,7 +188,7 @@ class FirestoreGiftDeliveryRepository(
                             eventType = GIFT_RECEIVED,
                             occurredAtEpochMs = storedGift.receivedAtEpochMs,
                             periodKey = giftType.name,
-                            valueInt = giftType.recipientEndorphins,
+                            valueInt = giftType.price,
                             relatedUserFirebaseUid = senderUid,
                             relatedUserName = publicSenderName,
                             isLocal = true,
@@ -217,7 +209,6 @@ class FirestoreGiftDeliveryRepository(
         firebaseUid: String,
         senderName: String,
         senderUsername: String?,
-        recipientName: String?,
         gift: GiftOutboxEntity,
     ): Boolean {
         val regularGift = EndorphinGiftType.entries.firstOrNull { it.name == gift.giftType }
@@ -241,7 +232,6 @@ class FirestoreGiftDeliveryRepository(
                 exerciseType = cosmeticGift.first.name,
                 valueInt = gift.amount,
                 relatedUserFirebaseUid = gift.recipientFirebaseUid,
-                relatedUserName = recipientName,
                 isLocal = true,
                 isRevoked = false,
                 syncState = PENDING_UPSERT,
@@ -258,7 +248,6 @@ class FirestoreGiftDeliveryRepository(
                 periodKey = requireNotNull(regularGift).name,
                 valueInt = gift.amount,
                 relatedUserFirebaseUid = gift.recipientFirebaseUid,
-                relatedUserName = recipientName,
                 isLocal = true,
                 isRevoked = false,
                 syncState = PENDING_UPSERT,

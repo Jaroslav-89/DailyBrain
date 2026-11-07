@@ -84,6 +84,58 @@ class FeedRepositoryImpl(
             .filter { it.isNotBlank() && it != firebaseUid }
             .distinct()
 
+        val ownName = profile.displayName?.trim()?.takeIf(String::isNotEmpty) ?: profile.generatedAlias
+        val followedEvents = followingSnapshot.documents.mapNotNull { relationship ->
+            val targetUid = relationship.getString("followingUid")?.takeIf(String::isNotBlank)
+                ?: return@mapNotNull null
+            val occurredAt = relationship.getTimestamp("createdAt")?.toDate()?.time ?: return@mapNotNull null
+            val targetCard = firestore.collection(PUBLIC_PROFILE_CARDS).document(targetUid).get().awaitResult()
+            val targetName = targetCard.getString("displayName")?.takeIf(String::isNotBlank)
+                ?: targetCard.getString("username")?.takeIf(String::isNotBlank)?.let { "@$it" }
+                ?: "пользователя DailyBrain"
+            FeedEventEntity(
+                localAccountId = localAccountId,
+                eventId = "followed_user:$targetUid:$occurredAt",
+                authorFirebaseUid = firebaseUid,
+                authorName = ownName,
+                authorUsername = profile.username,
+                eventType = "FOLLOWED_USER",
+                occurredAtEpochMs = occurredAt,
+                relatedUserFirebaseUid = targetUid,
+                relatedUserName = targetName,
+                isLocal = true,
+                isRevoked = false,
+                syncState = PENDING_UPSERT,
+            )
+        }
+
+        val followersSnapshot = firestore.collection(FOLLOWS)
+            .whereEqualTo("followingUid", firebaseUid)
+            .get()
+            .awaitResult()
+        val newFollowerEvents = followersSnapshot.documents.mapNotNull { relationship ->
+            val followerUid = relationship.getString("followerUid")?.takeIf(String::isNotBlank)
+                ?: return@mapNotNull null
+            val occurredAt = relationship.getTimestamp("createdAt")?.toDate()?.time ?: return@mapNotNull null
+            val followerCard = firestore.collection(PUBLIC_PROFILE_CARDS).document(followerUid).get().awaitResult()
+            FeedEventEntity(
+                localAccountId = localAccountId,
+                eventId = "new_follower:$followerUid:$occurredAt",
+                authorFirebaseUid = followerUid,
+                authorName = followerCard.getString("displayName")?.takeIf(String::isNotBlank)
+                    ?: followerCard.getString("username")?.takeIf(String::isNotBlank)?.let { "@$it" }
+                    ?: "Пользователь DailyBrain",
+                authorUsername = followerCard.getString("username"),
+                eventType = "NEW_FOLLOWER",
+                occurredAtEpochMs = occurredAt,
+                relatedUserFirebaseUid = firebaseUid,
+                relatedUserName = ownName,
+                isLocal = false,
+                isRevoked = false,
+                syncState = LOCAL_ONLY,
+            )
+        }
+
         val friendEvents = if (followingUids.isEmpty()) {
             emptyList()
         } else {
@@ -100,7 +152,10 @@ class FeedRepositoryImpl(
             // Re-check after network reads so a profile/session switch cannot cache another session's result.
             requireCurrentFirebaseUser(app, firebaseUid)
             database.feedEventDao().deleteCachedFriendEvents(localAccountId)
-            if (friendEvents.isNotEmpty()) database.feedEventDao().upsertAll(friendEvents)
+            val relationshipEvents = followedEvents + newFollowerEvents
+            if (friendEvents.isNotEmpty() || relationshipEvents.isNotEmpty()) {
+                database.feedEventDao().upsertAll(friendEvents + relationshipEvents)
+            }
         }
 
         // Uploading our own publications is independent from reading followed authors.
@@ -279,6 +334,7 @@ class FeedRepositoryImpl(
 
     private companion object {
         const val FOLLOWS = "follows"
+        const val PUBLIC_PROFILE_CARDS = "publicProfileCards"
         const val FEED_EVENTS = "feedEvents"
         const val MAX_CONCURRENT_AUTHOR_QUERIES = 9
         const val LOG_TAG = "DailyBrainFeed"

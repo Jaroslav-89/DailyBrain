@@ -3,7 +3,6 @@ package com.jaroapps.dailybrain.feature.shop.data
 import androidx.room.withTransaction
 import com.jaroapps.dailybrain.core.database.ActiveUserProvider
 import com.jaroapps.dailybrain.core.database.AppDatabase
-import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.core.database.entity.GiftOutboxEntity
 import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
 import com.jaroapps.dailybrain.core.database.entity.UserInventoryEntity
@@ -170,26 +169,6 @@ class ShopRepositoryImpl(
                 is SpendAttempt.Completed -> {
                     val now = System.currentTimeMillis()
                     inventoryDao.insert(UserInventoryEntity(userId, catalogItem.id, itemType.name, now))
-                    database.feedEventDao().upsertAll(
-                        listOf(
-                            FeedEventEntity(
-                                localAccountId = userId,
-                                eventId = "cosmetic_purchase:$transactionId",
-                                authorFirebaseUid = profile.firebaseUid,
-                                authorName = profile.displayName?.trim()?.takeIf(String::isNotEmpty)
-                                    ?: profile.generatedAlias,
-                                authorUsername = profile.username,
-                                eventType = "COSMETIC_PURCHASED",
-                                occurredAtEpochMs = now,
-                                periodKey = catalogItem.id,
-                                exerciseType = itemType.name,
-                                valueInt = catalogItem.price,
-                                isLocal = true,
-                                isRevoked = false,
-                                syncState = if (profile.firebaseUid.isNullOrBlank()) "LOCAL_ONLY" else "PENDING_UPSERT",
-                            ),
-                        ),
-                    )
                     profileDao.save(profile.copy(endorphinBalance = spend.balance, updatedAtEpochMs = now))
                     ShopPurchaseResult.Purchased(spend.balance)
                 }

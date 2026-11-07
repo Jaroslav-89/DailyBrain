@@ -342,7 +342,8 @@ service cloud.firestore {
             'WEEKLY_STREAK', 'WEEKLY_CHALLENGE', 'MONTHLY_STREAK',
             'PERSONAL_RECORD', 'WEEKLY_XP_MILESTONE',
             'GIFT_RECEIVED', 'GIFT_SENT',
-            'COSMETIC_GIFT_SENT', 'COSMETIC_GIFT_RECEIVED'
+            'COSMETIC_GIFT_SENT', 'COSMETIC_GIFT_RECEIVED',
+            'COSMETIC_PURCHASED', 'FOLLOWED_USER'
           ]
           && request.resource.data.occurredAtEpochMs is int
           && (!request.resource.data.keys().hasAny(['authorUsername']) || request.resource.data.authorUsername is string)
@@ -374,7 +375,14 @@ service cloud.firestore {
               && request.resource.data.valueInt == 100
             ))
           && (request.resource.data.eventType != 'COSMETIC_GIFT_RECEIVED'
-            || request.resource.data.relatedUserName is string);
+            || request.resource.data.relatedUserName is string)
+          && (request.resource.data.eventType != 'FOLLOWED_USER'
+            || request.resource.data.relatedUserFirebaseUid is string)
+          && (request.resource.data.eventType != 'COSMETIC_PURCHASED' || (
+            request.resource.data.periodKey is string
+            && request.resource.data.exerciseType in ['COSTUME', 'BACKGROUND']
+            && request.resource.data.valueInt is int
+          ));
       }
 
       allow get: if signedIn()
