@@ -44,6 +44,7 @@ enum class GoogleLinkError {
 private data class ProfileActionState(
     val saveError: Boolean,
     val deleteError: Boolean,
+    val isDeletingProfile: Boolean,
     val isGoogleLinking: Boolean,
     val googleLinkError: GoogleLinkError?,
     val googleLinkDiagnostic: String?,
