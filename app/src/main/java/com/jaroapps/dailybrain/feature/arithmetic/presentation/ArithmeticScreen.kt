@@ -11,6 +11,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -22,6 +24,8 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -132,138 +136,174 @@ private fun TrainingContent(
     onDeletePressed: () -> Unit,
     onSubmit: () -> Unit,
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(horizontal = 20.dp, vertical = 16.dp),
-    ) {
+    val configuration = LocalConfiguration.current
+    val isLandscape = configuration.screenWidthDp > configuration.screenHeightDp
+
+    if (isLandscape) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 16.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            IconButton(onClick = onExit) {
-                Icon(
-                    imageVector = Icons.Filled.Close,
-                    contentDescription = stringResource(R.string.action_close),
-                    modifier = Modifier.size(24.dp),
+            Column(
+                modifier = Modifier
+                    .weight(1.1f)
+                    .fillMaxHeight()
+                    .padding(end = 16.dp),
+            ) {
+                ArithmeticTrainingHeader(state = state, onExit = onExit)
+                Spacer(Modifier.height(12.dp))
+                LinearProgressIndicator(
+                    progress = { state.progress },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+                ArithmeticProblemAndAnswer(
+                    state = state,
+                    modifier = Modifier.weight(1f).fillMaxWidth(),
                 )
             }
-
-            Spacer(Modifier.weight(1f))
-
-            Text(
-                text = "${state.completedTaskCount + 1} / ${state.totalTaskCount}",
-                style = MaterialTheme.typography.titleMedium,
+            NumberKeyboard(
+                modifier = Modifier
+                    .weight(0.9f)
+                    .fillMaxHeight(),
+                onDigitPressed = onDigitPressed,
+                onDeletePressed = onDeletePressed,
+                onSubmit = onSubmit,
+                canSubmit = state.answerInput.isNotBlank(),
             )
         }
-
-        Spacer(Modifier.height(16.dp))
-
-        LinearProgressIndicator(
-            progress = { state.progress },
-            modifier = Modifier.fillMaxWidth(),
-        )
-
+    } else {
         Column(
             modifier = Modifier
-                .weight(1f)
-                .fillMaxWidth(),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Center,
+                .fillMaxSize()
+                .padding(horizontal = 20.dp, vertical = 12.dp),
         ) {
-            val problem = state.currentProblem
-
-            if (problem != null) {
-                Text(
-                    text = "${problem.firstOperand} " +
-                            "${problem.operation.symbol} ${problem.secondOperand}",
-                    style = MaterialTheme.typography.displayLarge,
-                )
-            }
-
-            Spacer(Modifier.height(24.dp))
-
-            Text(
-                text = state.answerInput.ifEmpty { " " },
-                style = MaterialTheme.typography.headlineLarge,
-                color = MaterialTheme.colorScheme.primary,
+            ArithmeticTrainingHeader(state = state, onExit = onExit)
+            Spacer(Modifier.height(12.dp))
+            LinearProgressIndicator(
+                progress = { state.progress },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            ArithmeticProblemAndAnswer(
+                state = state,
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+            )
+            NumberKeyboard(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(280.dp),
+                onDigitPressed = onDigitPressed,
+                onDeletePressed = onDeletePressed,
+                onSubmit = onSubmit,
+                canSubmit = state.answerInput.isNotBlank(),
             )
         }
+    }
+}
 
-        NumberKeyboard(
-            onDigitPressed = onDigitPressed,
-            onDeletePressed = onDeletePressed,
-            onSubmit = onSubmit,
-            canSubmit = state.answerInput.isNotBlank(),
+@Composable
+private fun ArithmeticTrainingHeader(
+    state: ArithmeticUiState,
+    onExit: () -> Unit,
+) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        IconButton(onClick = onExit) {
+            Icon(
+                imageVector = Icons.Filled.Close,
+                contentDescription = stringResource(R.string.action_close),
+                modifier = Modifier.size(24.dp),
+            )
+        }
+        Spacer(Modifier.weight(1f))
+        Text(
+            text = "${state.completedTaskCount + 1} / ${state.totalTaskCount}",
+            style = MaterialTheme.typography.titleMedium,
+        )
+    }
+}
+
+@Composable
+private fun ArithmeticProblemAndAnswer(
+    state: ArithmeticUiState,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
+    ) {
+        val problem = state.currentProblem
+        if (problem != null) {
+            Text(
+                text = "${problem.firstOperand} ${problem.operation.symbol} ${problem.secondOperand}",
+                style = MaterialTheme.typography.displayLarge,
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+        Text(
+            text = state.answerInput.ifEmpty { " " },
+            style = MaterialTheme.typography.headlineLarge,
+            color = MaterialTheme.colorScheme.primary,
         )
     }
 }
 
 @Composable
 private fun NumberKeyboard(
+    modifier: Modifier = Modifier,
     onDigitPressed: (Int) -> Unit,
     onDeletePressed: () -> Unit,
     onSubmit: () -> Unit,
     canSubmit: Boolean,
 ) {
+    val keys = listOf(
+        listOf("1", "2", "3"),
+        listOf("4", "5", "6"),
+        listOf("7", "8", "9"),
+        listOf("delete", "0", "submit"),
+    )
     Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = modifier.padding(bottom = 4.dp),
+        verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        listOf(
-            listOf("1", "2", "3"),
-            listOf("4", "5", "6"),
-            listOf("7", "8", "9"),
-        ).forEach { row ->
+        keys.forEach { row ->
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.weight(1f).fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                row.forEach { digit ->
-                    Button(
-                        onClick = { onDigitPressed(digit.toInt()) },
-                        modifier = Modifier
-                            .weight(1f)
-                            .height(56.dp),
-                    ) {
-                        Text(digit, style = MaterialTheme.typography.titleLarge)
+                row.forEach { key ->
+                    when (key) {
+                        "delete" -> OutlinedButton(
+                            onClick = onDeletePressed,
+                            modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Text("⌫", style = MaterialTheme.typography.headlineSmall)
+                        }
+                        "submit" -> Button(
+                            onClick = onSubmit,
+                            enabled = canSubmit,
+                            modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Text("✓", style = MaterialTheme.typography.headlineSmall)
+                        }
+                        else -> Button(
+                            onClick = { onDigitPressed(key.toInt()) },
+                            modifier = Modifier.weight(1f).fillMaxHeight().padding(2.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            contentPadding = PaddingValues(0.dp),
+                        ) {
+                            Text(key, style = MaterialTheme.typography.headlineSmall)
+                        }
                     }
                 }
-            }
-        }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            OutlinedButton(
-                onClick = onDeletePressed,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-            ) {
-                Text("⌫", style = MaterialTheme.typography.titleLarge)
-            }
-
-            Button(
-                onClick = { onDigitPressed(0) },
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-            ) {
-                Text("0", style = MaterialTheme.typography.titleLarge)
-            }
-
-            Button(
-                onClick = onSubmit,
-                enabled = canSubmit,
-                modifier = Modifier
-                    .weight(1f)
-                    .height(56.dp),
-            ) {
-                Text("✓", style = MaterialTheme.typography.titleLarge)
             }
         }
     }
