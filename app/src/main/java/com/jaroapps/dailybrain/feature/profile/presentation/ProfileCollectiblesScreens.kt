@@ -371,8 +371,7 @@ private fun badgeSpriteLocation(itemType: String): Pair<Int, Int>? {
     return when {
     itemType == "WEEKLY_STREAK" -> R.drawable.badge_weekly to 0
     itemType == "WEEKLY_CHALLENGE" -> R.drawable.badge_weekly to 1
-    itemType.startsWith("MONTH_"),
-    itemType.startsWith("MONTHLY_CHALLENGE_") -> {
+    itemType.startsWith("MONTH_") || itemType.startsWith("MONTHLY_CHALLENGE_") -> {
         val month = when {
             itemType.startsWith("MONTHLY_CHALLENGE_") ->
                 itemType.substringAfter("MONTHLY_CHALLENGE_").toIntOrNull()
