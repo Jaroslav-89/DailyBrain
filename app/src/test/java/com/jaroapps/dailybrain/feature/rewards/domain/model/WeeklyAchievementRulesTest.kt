@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.rewards.domain.model
 
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -10,11 +11,10 @@ class WeeklyAchievementRulesTest {
 
     private val weekStart = LocalDate.of(2026, 10, 26) // Monday
     private val weekDates = (0..6).map { weekStart.plusDays(it.toLong()) }.toSet()
-    private val additionalTypes = setOf("MEMORY_WORDS", "STROOP_TEST", "COUNTING_TRAINING")
+    private val requirements = WeeklyAchievementRules.DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS
 
     @Test
     fun weeklyStreakUsesAnyActiveCalendarDayRegardlessOfExerciseType() {
-        // These local dates are derived from completed sessions of all exercise types.
         assertEquals(
             listOf(weekStart.plusDays(6)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(weekDates),
@@ -24,7 +24,6 @@ class WeeklyAchievementRulesTest {
     @Test
     fun duplicateWorkoutsOnOneDateCountAsOneStreakDay() {
         val calendarDates = weekDates.toList() + weekStart.plusDays(6)
-
         assertEquals(
             listOf(weekStart.plusDays(6)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(calendarDates),
@@ -34,16 +33,12 @@ class WeeklyAchievementRulesTest {
     @Test
     fun aMissingCalendarDateBreaksTheWeeklyStreak() {
         val activeDates = weekDates - weekStart.plusDays(3)
-
-        assertTrue(
-            WeeklyAchievementRules.weeklyStreakCompletionDates(activeDates).isEmpty(),
-        )
+        assertTrue(WeeklyAchievementRules.weeklyStreakCompletionDates(activeDates).isEmpty())
     }
 
     @Test
     fun streakRewardsRepeatAfterEachFurtherSevenConsecutiveActiveDays() {
         val fourteenDays = (0..13).map { weekStart.plusDays(it.toLong()) }
-
         assertEquals(
             listOf(weekStart.plusDays(6), weekStart.plusDays(13)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(fourteenDays),
@@ -53,10 +48,7 @@ class WeeklyAchievementRulesTest {
     @Test
     fun streakStartingOnWednesdayCrossesMondayAndRewardsEverySeventhActiveDate() {
         val wednesdayStart = LocalDate.of(2026, 10, 28)
-        // Eight active dates: Wednesday through the following Wednesday.
-        // Day seven is Tuesday; Monday does not reset the rolling streak.
         val dates = (0..7).map { wednesdayStart.plusDays(it.toLong()) }
-
         assertEquals(
             listOf(wednesdayStart.plusDays(6)),
             WeeklyAchievementRules.weeklyStreakCompletionDates(dates),
@@ -66,134 +58,116 @@ class WeeklyAchievementRulesTest {
     @Test
     fun streakStartingOnWednesdayRepeatsAfterAnotherSevenActiveDates() {
         val wednesdayStart = LocalDate.of(2026, 10, 28)
-        val fifteenDates = (0..14).map { wednesdayStart.plusDays(it.toLong()) }
-
+        val dates = (0..14).map { wednesdayStart.plusDays(it.toLong()) }
         assertEquals(
             listOf(wednesdayStart.plusDays(6), wednesdayStart.plusDays(13)),
-            WeeklyAchievementRules.weeklyStreakCompletionDates(fifteenDates),
+            WeeklyAchievementRules.weeklyStreakCompletionDates(dates),
         )
     }
 
     @Test
-    fun weeklyChallengeRequiresArithmeticEveryDayAndAllThreeAdditionalExercises() {
-        assertTrue(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = weekDates,
-                completedExerciseTypes = additionalTypes,
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
-    }
-
-    @Test
-    fun weeklyChallengeRewardsArePlannedForTwoConsecutiveCompletedWeeks() {
-        val secondWeekStart = weekStart.plusDays(7)
-        val exerciseTypesByDate = buildMap {
-            (0 until 7).forEach { offset ->
-                put(weekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
-                put(secondWeekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
-            }
-            put(weekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
-            put(weekStart.plusDays(2), setOf("ARITHMETIC", "STROOP_TEST"))
-            put(weekStart.plusDays(3), setOf("ARITHMETIC", "COUNTING_TRAINING"))
-            put(secondWeekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
-            put(secondWeekStart.plusDays(2), setOf("ARITHMETIC", "STROOP_TEST"))
-            put(secondWeekStart.plusDays(3), setOf("ARITHMETIC", "COUNTING_TRAINING"))
+    fun weeklyChallengeAcceptsSevenArithmeticSessionsOnOneDay() {
+        val types = buildList {
+            repeat(7) { add(ExerciseType.ARITHMETIC.storageValue) }
+            add(ExerciseType.MEMORY_WORDS.storageValue)
+            add(ExerciseType.STROOP_TEST.storageValue)
+            add(ExerciseType.COUNTING_TRAINING.storageValue)
         }
+        assertTrue(WeeklyAchievementRules.isWeeklyChallengeCompleted(types))
+    }
 
+    @Test
+    fun weeklyChallengeCountsSessionsAndCapsDisplayedProgressAtRequirement() {
+        val types = buildList {
+            repeat(9) { add(ExerciseType.ARITHMETIC.storageValue) }
+            add(ExerciseType.MEMORY_WORDS.storageValue)
+        }
         assertEquals(
-            listOf(weekStart, secondWeekStart),
-            WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
-                exerciseTypesByDate = exerciseTypesByDate,
-                arithmeticExerciseType = "ARITHMETIC",
-                requiredAdditionalExerciseTypes = additionalTypes,
+            mapOf(
+                ExerciseType.ARITHMETIC.storageValue to 7,
+                ExerciseType.MEMORY_WORDS.storageValue to 1,
+                ExerciseType.STROOP_TEST.storageValue to 0,
+                ExerciseType.COUNTING_TRAINING.storageValue to 0,
             ),
+            WeeklyAchievementRules.weeklyChallengeProgress(types),
         )
     }
 
     @Test
-    fun weeklyChallengeDoesNotCombineRequirementsFromDifferentWeeks() {
-        val secondWeekStart = weekStart.plusDays(7)
-        val exerciseTypesByDate = buildMap {
-            (0 until 7).forEach { offset ->
-                put(weekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
-                put(secondWeekStart.plusDays(offset.toLong()), setOf("ARITHMETIC"))
-            }
-            put(weekStart.plusDays(1), setOf("ARITHMETIC", "MEMORY_WORDS"))
-            put(secondWeekStart.plusDays(1), setOf("ARITHMETIC", "STROOP_TEST", "COUNTING_TRAINING"))
-        }
+    fun weeklyChallengeRequirementsCanBeChangedWithoutChangingCalculator() {
+        val customRequirements = listOf(
+            WeeklyAchievementRules.ExerciseRequirement(ExerciseType.ARITHMETIC.storageValue, 2),
+            WeeklyAchievementRules.ExerciseRequirement(ExerciseType.STROOP_TEST.storageValue, 3),
+        )
+        val types = listOf(
+            ExerciseType.ARITHMETIC.storageValue,
+            ExerciseType.ARITHMETIC.storageValue,
+            ExerciseType.STROOP_TEST.storageValue,
+            ExerciseType.STROOP_TEST.storageValue,
+            ExerciseType.STROOP_TEST.storageValue,
+        )
+        assertTrue(WeeklyAchievementRules.isWeeklyChallengeCompleted(types, customRequirements))
+    }
 
+    @Test
+    fun requirementsFromDifferentWeeksAreNeverCombined() {
+        val secondWeek = weekStart.plusDays(7)
+        val firstWeekTypes = listOf(
+            *List(7) { ExerciseType.ARITHMETIC.storageValue }.toTypedArray(),
+            ExerciseType.MEMORY_WORDS.storageValue,
+        )
+        val secondWeekTypes = listOf(
+            *List(7) { ExerciseType.ARITHMETIC.storageValue }.toTypedArray(),
+            ExerciseType.STROOP_TEST.storageValue,
+            ExerciseType.COUNTING_TRAINING.storageValue,
+        )
         assertTrue(
             WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
-                exerciseTypesByDate = exerciseTypesByDate,
-                arithmeticExerciseType = "ARITHMETIC",
-                requiredAdditionalExerciseTypes = additionalTypes,
+                mapOf(weekStart to firstWeekTypes, secondWeek to secondWeekTypes),
             ).isEmpty(),
         )
     }
 
     @Test
-    fun missingArithmeticOnAnyWeekDayPreventsWeeklyChallenge() {
-        assertFalse(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                // The following Monday cannot replace a missing day inside this Monday-Sunday week.
-                arithmeticTrainingDates = weekDates - weekStart.plusDays(4) + weekStart.plusDays(7),
-                completedExerciseTypes = additionalTypes,
-                requiredAdditionalExerciseTypes = additionalTypes,
+    fun challengeCanCompleteInEachOfTwoConsecutiveWeeks() {
+        val completeWeek = buildList {
+            repeat(7) { add(ExerciseType.ARITHMETIC.storageValue) }
+            add(ExerciseType.MEMORY_WORDS.storageValue)
+            add(ExerciseType.STROOP_TEST.storageValue)
+            add(ExerciseType.COUNTING_TRAINING.storageValue)
+        }
+        assertEquals(
+            listOf(weekStart, weekStart.plusDays(7)),
+            WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
+                mapOf(weekStart to completeWeek, weekStart.plusDays(7) to completeWeek),
             ),
         )
     }
 
     @Test
-    fun multipleArithmeticSessionsOnOneDayCannotReplaceArithmeticOnEveryDay() {
-        // The calendar-date set contains one date even when that date has many sessions.
-        val arithmeticDates = setOf(weekStart)
-
-        assertFalse(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = arithmeticDates,
-                completedExerciseTypes = additionalTypes,
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
+    fun everyAdditionalExerciseIsStillRequired() {
+        val types = buildList {
+            repeat(7) { add(ExerciseType.ARITHMETIC.storageValue) }
+            add(ExerciseType.MEMORY_WORDS.storageValue)
+            add(ExerciseType.STROOP_TEST.storageValue)
+        }
+        assertFalse(WeeklyAchievementRules.isWeeklyChallengeCompleted(types))
     }
 
     @Test
-    fun allSevenArithmeticDaysAreNotEnoughWithoutAllThreeAdditionalExercises() {
-        assertFalse(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = weekDates,
-                completedExerciseTypes = setOf("MEMORY_WORDS", "STROOP_TEST"),
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
+    fun additionalArithmeticSessionsDoNotReplaceMissingAdditionalExercise() {
+        val types = List(20) { ExerciseType.ARITHMETIC.storageValue } +
+            ExerciseType.MEMORY_WORDS.storageValue +
+            ExerciseType.STROOP_TEST.storageValue
+        assertFalse(WeeklyAchievementRules.isWeeklyChallengeCompleted(types))
     }
 
     @Test
-    fun unknownExerciseDoesNotReplaceARequiredAdditionalExercise() {
-        assertFalse(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = weekDates,
-                completedExerciseTypes = additionalTypes - "COUNTING_TRAINING" + "UNKNOWN",
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
-    }
-
-    @Test
-    fun weeklyChallengeDoesNotCompleteWithoutAnyRequiredAdditionalExercises() {
-        assertFalse(
-            WeeklyAchievementRules.isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = weekDates,
-                completedExerciseTypes = emptySet(),
-                requiredAdditionalExerciseTypes = additionalTypes,
-            ),
-        )
+    fun unknownExerciseDoesNotReplaceRequiredExercise() {
+        val types = List(7) { ExerciseType.ARITHMETIC.storageValue } +
+            ExerciseType.MEMORY_WORDS.storageValue +
+            ExerciseType.STROOP_TEST.storageValue +
+            "UNKNOWN"
+        assertFalse(WeeklyAchievementRules.isWeeklyChallengeCompleted(types))
     }
 }
