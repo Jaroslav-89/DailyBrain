@@ -26,3 +26,23 @@ sealed interface ShopPurchaseResult {
     data object AccountNotLinked : ShopPurchaseResult
     data object InvalidRecipient : ShopPurchaseResult
 }
+
+
+enum class ShopPurchaseItemType {
+    PATCH,
+    GIFT,
+    COSTUME,
+    BACKGROUND,
+}
+
+/** A locally recorded shop transaction or a gift sent to another profile. */
+data class ShopPurchaseHistoryEntry(
+    val id: String,
+    val itemType: ShopPurchaseItemType,
+    val itemId: String,
+    val isGift: Boolean,
+    val price: Int,
+    val occurredAtEpochMs: Long,
+    val recipientFirebaseUid: String? = null,
+    val recipientName: String? = null,
+)

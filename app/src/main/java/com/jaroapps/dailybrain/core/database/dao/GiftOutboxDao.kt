@@ -11,6 +11,9 @@ interface GiftOutboxDao {
     @Query("SELECT * FROM gift_outbox WHERE ownerUserId = :ownerUserId AND isSent = 0 ORDER BY createdAtEpochMs ASC")
     suspend fun getPendingForUser(ownerUserId: String): List<GiftOutboxEntity>
 
+    @Query("SELECT * FROM gift_outbox WHERE ownerUserId = :ownerUserId ORDER BY createdAtEpochMs DESC")
+    fun observeForUser(ownerUserId: String): kotlinx.coroutines.flow.Flow<List<GiftOutboxEntity>>
+
     @Query("SELECT EXISTS(SELECT 1 FROM gift_outbox WHERE ownerUserId = :ownerUserId AND giftId = :giftId)")
     suspend fun exists(ownerUserId: String, giftId: String): Boolean
 
