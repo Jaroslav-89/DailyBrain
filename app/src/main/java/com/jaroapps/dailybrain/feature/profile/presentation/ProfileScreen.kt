@@ -100,6 +100,9 @@ fun ProfileScreen(
     var showMyQrDialog by remember { mutableStateOf(false) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
+    val relationshipsReady =
+        state.cloudSessionStatus == ProfileCloudSessionStatus.READY &&
+            directoryState.cloudSessionStatus == ProfileCloudSessionStatus.READY
     LaunchedEffect(directoryState.profile?.firebaseUid, directoryState.cloudSessionStatus) {
         directoryViewModel.refreshRelationships()
         if (directoryState.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
@@ -262,11 +265,11 @@ fun ProfileScreen(
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(directoryState.followingUsers.size.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(if (relationshipsReady) directoryState.followingUsers.size.toString() else "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Подписок", style = MaterialTheme.typography.bodyMedium)
                     }
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(directoryState.followerUsers.size.toString(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                        Text(if (relationshipsReady) directoryState.followerUsers.size.toString() else "—", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
                         Text("Подписчиков", style = MaterialTheme.typography.bodyMedium)
                     }
                 }
