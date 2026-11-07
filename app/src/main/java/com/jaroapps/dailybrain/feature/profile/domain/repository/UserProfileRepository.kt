@@ -5,6 +5,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.model.GoogleAccountProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.PendingProfileDeletion
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 
 interface UserProfileRepository {
     fun observeProfile(): Flow<UserProfile>
