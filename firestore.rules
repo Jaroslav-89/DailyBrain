@@ -69,6 +69,7 @@ service cloud.firestore {
 
     function validPublicProfileFields() {
       return (!request.resource.data.keys().hasAny(['displayName']) || request.resource.data.displayName is string)
+        && (!request.resource.data.keys().hasAny(['profileInfoVisible']) || request.resource.data.profileInfoVisible is bool)
         && (!request.resource.data.keys().hasAny(['avatarConfigurationJson']) || request.resource.data.avatarConfigurationJson is string)
         && (!request.resource.data.keys().hasAny(['country']) || request.resource.data.country is string)
         && (!request.resource.data.keys().hasAny(['city']) || request.resource.data.city is string)
@@ -109,12 +110,14 @@ service cloud.firestore {
     }
 
     match /publicProfiles/{uid} {
-      allow get: if canAccessOwnData(uid) || (signedIn() && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid)));
+      allow get: if canAccessOwnData(uid) || (signedIn()
+        && resource.data.get('profileInfoVisible', true) == true
+        && !exists(/databases/$(database)/documents/blockedUsers/$(uid)/users/$(request.auth.uid)));
       allow list: if false;
       allow create, update: if isOwner(uid)
         && request.resource.data.keys().hasOnly([
           'uid', 'displayName', 'avatarUrl', 'avatarConfigurationJson', 'country', 'city',
-          'gender', 'memberSinceEpochMs', 'statistics', 'username', 'usernameLower', 'inviteCode', 'updatedAt'
+          'gender', 'memberSinceEpochMs', 'statistics', 'username', 'usernameLower', 'inviteCode', 'updatedAt', 'profileInfoVisible'
         ])
         && validPublicProfileFields()
         && request.resource.data.uid == uid
@@ -141,12 +144,13 @@ service cloud.firestore {
       allow get: if signedIn();
       allow list: if false;
       allow create, update: if isOwner(uid)
-        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'username', 'usernameLower', 'avatarConfigurationJson', 'updatedAt'])
+        && request.resource.data.keys().hasOnly(['uid', 'displayName', 'username', 'usernameLower', 'avatarConfigurationJson', 'updatedAt', 'profileInfoVisible'])
         && request.resource.data.uid == uid
         && request.resource.data.displayName is string
         && request.resource.data.username is string
         && request.resource.data.usernameLower == request.resource.data.username.lower()
         && request.resource.data.avatarConfigurationJson is string
+        && (!request.resource.data.keys().hasAny(['profileInfoVisible']) || request.resource.data.profileInfoVisible is bool)
         && existsAfter(/databases/$(database)/documents/users/$(uid))
         && existsAfter(/databases/$(database)/documents/publicProfiles/$(uid));
       allow delete: if canDeleteOwnData(uid)
@@ -327,6 +331,9 @@ service cloud.firestore {
         && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
     match /feedEvents/{eventId} {
+      function authorAllowsFeedUpdates(authorUid) {
+        return get(/databases/$(database)/documents/users/$(authorUid)).data.get('feedUpdatesEnabled', true) == true;
+      }
       // Each author is queried separately with a maximum of ten events. This lets the
       // equality filter and the canonical follows/{viewerUid_authorUid} document jointly
       // satisfy the rule without broad whereIn queries.
@@ -399,20 +406,21 @@ service cloud.firestore {
       allow get: if signedIn()
         && (
           resource.data.authorUid == request.auth.uid
-          || isFollowingAuthor(resource.data.authorUid)
+          || (isFollowingAuthor(resource.data.authorUid) && authorAllowsFeedUpdates(resource.data.authorUid))
         );
 
       allow list: if signedIn()
         && request.query.limit <= 10
         && (
           resource.data.authorUid == request.auth.uid
-          || isFollowingAuthor(resource.data.authorUid)
+          || (isFollowingAuthor(resource.data.authorUid) && authorAllowsFeedUpdates(resource.data.authorUid))
         );
 
-      allow create: if activeUser() && validFeedEvent();
+      allow create: if activeUser() && validFeedEvent() && authorAllowsFeedUpdates(request.auth.uid);
       allow update: if activeUser()
         && resource.data.authorUid == request.auth.uid
-        && validFeedEvent();
+        && validFeedEvent()
+        && authorAllowsFeedUpdates(request.auth.uid);
       allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
