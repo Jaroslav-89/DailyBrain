@@ -84,4 +84,24 @@ class CalendarUiStateTest {
         assertFalse(state.hasTrainingToday)
         assertEquals(12, state.hoursRemainingToday)
     }
+    @Test
+    fun monthlyChallengeCompletionRequiresEveryIndependentVolumeTarget() {
+        val incomplete = CalendarUiState(
+            monthlyChallengeConditions = listOf(
+                WeeklyChallengeConditionUiState("ARITHMETIC", "Арифметика", 28, 28),
+                WeeklyChallengeConditionUiState("MEMORY_WORDS", "Запоминание слов", 4, 4),
+                WeeklyChallengeConditionUiState("STROOP_TEST", "Тест Струпа", 4, 4),
+                WeeklyChallengeConditionUiState("COUNTING_TRAINING", "Устный счёт", 3, 4),
+            ),
+        )
+        assertFalse(incomplete.isMonthlyChallengeCompleted)
+
+        val complete = incomplete.copy(
+            monthlyChallengeConditions = incomplete.monthlyChallengeConditions.map {
+                it.copy(completedCount = it.requiredCount)
+            },
+        )
+        assertTrue(complete.isMonthlyChallengeCompleted)
+    }
+
 }
