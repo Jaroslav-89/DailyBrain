@@ -8,6 +8,7 @@ import com.jaroapps.dailybrain.common.domain.usecase.ObserveActiveTrainingDatesU
 import com.jaroapps.dailybrain.common.domain.usecase.ObserveAllCompletedTrainingsUseCase
 import com.jaroapps.dailybrain.common.domain.usecase.ObservePatchedDatesUseCase
 import com.jaroapps.dailybrain.feature.rewards.domain.model.WeeklyAchievementRules
+import com.jaroapps.dailybrain.feature.rewards.domain.model.MonthlyChallengeRules
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -49,31 +50,29 @@ class CalendarViewModel(
         val today = currentTime.toLocalDate()
         val weekStart = today.with(DayOfWeek.MONDAY)
         val zone = ZoneId.systemDefault()
-        val exerciseTypesThisWeek = sessions.mapNotNull { session ->
+        val sessionsWithDates = sessions.mapNotNull { session ->
             val date = runCatching {
                 Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
             }.getOrNull() ?: return@mapNotNull null
-            if (date.isBefore(weekStart) || date.isAfter(today)) return@mapNotNull null
-            session.exerciseType
+            date to session.exerciseType
         }
-        val counts = WeeklyAchievementRules.weeklyChallengeProgress(exerciseTypesThisWeek)
-        val conditions = WeeklyAchievementRules.DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS.map { requirement ->
-            val type = ExerciseType.fromStorage(requirement.exerciseType)
-            WeeklyChallengeConditionUiState(
-                exerciseType = requirement.exerciseType,
-                title = when (type) {
-                    ExerciseType.ARITHMETIC -> "Арифметика"
-                    ExerciseType.MEMORY_WORDS -> "Запоминание слов"
-                    ExerciseType.STROOP_TEST -> "Тест Струпа"
-                    ExerciseType.COUNTING_TRAINING -> "Устный счёт"
-                    null -> requirement.exerciseType
-                        .lowercase()
-                        .replace('_', ' ')
-                        .replaceFirstChar { it.uppercase() }
-                },
-                completedCount = counts[requirement.exerciseType] ?: 0,
-                requiredCount = requirement.requiredCount,
-            )
+        val exerciseTypesThisWeek = sessionsWithDates
+            .filter { (date, _) -> !date.isBefore(weekStart) && !date.isAfter(today) }
+            .map { (_, exerciseType) -> exerciseType }
+        val weeklyCounts = WeeklyAchievementRules.weeklyChallengeProgress(exerciseTypesThisWeek)
+        val weeklyConditions = WeeklyAchievementRules.DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS.map { requirement ->
+            requirement.toUiCondition(weeklyCounts[requirement.exerciseType] ?: 0)
+        }
+
+        // Monthly targets stay independent from weekly challenge generation. They count
+        // completed sessions in the current calendar month toward a four-week volume target.
+        val currentMonth = YearMonth.from(today)
+        val exerciseTypesThisMonth = sessionsWithDates
+            .filter { (date, _) -> YearMonth.from(date) == currentMonth }
+            .map { (_, exerciseType) -> exerciseType }
+        val monthlyCounts = MonthlyChallengeRules.progress(exerciseTypesThisMonth)
+        val monthlyConditions = MonthlyChallengeRules.DEFAULT_MONTHLY_CHALLENGE_REQUIREMENTS.map { requirement ->
+            requirement.toUiCondition(monthlyCounts[requirement.exerciseType] ?: 0)
         }
 
         CalendarUiState(
@@ -81,7 +80,8 @@ class CalendarViewModel(
             activeDates = trainingDates,
             patchedDates = patchedDates,
             firstTrainingDate = trainingDates.minOrNull(),
-            weeklyChallengeConditions = conditions,
+            weeklyChallengeConditions = weeklyConditions,
+            monthlyChallengeConditions = monthlyConditions,
             currentTime = currentTime,
         )
     }.stateIn(
@@ -107,4 +107,22 @@ class CalendarViewModel(
     fun selectDate(date: LocalDate, onDateSelected: (LocalDate) -> Unit) {
         onDateSelected(date)
     }
+private fun MonthlyChallengeRules.ExerciseRequirement.toUiCondition(
+    completedCount: Int,
+): WeeklyChallengeConditionUiState {
+    val type = ExerciseType.fromStorage(exerciseType)
+    return WeeklyChallengeConditionUiState(
+        exerciseType = exerciseType,
+        title = when (type) {
+            ExerciseType.ARITHMETIC -> "Арифметика"
+            ExerciseType.MEMORY_WORDS -> "Запоминание слов"
+            ExerciseType.STROOP_TEST -> "Тест Струпа"
+            ExerciseType.COUNTING_TRAINING -> "Устный счёт"
+            null -> exerciseType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+        },
+        completedCount = completedCount,
+        requiredCount = requiredCount,
+    )
+}
+
 }
