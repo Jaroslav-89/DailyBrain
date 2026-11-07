@@ -104,6 +104,7 @@ import com.jaroapps.dailybrain.feature.shop.data.FirestoreGiftDeliveryRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.ShopRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
 import com.jaroapps.dailybrain.feature.shop.presentation.ShopViewModel
+import com.jaroapps.dailybrain.feature.shop.presentation.ShopPurchaseHistoryViewModel
 import com.jaroapps.dailybrain.feature.stroop.domain.usecase.GenerateStroopStimuliUseCase
 import com.jaroapps.dailybrain.feature.stroop.presentation.StroopViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -184,6 +185,13 @@ val appModule = module {
             activeUserProvider = get(),
             endorphinRepository = get(),
             feedSyncTrigger = get(),
+        )
+    }
+    viewModel {
+        ShopPurchaseHistoryViewModel(
+            observeUserProfile = get(),
+            shopRepository = get(),
+            userDirectoryRepository = get(),
         )
     }
     viewModel {
