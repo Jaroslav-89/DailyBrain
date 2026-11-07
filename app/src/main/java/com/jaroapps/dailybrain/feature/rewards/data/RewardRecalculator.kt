@@ -1,6 +1,7 @@
 package com.jaroapps.dailybrain.feature.rewards.data
 
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.common.domain.model.TrainingStreakCalculator
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.WeeklyAchievementRules
 import com.jaroapps.dailybrain.core.database.AppDatabase
@@ -46,11 +47,49 @@ object RewardRecalculator {
         val drafts = mutableListOf<RewardDraft>()
         val desiredBadges = linkedMapOf<String, UserBadgeEntity>()
         val desiredEvents = linkedMapOf<String, FeedEventEntity>()
-        val sessionsByDate = dated.groupBy({ it.first }, { it.second })
-        // Every completed workout has a session row. Use the same local timestamp dates
-        // for active days, daily XP, streaks, and monthly achievements.
-        val activeTrainingDates = dated.mapTo(mutableSetOf()) { it.first }
+        // The persisted calendar-day index is authoritative for streaks: unlike timestamps,
+        // its local date must not shift when the device time zone changes. Protected dates
+        // join the same streak calendar without becoming synthetic workout sessions.
+        val patchDays = database.streakPatchDao().getDays(localAccountId).associateBy { it.date }
+        val trainingDayKeys = database.trainingDayDao().getAll(localAccountId).map { it.date }
+        val activeStreakDates = TrainingStreakCalculator.parseDateKeys(
+            trainingDayKeys + patchDays.keys,
+        )
+        val sessionsByStreakDate = sessions.mapNotNull { session ->
+            val date = runCatching {
+                LocalDate.parse(session.date.toString(), java.time.format.DateTimeFormatter.BASIC_ISO_DATE)
+            }.getOrNull() ?: return@mapNotNull null
+            date to session
+        }.groupBy({ it.first }, { it.second })
         val existingLocalEvents = database.feedEventDao().getLocalEvents(localAccountId).associateBy { it.eventId }
+
+        fun addRewardAt(
+            key: String,
+            xp: Int,
+            endorphins: Int,
+            reason: String,
+            date: LocalDate,
+            occurredAtEpochMs: Long,
+            sourceId: Long? = null,
+            periodKey: String? = null,
+        ) {
+            if (xp == 0 && endorphins == 0) return
+            drafts += RewardDraft(
+                entity = RewardLedgerEntity(
+                    userId = localAccountId,
+                    rewardKey = key,
+                    deltaXp = xp,
+                    deltaEndorphins = endorphins,
+                    category = CATEGORY_EARNED,
+                    reason = reason,
+                    sourceId = sourceId,
+                    periodKey = periodKey,
+                    occurredAtEpochMs = occurredAtEpochMs,
+                    isActive = true,
+                ),
+                date = date,
+            )
+        }
 
         fun addReward(
             key: String,
@@ -60,29 +99,14 @@ object RewardRecalculator {
             trigger: TrainingSessionEntity,
             periodKey: String? = null,
         ) {
-            if (xp == 0 && endorphins == 0) return
             val date = dated.firstOrNull { it.second.id == trigger.id }?.first ?: return
-            drafts += RewardDraft(
-                entity = RewardLedgerEntity(
-                    userId = localAccountId,
-                    rewardKey = key,
-                    deltaXp = xp,
-                    deltaEndorphins = endorphins,
-                    category = CATEGORY_EARNED,
-                    reason = reason,
-                    sourceId = trigger.id,
-                    periodKey = periodKey,
-                    occurredAtEpochMs = trigger.finishedAtEpochMs,
-                    isActive = true,
-                ),
-                date = date,
-            )
+            addRewardAt(key, xp, endorphins, reason, date, trigger.finishedAtEpochMs, trigger.id, periodKey)
         }
 
-        fun addEvent(
+        fun addEventAt(
             key: String,
             type: String,
-            trigger: TrainingSessionEntity,
+            occurredAtEpochMs: Long,
             periodKey: String? = null,
             exerciseType: String? = null,
             valueLong: Long? = null,
@@ -99,7 +123,7 @@ object RewardRecalculator {
                 authorName = profile.displayName?.trim()?.takeIf(String::isNotEmpty) ?: profile.generatedAlias,
                 authorUsername = profile.username,
                 eventType = type,
-                occurredAtEpochMs = trigger.finishedAtEpochMs,
+                occurredAtEpochMs = occurredAtEpochMs,
                 periodKey = periodKey,
                 exerciseType = exerciseType,
                 valueLong = valueLong,
@@ -111,22 +135,43 @@ object RewardRecalculator {
             )
         }
 
-        fun addBadge(
+        fun addEvent(
+            key: String,
+            type: String,
+            trigger: TrainingSessionEntity,
+            periodKey: String? = null,
+            exerciseType: String? = null,
+            valueLong: Long? = null,
+            valueInt: Int? = null,
+            accuracyPercent: Double? = null,
+        ) = addEventAt(
+            key, type, trigger.finishedAtEpochMs, periodKey, exerciseType, valueLong, valueInt, accuracyPercent,
+        )
+
+        fun addBadgeAt(
             badgeId: String,
             badgeType: String,
             periodKey: String,
-            trigger: TrainingSessionEntity,
+            occurredAtEpochMs: Long,
+            triggerWorkoutId: Long?,
         ) {
             desiredBadges[badgeId] = UserBadgeEntity(
                 ownerUserId = localAccountId,
                 badgeId = badgeId,
                 badgeType = badgeType,
                 periodKey = periodKey,
-                awardedAtEpochMs = trigger.finishedAtEpochMs,
-                triggerWorkoutId = trigger.id,
+                awardedAtEpochMs = occurredAtEpochMs,
+                triggerWorkoutId = triggerWorkoutId,
                 isRevoked = false,
             )
         }
+
+        fun addBadge(
+            badgeId: String,
+            badgeType: String,
+            periodKey: String,
+            trigger: TrainingSessionEntity,
+        ) = addBadgeAt(badgeId, badgeType, periodKey, trigger.finishedAtEpochMs, trigger.id)
 
         // Ordinary exercise completions award XP only; their endorphin delta is always zero.
         // Endorphins are reserved for eligible achievements (weekly/monthly milestones and records).
@@ -170,52 +215,40 @@ object RewardRecalculator {
             )
         }
 
-        // Weekly streak: any completed exercise marks the day as active.
-        // These dates use the same local completion timestamps as daily XP.
+        // Weekly and monthly series accept actual workout dates and dates protected by patches.
+        // A patch can trigger an achievement without creating a fake workout/session row.
         var firstStreakCompletedAt: Long? = null
-        WeeklyAchievementRules.weeklyStreakCompletionDates(activeTrainingDates).forEach { date ->
-            // The first workout of the seventh active day is when the streak is completed.
-            val trigger = sessionsByDate[date]?.minByOrNull { it.finishedAtEpochMs }
-                ?: return@forEach
+        WeeklyAchievementRules.weeklyStreakCompletionDates(activeStreakDates).forEach { date ->
+            val trigger = sessionsByStreakDate[date]?.minByOrNull { it.finishedAtEpochMs }
+            val patch = patchDays[date.toDateKey()]
+            val occurredAt = trigger?.finishedAtEpochMs ?: patch?.appliedAtEpochMs ?: return@forEach
             val periodKey = date.toString()
             val key = "weekly_streak:$periodKey"
-            addReward(key, 100, EndorphinEconomy.WEEKLY_STREAK_REWARD, "WEEKLY_STREAK", trigger, periodKey)
-            addBadge(key, "WEEKLY_STREAK", periodKey, trigger)
-            addEvent(key, "WEEKLY_STREAK", trigger, periodKey)
-            if (firstStreakCompletedAt == null) firstStreakCompletedAt = trigger.finishedAtEpochMs
+            addRewardAt(key, 100, EndorphinEconomy.WEEKLY_STREAK_REWARD, "WEEKLY_STREAK", date, occurredAt, trigger?.id, periodKey)
+            addBadgeAt(key, "WEEKLY_STREAK", periodKey, occurredAt, trigger?.id)
+            addEventAt(key, "WEEKLY_STREAK", occurredAt, periodKey)
+            if (firstStreakCompletedAt == null) firstStreakCompletedAt = occurredAt
         }
 
-        // Weekly challenge: arithmetic is required on each of the seven dates in
-        // this ISO week, plus all three additional exercise types within the same week.
-        // The same eligibility predicate gates the XP and endorphin reward entries.
-        val exerciseTypesByDate = dated.groupBy({ it.first }, { it.second.exerciseType })
-            .mapValues { (_, exerciseTypes) -> exerciseTypes.toSet() }
+        // Weekly challenge counts completed workout sessions in the Monday-Sunday period.
+        // Seven arithmetic sessions may all be completed on the same day; patches never count.
+        val exerciseTypesByWeek = dated.groupBy { (date, _) ->
+            WeeklyAchievementRules.weekStart(date)
+        }.mapValues { (_, weekItems) -> weekItems.map { it.second.exerciseType } }
         val completedChallengeWeeks = WeeklyAchievementRules.weeklyChallengeCompletionWeekStarts(
-            exerciseTypesByDate = exerciseTypesByDate,
-            arithmeticExerciseType = ExerciseType.ARITHMETIC.storageValue,
-            requiredAdditionalExerciseTypes = knownNonArithmeticTypes,
+            exerciseTypesByWeek = exerciseTypesByWeek,
         )
         completedChallengeWeeks.forEach { weekStart ->
-            val weekEnd = weekStart.plusDays(WeeklyAchievementRules.REQUIRED_WEEK_DAYS - 1L)
-            val weekItems = dated.filter { (date, _) -> !date.isBefore(weekStart) && !date.isAfter(weekEnd) }
-            val arithmeticSessionsByDate = weekItems
-                .filter { ExerciseType.fromStorage(it.second.exerciseType) == ExerciseType.ARITHMETIC }
-                .groupBy({ it.first }, { it.second })
-
-            // Timestamp the achievement at the last condition that was satisfied:
-            // one arithmetic workout on each day and one of every additional exercise.
-            val qualifyingSessions = mutableListOf<TrainingSessionEntity>()
-            for (offset in 0 until WeeklyAchievementRules.REQUIRED_WEEK_DAYS) {
-                arithmeticSessionsByDate[weekStart.plusDays(offset.toLong())]
-                    ?.minByOrNull { it.finishedAtEpochMs }
-                    ?.let(qualifyingSessions::add)
+            val weekItems = dated.filter { (date, _) ->
+                WeeklyAchievementRules.weekStart(date) == weekStart
             }
-            knownNonArithmeticTypes.forEach { exerciseType ->
+            val qualifyingSessions = WeeklyAchievementRules.DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS.mapNotNull { requirement ->
                 weekItems.asSequence()
-                    .filter { it.second.exerciseType == exerciseType }
-                    .minByOrNull { it.second.finishedAtEpochMs }
+                    .filter { it.second.exerciseType == requirement.exerciseType }
+                    .sortedBy { it.second.finishedAtEpochMs }
+                    .drop((weekItems.count { it.second.exerciseType == requirement.exerciseType } - requirement.requiredCount).coerceAtLeast(0))
+                    .lastOrNull()
                     ?.second
-                    ?.let(qualifyingSessions::add)
             }
             val trigger = qualifyingSessions.maxByOrNull { it.finishedAtEpochMs } ?: return@forEach
             val weekKey = "${weekStart.get(weekFields.weekBasedYear())}-W${weekStart.get(weekFields.weekOfWeekBasedYear()).toString().padStart(2, '0')}"
@@ -225,20 +258,21 @@ object RewardRecalculator {
             addEvent(key, "WEEKLY_CHALLENGE", trigger, weekKey)
         }
 
-        // A monthly series, like the calendar day streak, accepts any exercise type.
-        // Evaluate it from the same local completed-session dates used by the daily streak.
-        val trainingDatesByMonth = activeTrainingDates.groupBy { YearMonth.from(it) }
-        trainingDatesByMonth.forEach { (month, trainedDates) ->
+        // A monthly series requires every date in the month to be active or protected.
+        val streakDatesByMonth = activeStreakDates.groupBy { YearMonth.from(it) }
+        streakDatesByMonth.forEach { (month, activeMonthDates) ->
             val allDates = (1..month.lengthOfMonth()).map { month.atDay(it) }.toSet()
-            if (trainedDates.containsAll(allDates)) {
+            if (activeMonthDates.containsAll(allDates)) {
                 val lastDay = month.atEndOfMonth()
-                val trigger = sessionsByDate[lastDay]?.minByOrNull { it.finishedAtEpochMs } ?: return@forEach
+                val trigger = sessionsByStreakDate[lastDay]?.minByOrNull { it.finishedAtEpochMs }
+                val patch = patchDays[lastDay.toDateKey()]
+                val occurredAt = trigger?.finishedAtEpochMs ?: patch?.appliedAtEpochMs ?: return@forEach
                 val monthKey = month.toString()
                 val badgeType = "MONTH_${month.monthValue.toString().padStart(2, '0')}"
                 val key = "monthly_streak:$monthKey"
-                addReward(key, 500, EndorphinEconomy.MONTHLY_STREAK_REWARD, "MONTHLY_STREAK", trigger, monthKey)
-                addBadge(key, badgeType, monthKey, trigger)
-                addEvent(key, "MONTHLY_STREAK", trigger, monthKey, valueInt = month.monthValue)
+                addRewardAt(key, 500, EndorphinEconomy.MONTHLY_STREAK_REWARD, "MONTHLY_STREAK", lastDay, occurredAt, trigger?.id, monthKey)
+                addBadgeAt(key, badgeType, monthKey, occurredAt, trigger?.id)
+                addEventAt(key, "MONTHLY_STREAK", occurredAt, monthKey, valueInt = month.monthValue)
             }
         }
 
@@ -377,4 +411,6 @@ object RewardRecalculator {
         val entity: RewardLedgerEntity,
         val date: LocalDate,
     )
+    private fun LocalDate.toDateKey(): Int =
+        format(java.time.format.DateTimeFormatter.BASIC_ISO_DATE).toInt()
 }
