@@ -178,10 +178,14 @@ class FirestoreGiftDeliveryRepository(
             val receiverProfile = database.userProfileDao().getProfile(localUserId) ?: continue
             val eventId = "gift_received:$giftId"
             val publicSenderName = resolvedSenderName?.takeIf(String::isNotBlank) ?: "Пользователь DailyBrain"
+            val creditedEndorphins = database.rewardLedgerDao()
+                .getByKey(localUserId, "gift_received:$giftId")
+                ?.deltaEndorphins ?: giftType.recipientEndorphins
             val existingEvent = database.feedEventDao().getEvent(localUserId, eventId)
             val needsFeedSync = existingEvent == null ||
                 existingEvent.relatedUserFirebaseUid != senderUid ||
                 existingEvent.relatedUserName != publicSenderName ||
+                existingEvent.valueInt != creditedEndorphins ||
                 existingEvent.syncState != SYNCED
             if (needsFeedSync) {
                 database.feedEventDao().upsertAll(
@@ -196,7 +200,7 @@ class FirestoreGiftDeliveryRepository(
                             eventType = GIFT_RECEIVED,
                             occurredAtEpochMs = storedGift.receivedAtEpochMs,
                             periodKey = giftType.name,
-                            valueInt = giftType.recipientEndorphins,
+                            valueInt = creditedEndorphins,
                             relatedUserFirebaseUid = senderUid,
                             relatedUserName = publicSenderName,
                             isLocal = true,
@@ -226,7 +230,7 @@ class FirestoreGiftDeliveryRepository(
 
         val eventId = "gift_sent:${gift.giftId}"
         val existingEvent = database.feedEventDao().getEvent(localUserId, eventId)
-        if (existingEvent?.syncState == SYNCED) return false
+        if (existingEvent?.syncState == SYNCED && existingEvent.relatedUserName == recipientName) return false
 
         val event = if (cosmeticGift != null) {
             FeedEventEntity(

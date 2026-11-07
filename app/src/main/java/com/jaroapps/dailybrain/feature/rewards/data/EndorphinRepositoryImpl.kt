@@ -91,7 +91,7 @@ class EndorphinRepositoryImpl(
             if (existing != null) {
                 check(
                     existing.category == CATEGORY_GIFT_RECEIVED &&
-                        existing.deltaEndorphins == giftType.recipientEndorphins &&
+                        existing.deltaEndorphins in setOf(giftType.price, giftType.recipientEndorphins) &&
                         existing.reason == "GIFT_RECEIVED_${giftType.name}" &&
                         existing.isActive
                 ) {
