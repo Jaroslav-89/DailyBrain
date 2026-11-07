@@ -335,31 +335,31 @@ private fun CalendarProgressRow(
     color: Color,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(7.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(MaterialTheme.colorScheme.surface),
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth((completed.toFloat() / total.coerceAtLeast(1)).coerceIn(0f, 1f))
+                        .fillMaxHeight()
+                        .background(color, RoundedCornerShape(50)),
+                )
+            }
             Text(
                 text = "$completed/$total $suffix",
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface,
-            )
-        }
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(7.dp)
-                .clip(RoundedCornerShape(50))
-                .background(MaterialTheme.colorScheme.surface),
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth((completed.toFloat() / total.coerceAtLeast(1)).coerceIn(0f, 1f))
-                    .fillMaxHeight()
-                    .background(color, RoundedCornerShape(50)),
             )
         }
     }
