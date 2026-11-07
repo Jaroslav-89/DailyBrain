@@ -493,6 +493,7 @@ private fun AppBottomNavigation(
     )
 
     NavigationBar(
+        modifier = Modifier.height(56.dp),
         containerColor = MaterialTheme.colorScheme.surface,
         contentColor = MaterialTheme.colorScheme.onSurface,
         tonalElevation = 4.dp,
@@ -500,7 +501,7 @@ private fun AppBottomNavigation(
         destinations.forEach { destination ->
             val selected = currentRoute == destination.route
             val iconScale by animateFloatAsState(
-                targetValue = if (selected) 1.08f else 1f,
+                targetValue = if (selected) 1.12f else 1f,
                 animationSpec = tween(
                     durationMillis = 180,
                     easing = FastOutSlowInEasing,
@@ -515,27 +516,19 @@ private fun AppBottomNavigation(
                 icon = {
                     Icon(
                         imageVector = destination.icon,
-                        contentDescription = null,
+                        contentDescription = destination.label,
                         modifier = Modifier.graphicsLayer {
                             scaleX = iconScale
                             scaleY = iconScale
                         },
                     )
                 },
-                label = {
-                    androidx.compose.material3.Text(
-                        text = destination.label,
-                        style = MaterialTheme.typography.labelSmall,
-                        maxLines = 1,
-                    )
-                },
-                alwaysShowLabel = true,
+                label = null,
+                alwaysShowLabel = false,
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
-                    selectedTextColor = MaterialTheme.colorScheme.primary,
                     indicatorColor = MaterialTheme.colorScheme.secondaryContainer,
                     unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 ),
             )
         }
