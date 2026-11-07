@@ -41,6 +41,19 @@ class CalendarUiStateTest {
     }
 
     @Test
+    fun firstUnprotectedDayStopsMonthlyStreakProgress() {
+        val today = LocalDate.of(2026, 10, 18)
+        val dates = (1..10).map { LocalDate.of(2026, 10, it) }.toSet() - LocalDate.of(2026, 10, 5)
+        val state = CalendarUiState(
+            displayedMonth = YearMonth.from(today),
+            activeDates = dates,
+            currentTime = LocalDateTime.of(2026, 10, 18, 12, 0),
+        )
+
+        assertEquals(4, state.monthlyStreakProgress)
+    }
+
+    @Test
     fun weeklyChallengeConditionsExposeProgressAndCompletion() {
         val state = CalendarUiState(
             weeklyChallengeConditions = listOf(
