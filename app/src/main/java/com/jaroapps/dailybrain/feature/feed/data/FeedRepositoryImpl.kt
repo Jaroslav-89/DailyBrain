@@ -97,6 +97,8 @@ class FeedRepositoryImpl(
         // Replace the friend cache only after all per-author queries completed successfully.
         // A failed query leaves the last successfully loaded cache intact.
         database.withTransaction {
+            // Re-check after network reads so a profile/session switch cannot cache another session's result.
+            requireCurrentFirebaseUser(app, firebaseUid)
             database.feedEventDao().deleteCachedFriendEvents(localAccountId)
             if (friendEvents.isNotEmpty()) database.feedEventDao().upsertAll(friendEvents)
         }
