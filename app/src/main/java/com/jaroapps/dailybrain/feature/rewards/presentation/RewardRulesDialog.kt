@@ -13,6 +13,8 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
+import com.jaroapps.dailybrain.feature.rewards.domain.model.MonthlyChallengeRules
 
 enum class RewardRulesTopic {
     STREAKS,
@@ -51,7 +53,7 @@ fun RewardRulesDialog(
             ),
             RewardRuleSection(
                 "Задание на месяц",
-                "За календарный месяц наберите общий объём упражнений за четыре недели: 28 арифметических тренировок, 4 тренировки памяти, 4 теста Струпа и 4 тренировки устного счёта. Не нужно выполнять недельные задания по отдельности: учитывается общая сумма за месяц. Пластырь не считается упражнением. Награда: 500 очков опыта и уникальный месячный бейджик.",
+                monthlyChallengeDescription(),
             ),
         )
         RewardRulesTopic.EXPERIENCE -> listOf(
@@ -60,7 +62,7 @@ fun RewardRulesDialog(
             RewardRuleSection("Задание на неделю", "100 очков опыта и бейджик за выполнение недельного задания."),
             RewardRuleSection("Непрерывная серия", "100 очков опыта и бейджик за каждые 7 последовательных дней с упражнением или пластырём."),
             RewardRuleSection("Месячная серия", "500 очков опыта и уникальный бейджик за каждый календарный месяц без пропусков."),
-            RewardRuleSection("Задание на месяц", "500 очков опыта и уникальный месячный бейджик за общий объём упражнений: 28 арифметик и по 4 упражнения каждого дополнительного вида за месяц."),
+            RewardRuleSection("Задание на месяц", monthlyChallengeDescription() + " Награда: 500 очков опыта и уникальный месячный бейджик."),
             RewardRuleSection("Рекорд в арифметике", "100 очков за новый личный рекорд. Первые 7 арифметических тренировок не учитываются; точность должна быть не ниже 95%, а первая недельная серия уже должна быть завершена."),
         )
         RewardRulesTopic.ENDORPHINS -> listOf(
@@ -92,4 +94,21 @@ fun RewardRulesDialog(
             TextButton(onClick = onDismiss) { Text("Понятно") }
         },
     )
+}
+
+private fun monthlyChallengeDescription(): String {
+    val requirements = MonthlyChallengeRules.DEFAULT_MONTHLY_CHALLENGE_REQUIREMENTS
+    val targets = requirements.joinToString(separator = ", ") { requirement ->
+        val label = when (ExerciseType.fromStorage(requirement.exerciseType)) {
+            ExerciseType.ARITHMETIC -> "арифметических тренировок"
+            ExerciseType.MEMORY_WORDS -> "тренировок памяти"
+            ExerciseType.STROOP_TEST -> "тестов Струпа"
+            ExerciseType.COUNTING_TRAINING -> "тренировок устного счёта"
+            null -> "упражнений «${requirement.exerciseType}»"
+        }
+        "${requirement.requiredCount} $label"
+    }
+    return "За календарный месяц наберите общий объём упражнений за четыре недели: $targets. " +
+        "Не нужно выполнять недельные задания по отдельности: учитывается общая сумма за месяц. " +
+        "Пластырь не считается упражнением."
 }
