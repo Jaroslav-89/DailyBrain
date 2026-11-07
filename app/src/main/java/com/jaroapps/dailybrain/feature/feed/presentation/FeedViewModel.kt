@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,13 +79,15 @@ class FeedViewModel(
                 observeUserProfile(),
                 firebaseAuthenticationRepository.observeCurrentUserId(),
             ) { profile, firebaseUid ->
-                profile.firebaseUid?.takeIf { it.isNotBlank() && it == firebaseUid }
+                profile.localAccountId to profile.firebaseUid?.takeIf {
+                    it.isNotBlank() && it == firebaseUid
+                }
             }
                 .distinctUntilChanged()
-                .filterNotNull()
                 .collect {
-                    // Re-run the feed sync only when a local profile and Firebase session match.
-                    // This also retries a previously deferred sync after explicit reauthentication.
+                    // Always recalculate the selected profile's local rewards. The repository
+                    // skips cloud work until the active Firebase UID matches the stored binding.
+                    // A later matching auth-state emission retries the deferred cloud sync.
                     refresh()
                 }
         }

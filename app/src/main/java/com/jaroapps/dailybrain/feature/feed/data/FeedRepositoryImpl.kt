@@ -55,9 +55,15 @@ class FeedRepositoryImpl(
     override suspend fun refresh() {
         val localAccountId = activeUserProvider.currentUserId()
         val profile = database.userProfileDao().getProfile(localAccountId) ?: return
+
+        // Recalculate locally before any network checks; this also runs for unlinked/offline profiles.
+        database.withTransaction {
+            RewardRecalculator.recalculate(database, localAccountId)
+        }
+
         val firebaseUid = profile.firebaseUid
         if (firebaseUid.isNullOrBlank()) {
-            // Keep the last successful cache available offline, even while this local profile is unlinked.
+            // Keep the last successful friend cache available while cloud features are disconnected.
             return
         }
 
@@ -66,11 +72,6 @@ class FeedRepositoryImpl(
         }
         requireCurrentFirebaseUser(app, firebaseUid)
         val firestore = FirebaseFirestore.getInstance(app)
-
-        // Recalculate locally before network access; this does not depend on the friends feed.
-        database.withTransaction {
-            RewardRecalculator.recalculate(database, localAccountId)
-        }
 
         // Read the canonical follow graph. publicFollowing is a denormalized projection and
         // may be absent for older follows created before that projection was introduced.
