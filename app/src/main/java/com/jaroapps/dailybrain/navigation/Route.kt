@@ -1,5 +1,7 @@
 package com.jaroapps.dailybrain.navigation
 
+import android.net.Uri
+
 object Route {
     const val STARTUP = "startup"
     const val APP_ONBOARDING = "app_onboarding"
@@ -28,6 +30,7 @@ object Route {
     const val FEED = "feed"
     const val SHOP = "shop"
     const val SHOP_PURCHASE_HISTORY = "shop_purchase_history"
+    const val FEED_ITEM_DETAIL = "feed_item_detail/{eventType}/{itemType}/{itemId}/{occurredAtEpochMs}/{valueInt}/{relatedUserName}"
     const val ARITHMETIC = "arithmetic"
     const val CALENDAR = "calendar"
     const val DAY_HISTORY = "day_history/{date}"
@@ -45,4 +48,13 @@ object Route {
         "profile_collectibles/$ownerUid/$kind"
     fun collectibleDetail(ownerUid: String, kind: String, itemId: String): String =
         "collectible_detail/$ownerUid/$kind/$itemId"
+    fun feedItemDetail(
+        eventType: String,
+        itemType: String,
+        itemId: String,
+        occurredAtEpochMs: Long,
+        valueInt: Int,
+        relatedUserName: String?,
+    ): String = "feed_item_detail/${Uri.encode(eventType)}/${Uri.encode(itemType)}/${Uri.encode(itemId)}/" +
+        "$occurredAtEpochMs/$valueInt/${Uri.encode(relatedUserName?.takeIf(String::isNotBlank) ?: "-")}"
 }

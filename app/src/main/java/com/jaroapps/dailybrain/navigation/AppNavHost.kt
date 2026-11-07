@@ -62,6 +62,7 @@ import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedScreen
+import com.jaroapps.dailybrain.feature.feed.presentation.FeedItemDetailScreen
 import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryScreen
 import com.jaroapps.dailybrain.feature.memory.presentation.MemoryTrainingScreen
 import com.jaroapps.dailybrain.feature.onboarding.presentation.AppOnboardingScreen
@@ -414,6 +415,43 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     onOpenCollectible = { ownerUid, kind, itemId ->
                         navController.navigate(Route.collectibleDetail(ownerUid, kind.name, itemId))
                     },
+                    onOpenFeedItem = { event ->
+                        val itemType = if (event.eventType == "GIFT_RECEIVED" || event.eventType == "GIFT_SENT") {
+                            "GIFT"
+                        } else event.exerciseType.orEmpty()
+                        navController.navigate(
+                            Route.feedItemDetail(
+                                eventType = event.eventType,
+                                itemType = itemType,
+                                itemId = event.periodKey.orEmpty(),
+                                occurredAtEpochMs = event.occurredAtEpochMs,
+                                valueInt = event.valueInt ?: -1,
+                                relatedUserName = event.relatedUserName,
+                            ),
+                        )
+                    },
+                )
+            }
+
+            composable(
+                route = Route.FEED_ITEM_DETAIL,
+                arguments = listOf(
+                    navArgument("eventType") { type = NavType.StringType },
+                    navArgument("itemType") { type = NavType.StringType },
+                    navArgument("itemId") { type = NavType.StringType },
+                    navArgument("occurredAtEpochMs") { type = NavType.LongType },
+                    navArgument("valueInt") { type = NavType.IntType },
+                    navArgument("relatedUserName") { type = NavType.StringType },
+                ),
+            ) { entry ->
+                FeedItemDetailScreen(
+                    onBack = { navController.popBackStack() },
+                    eventType = entry.arguments?.getString("eventType").orEmpty(),
+                    itemType = entry.arguments?.getString("itemType").orEmpty(),
+                    itemId = entry.arguments?.getString("itemId").orEmpty(),
+                    occurredAtEpochMs = entry.arguments?.getLong("occurredAtEpochMs") ?: 0L,
+                    valueInt = entry.arguments?.getInt("valueInt") ?: -1,
+                    relatedUserName = entry.arguments?.getString("relatedUserName")?.takeUnless { it == "-" },
                 )
             }
 
