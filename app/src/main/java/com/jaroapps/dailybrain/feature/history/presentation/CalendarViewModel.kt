@@ -107,6 +107,8 @@ class CalendarViewModel(
     fun selectDate(date: LocalDate, onDateSelected: (LocalDate) -> Unit) {
         onDateSelected(date)
     }
+}
+
 private fun MonthlyChallengeRules.ExerciseRequirement.toUiCondition(
     completedCount: Int,
 ): WeeklyChallengeConditionUiState {
@@ -125,4 +127,20 @@ private fun MonthlyChallengeRules.ExerciseRequirement.toUiCondition(
     )
 }
 
+private fun WeeklyAchievementRules.ExerciseRequirement.toUiCondition(
+    completedCount: Int,
+): WeeklyChallengeConditionUiState {
+    val type = ExerciseType.fromStorage(exerciseType)
+    return WeeklyChallengeConditionUiState(
+        exerciseType = exerciseType,
+        title = when (type) {
+            ExerciseType.ARITHMETIC -> "Арифметика"
+            ExerciseType.MEMORY_WORDS -> "Запоминание слов"
+            ExerciseType.STROOP_TEST -> "Тест Струпа"
+            ExerciseType.COUNTING_TRAINING -> "Устный счёт"
+            null -> exerciseType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
+        },
+        completedCount = completedCount,
+        requiredCount = requiredCount,
+    )
 }
