@@ -246,7 +246,7 @@ object RewardRecalculator {
                 weekItems.asSequence()
                     .filter { it.second.exerciseType == requirement.exerciseType }
                     .sortedBy { it.second.finishedAtEpochMs }
-                    .drop((weekItems.count { it.second.exerciseType == requirement.exerciseType } - requirement.requiredCount).coerceAtLeast(0))
+                    .take(requirement.requiredCount)
                     .lastOrNull()
                     ?.second
             }
