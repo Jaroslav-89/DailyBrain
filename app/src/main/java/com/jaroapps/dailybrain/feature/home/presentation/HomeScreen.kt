@@ -24,6 +24,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.pager.VerticalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -32,7 +34,9 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.mutableStateOf
@@ -84,7 +88,19 @@ fun HomeScreen(
     viewModel: HomeViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
-    val dayButtonsDescription = state.currentWeekDates.zip(WeekdayLabels)
+    val pageCount = state.weekPageCount
+    val pagerState = rememberPagerState(
+        initialPage = state.currentWeekPageIndex,
+        pageCount = { pageCount },
+    )
+    val screenScope = rememberCoroutineScope()
+    LaunchedEffect(state.firstTrainingDate, state.currentWeekStart) {
+        pagerState.scrollToPage(state.currentWeekPageIndex)
+    }
+    val selectedPage = pagerState.currentPage.coerceIn(0, pageCount - 1)
+    val selectedWeekStart = state.weekStartAtPage(selectedPage)
+    val selectedWeekDates = state.weekDates(selectedWeekStart)
+    val isHistoricalWeek = selectedPage < state.currentWeekPageIndex
     val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
     val homeTextColor = when {
         dynamicBackgroundEnabled && AppThemePreference.isDarkTheme -> Color.White
@@ -97,7 +113,7 @@ fun HomeScreen(
         else -> MaterialTheme.colorScheme.onSurfaceVariant
     }
     val homeBackground = if (dynamicBackgroundEnabled) {
-        dynamicWeekBackground(state)
+        dynamicWeekBackground(state, selectedWeekStart)
     } else {
         SolidColor(MaterialTheme.colorScheme.background)
     }
@@ -198,8 +214,8 @@ fun HomeScreen(
             color = homeTextColor,
         )
         Text(
-            text = "${state.currentWeekDates.first().format(WeekDateFormatter)} - " +
-                state.currentWeekDates.last().format(WeekDateFormatter),
+            text = "${selectedWeekDates.first().format(WeekDateFormatter)} - " +
+                selectedWeekDates.last().format(WeekDateFormatter),
             style = MaterialTheme.typography.bodyMedium,
             color = homeSecondaryTextColor,
             modifier = Modifier.padding(top = 2.dp),
@@ -207,11 +223,16 @@ fun HomeScreen(
 
         Spacer(Modifier.height(8.dp))
 
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-        ) {
+        VerticalPager(
+            state = pagerState,
+            modifier = Modifier.fillMaxWidth().weight(1f),
+            userScrollEnabled = pageCount > 1,
+            key = { page -> state.weekStartAtPage(page) },
+        ) { page ->
+            val weekStart = state.weekStartAtPage(page)
+            val weekDates = state.weekDates(weekStart)
+            val dayButtonsDescription = weekDates.zip(WeekdayLabels)
+            BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
             val arithmeticButtonSize = 56.dp
             val arithmeticRingSize = 96.dp
             val dayItemWidth = arithmeticRingSize + 36.dp
@@ -232,7 +253,8 @@ fun HomeScreen(
                 ringSize = additionalRingSize,
                 x = 0.dp,
                 y = maxHeight * 0.25f - additionalRingSize / 2,
-                completed = state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS),
+                completed = state.hasCompletedExerciseThisWeek(ExerciseType.MEMORY_WORDS, weekStart),
+                enabled = !isHistoricalWeek,
                 onClick = onStartMemoryTraining,
             )
             RoundExerciseButton(
@@ -242,7 +264,8 @@ fun HomeScreen(
                 ringSize = additionalRingSize,
                 x = maxWidth - additionalRingSize,
                 y = maxHeight * 0.5f - additionalRingSize / 2,
-                completed = state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST),
+                completed = state.hasCompletedExerciseThisWeek(ExerciseType.STROOP_TEST, weekStart),
+                enabled = !isHistoricalWeek,
                 onClick = onStartStroopTest,
             ) {
                 Row(
@@ -271,7 +294,8 @@ fun HomeScreen(
                 ringSize = additionalRingSize,
                 x = 0.dp,
                 y = maxHeight * 0.75f - additionalRingSize / 2,
-                completed = state.hasCompletedExerciseThisWeek(ExerciseType.COUNTING_TRAINING),
+                completed = state.hasCompletedExerciseThisWeek(ExerciseType.COUNTING_TRAINING, weekStart),
+                enabled = !isHistoricalWeek,
                 onClick = onStartCountingTraining,
             )
 
@@ -285,7 +309,7 @@ fun HomeScreen(
                 0.69f,
             )
 
-            state.currentWeekDates.forEachIndexed { index, date ->
+            weekDates.forEachIndexed { index, date ->
                 val pressOffset = remember(date) { Animatable(0f) }
                 val coroutineScope = rememberCoroutineScope()
                 var navigationStarted by remember(date) { mutableStateOf(false) }
@@ -422,7 +446,23 @@ fun HomeScreen(
                     }
                 }
             }
+            }
         }
+        Box(
+            modifier = Modifier.fillMaxWidth().height(48.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            if (isHistoricalWeek) {
+                TextButton(
+                    onClick = {
+                        screenScope.launch {
+                            pagerState.animateScrollToPage(state.currentWeekPageIndex)
+                        }
+                    },
+                ) {
+                    Text("Вернуться к текущей неделе")
+                }
+            }
         }
     }
 }
@@ -446,11 +486,12 @@ private fun depthColor(color: Color): Color = Color(
 )
 
 @Composable
-private fun dynamicWeekBackground(state: HomeUiState): Brush {
+private fun dynamicWeekBackground(state: HomeUiState, weekStart: LocalDate): Brush {
+    val weekDates = state.weekDates(weekStart)
     val completedArithmeticDates = state.completedExerciseDatesByType[
         ExerciseType.ARITHMETIC.storageValue
     ].orEmpty()
-    if (state.currentWeekDates.none { it in completedArithmeticDates }) {
+    if (weekDates.none { it in completedArithmeticDates }) {
         return SolidColor(MaterialTheme.colorScheme.background)
     }
 
@@ -458,7 +499,7 @@ private fun dynamicWeekBackground(state: HomeUiState): Brush {
     val orange = colorResource(R.color.color_training_completed)
     val neutral = MaterialTheme.colorScheme.background
     val tintLevels = listOf(0.54f, 0.62f, 0.70f)
-    val colors = state.currentWeekDates.mapIndexed { index, date ->
+    val colors = weekDates.mapIndexed { index, date ->
         if (date in completedArithmeticDates) {
             lightenForBackground(orange, tintLevels[index % tintLevels.size])
         } else {
@@ -492,6 +533,7 @@ private fun RoundExerciseButton(
     x: Dp,
     y: Dp,
     completed: Boolean,
+    enabled: Boolean = true,
     onClick: () -> Unit,
     content: @Composable () -> Unit = {
         Text(
@@ -541,7 +583,7 @@ private fun RoundExerciseButton(
                 }
                 .background(buttonColor, CircleShape)
                 .clickable(
-                    enabled = !navigationStarted,
+                    enabled = enabled && !navigationStarted,
                     onClick = {
                         if (!navigationStarted) {
                             navigationStarted = true
