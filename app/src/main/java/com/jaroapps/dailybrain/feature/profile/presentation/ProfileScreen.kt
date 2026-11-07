@@ -462,7 +462,7 @@ private fun profileAgeLabel(profile: UserProfile, today: LocalDate): String? {
     val age = profile.birthDate?.let { birthDate ->
         Period.between(birthDate, today).years.takeIf { !Period.between(birthDate, today).isNegative }
     } ?: return null
-    return pluralStringResource(R.plurals.profile_age_years, age, age)
+    return "Возраст: " + pluralStringResource(R.plurals.profile_age_years, age, age)
 }
 
 @Composable
