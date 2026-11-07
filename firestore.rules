@@ -6,8 +6,23 @@ service cloud.firestore {
       return request.auth != null;
     }
 
+    function activeUser() {
+      return signedIn()
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(request.auth.uid));
+    }
+
     function isOwner(uid) {
-      return signedIn() && request.auth.uid == uid;
+      return activeUser() && request.auth.uid == uid;
+    }
+
+    match /deletedProfiles/{uid} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if isOwner(uid)
+        && request.resource.data.keys().hasOnly(['uid', 'deletedAt'])
+        && request.resource.data.uid == uid
+        && request.resource.data.deletedAt is timestamp;
+      allow update, delete: if false;
     }
 
     function validUsername(value) {
@@ -184,7 +199,7 @@ service cloud.firestore {
     match /usernames/{username} {
       allow get: if signedIn();
       allow list: if false;
-      allow create: if signedIn()
+      allow create: if activeUser()
         && validUsername(username)
         && request.resource.data.keys().hasOnly(['userId'])
         && request.resource.data.userId == request.auth.uid
@@ -192,7 +207,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.usernameLower == username
         && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.usernameLower == username;
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if activeUser()
         && resource.data.userId == request.auth.uid
         && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
@@ -201,7 +216,7 @@ service cloud.firestore {
     match /inviteCodes/{inviteCode} {
       allow get: if signedIn();
       allow list: if false;
-      allow create: if signedIn()
+      allow create: if activeUser()
         && validInviteCode(inviteCode)
         && request.resource.data.keys().hasOnly(['userId'])
         && request.resource.data.userId == request.auth.uid
@@ -227,7 +242,7 @@ service cloud.firestore {
           resource.data.followerUid == request.auth.uid
           || resource.data.followingUid == request.auth.uid
         );
-      allow create: if signedIn()
+      allow create: if activeUser()
         && request.resource.data.keys().hasOnly(['followerUid', 'followingUid', 'createdAt'])
         && request.resource.data.followerUid == request.auth.uid
         && request.resource.data.followingUid is string
@@ -237,29 +252,29 @@ service cloud.firestore {
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(request.resource.data.followingUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.resource.data.followingUid)/users/$(request.auth.uid));
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if activeUser()
         && (
           resource.data.followerUid == request.auth.uid
-          || (
-            resource.data.followingUid == request.auth.uid
-            && existsAfter(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(resource.data.followerUid))
-          )
+          || resource.data.followingUid == request.auth.uid
         );
     }
 
     // Public relationship projections let signed-in users inspect another profile's lists
     // without granting access to arbitrary documents in the internal follows collection.
     match /publicFollowing/{profileUid}/users/{followingUid} {
-      allow get, list: if signedIn()
+      allow get: if signedIn()
+        && (request.auth.uid == profileUid || request.auth.uid == followingUid
+          || !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid)));
+      allow list: if signedIn()
         && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
-      allow create: if signedIn()
+      allow create: if activeUser()
         && request.auth.uid == profileUid
         && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == followingUid
         && existsAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid))
         && getAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid)).data.followingUid == followingUid;
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if activeUser()
         && (request.auth.uid == profileUid || request.auth.uid == followingUid)
         && !existsAfter(/databases/$(database)/documents/follows/$(profileUid + '_' + followingUid));
     }
@@ -267,14 +282,14 @@ service cloud.firestore {
     match /publicFollowers/{profileUid}/users/{followerUid} {
       allow get, list: if signedIn()
         && !exists(/databases/$(database)/documents/blockedUsers/$(profileUid)/users/$(request.auth.uid));
-      allow create: if signedIn()
+      allow create: if activeUser()
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && request.resource.data.keys().hasOnly(['uid'])
         && request.resource.data.uid == followerUid
         && existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid))
         && getAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid)).data.followingUid == profileUid;
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if activeUser()
         && (request.auth.uid == followerUid || request.auth.uid == profileUid)
         && !existsAfter(/databases/$(database)/documents/follows/$(followerUid + '_' + profileUid));
     }
@@ -337,11 +352,11 @@ service cloud.firestore {
           || isFollowingAuthor(resource.data.authorUid)
         );
 
-      allow create: if signedIn() && validFeedEvent();
-      allow update: if signedIn()
+      allow create: if activeUser() && validFeedEvent();
+      allow update: if activeUser()
         && resource.data.authorUid == request.auth.uid
         && validFeedEvent();
-      allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
+      allow delete: if activeUser() && resource.data.authorUid == request.auth.uid;
     }
 
     // Gifts are immutable deliveries. The client may retry the same gift ID, but cannot
@@ -370,17 +385,17 @@ service cloud.firestore {
       }
 
       allow get, list: if isOwner(recipientUid);
-      allow create: if signedIn()
+      allow create: if activeUser()
         && request.auth.uid != recipientUid
         && validGiftPayload()
         && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
         && exists(/databases/$(database)/documents/follows/$(request.auth.uid + '_' + recipientUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
         && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid));
-      allow update: if signedIn()
+      allow update: if activeUser()
         && resource.data.senderUid == request.auth.uid
         && request.resource.data == resource.data;
-      allow delete: if false;
+      allow delete: if isOwner(recipientUid);
     }
   }
 }
