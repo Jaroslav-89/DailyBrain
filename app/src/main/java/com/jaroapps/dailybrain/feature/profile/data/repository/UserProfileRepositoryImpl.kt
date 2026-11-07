@@ -123,6 +123,8 @@ class UserProfileRepositoryImpl(
 
             database.trainingSessionDao().deleteAll(localAccountId)
             database.trainingDayDao().deleteAll(localAccountId)
+            database.streakPatchDao().deleteDaysForUser(localAccountId)
+            database.streakPatchDao().deleteStateForUser(localAccountId)
             database.dailyExerciseResultDao().deleteAll(localAccountId)
             database.statisticsDao().deleteOverall(localAccountId)
             database.statisticsDao().deleteAllExerciseStatistics(localAccountId)
