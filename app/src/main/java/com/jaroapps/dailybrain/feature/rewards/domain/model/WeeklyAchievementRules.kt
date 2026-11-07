@@ -1,96 +1,97 @@
 package com.jaroapps.dailybrain.feature.rewards.domain.model
 
+import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.temporal.TemporalAdjusters
 
 /**
- * Completion rules shared by the weekly calendar streak and weekly challenge.
+ * Rules for recurring achievements and the data-driven weekly exercise challenge.
  *
- * The streak is a rolling sequence of active calendar dates, regardless of
- * ISO-week boundaries or exercise type. The first active date is day one, and a
- * reward is completed on every seventh consecutive active date.
- *
- * The weekly challenge is calendar-based: arithmetic must be completed on each
- * of the seven dates from Monday through Sunday, and all three additional
- * exercise types must also be completed during that same ISO week.
+ * Streaks count unique active calendar dates (real training or a protected date).
+ * Weekly challenges count completed sessions, not distinct dates.
  */
 object WeeklyAchievementRules {
 
     const val REQUIRED_WEEK_DAYS = 7
 
+    data class ExerciseRequirement(
+        val exerciseType: String,
+        val requiredCount: Int,
+    ) {
+        init {
+            require(exerciseType.isNotBlank())
+            require(requiredCount > 0)
+        }
+    }
+
+    /**
+     * The current default challenge. Future generated challenges can provide another list of
+     * requirements without changing progress or completion calculation.
+     */
+    val DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS = listOf(
+        ExerciseRequirement(ExerciseType.ARITHMETIC.storageValue, 7),
+        ExerciseRequirement(ExerciseType.MEMORY_WORDS.storageValue, 1),
+        ExerciseRequirement(ExerciseType.STROOP_TEST.storageValue, 1),
+        ExerciseRequirement(ExerciseType.COUNTING_TRAINING.storageValue, 1),
+    )
+
     fun weeklyStreakCompletionDates(
-        trainingDates: Collection<LocalDate>,
+        activeDates: Collection<LocalDate>,
     ): List<LocalDate> {
-        val dates = trainingDates.distinct().sorted()
+        val dates = activeDates.distinct().sorted()
         if (dates.isEmpty()) return emptyList()
 
         val completions = mutableListOf<LocalDate>()
         var streakLength = 0
         var previousDate: LocalDate? = null
-
         dates.forEach { date ->
             streakLength = if (previousDate?.plusDays(1) == date) streakLength + 1 else 1
             previousDate = date
-            if (streakLength % REQUIRED_WEEK_DAYS == 0) {
-                completions += date
-            }
+            if (streakLength % REQUIRED_WEEK_DAYS == 0) completions += date
         }
-
         return completions
     }
 
-    /**
-     * Returns every ISO-week start (Monday) whose seven days contain arithmetic and
-     * every required additional exercise type. Dates from adjacent weeks are never mixed.
-     */
-    fun weeklyChallengeCompletionWeekStarts(
-        exerciseTypesByDate: Map<LocalDate, Set<String>>,
-        arithmeticExerciseType: String,
-        requiredAdditionalExerciseTypes: Set<String>,
-    ): List<LocalDate> {
-        if (exerciseTypesByDate.isEmpty() || requiredAdditionalExerciseTypes.isEmpty()) {
-            return emptyList()
-        }
-
-        val candidateWeekStarts = exerciseTypesByDate.keys
-            .map { date -> date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY)) }
-            .distinct()
-            .sorted()
-
-        return candidateWeekStarts.filter { weekStart ->
-            val weekDates = (0 until REQUIRED_WEEK_DAYS)
-                .map { offset -> weekStart.plusDays(offset.toLong()) }
-            val arithmeticDates = weekDates.filter { date ->
-                arithmeticExerciseType in exerciseTypesByDate[date].orEmpty()
-            }.toSet()
-            val completedAdditionalTypes = weekDates
-                .flatMap { date -> exerciseTypesByDate[date].orEmpty() }
-                .toSet()
-
-            isWeeklyChallengeCompleted(
-                weekStart = weekStart,
-                arithmeticTrainingDates = arithmeticDates,
-                completedExerciseTypes = completedAdditionalTypes,
-                requiredAdditionalExerciseTypes = requiredAdditionalExerciseTypes,
+    /** Counts sessions of each exercise type for one Monday-Sunday calendar week. */
+    fun weeklyChallengeProgress(
+        completedExerciseTypes: Collection<String>,
+        requirements: List<ExerciseRequirement> = DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS,
+    ): Map<String, Int> {
+        val counts = completedExerciseTypes.groupingBy { it }.eachCount()
+        return requirements.associate { requirement ->
+            requirement.exerciseType to minOf(
+                counts[requirement.exerciseType] ?: 0,
+                requirement.requiredCount,
             )
         }
     }
 
     fun isWeeklyChallengeCompleted(
-        weekStart: LocalDate,
-        arithmeticTrainingDates: Set<LocalDate>,
-        completedExerciseTypes: Set<String>,
-        requiredAdditionalExerciseTypes: Set<String>,
+        completedExerciseTypes: Collection<String>,
+        requirements: List<ExerciseRequirement> = DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS,
     ): Boolean {
-        if (requiredAdditionalExerciseTypes.isEmpty()) return false
-
-        val hasArithmeticEveryDay = (0 until REQUIRED_WEEK_DAYS).all { offset ->
-            weekStart.plusDays(offset.toLong()) in arithmeticTrainingDates
+        if (requirements.isEmpty()) return false
+        val counts = completedExerciseTypes.groupingBy { it }.eachCount()
+        return requirements.all { requirement ->
+            (counts[requirement.exerciseType] ?: 0) >= requirement.requiredCount
         }
-        val hasAllAdditionalExercises =
-            completedExerciseTypes.containsAll(requiredAdditionalExerciseTypes)
-
-        return hasArithmeticEveryDay && hasAllAdditionalExercises
     }
+
+    /**
+     * Returns week starts where all required session counts were completed.
+     * Map keys are Monday dates; each collection contains one item per saved workout session,
+     * so several arithmetic sessions on the same day each count.
+     */
+    fun weeklyChallengeCompletionWeekStarts(
+        exerciseTypesByWeek: Map<LocalDate, Collection<String>>,
+        requirements: List<ExerciseRequirement> = DEFAULT_WEEKLY_CHALLENGE_REQUIREMENTS,
+    ): List<LocalDate> = exerciseTypesByWeek
+        .filterValues { completedTypes -> isWeeklyChallengeCompleted(completedTypes, requirements) }
+        .keys
+        .filter { it.dayOfWeek == DayOfWeek.MONDAY }
+        .sorted()
+
+    fun weekStart(date: LocalDate): LocalDate =
+        date.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
 }
