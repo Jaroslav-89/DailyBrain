@@ -3,6 +3,7 @@ package com.jaroapps.dailybrain.feature.statistics.presentation
 import com.jaroapps.dailybrain.feature.statistics.domain.model.DailyExerciseResult
 
 enum class ChartPeriod {
+    DAY,
     WEEK,
     MONTH,
     HALF_YEAR,
