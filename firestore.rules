@@ -224,7 +224,7 @@ service cloud.firestore {
         && getAfter(/databases/$(database)/documents/users/$(request.auth.uid)).data.inviteCode == inviteCode
         && getAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid)).data.inviteCode == inviteCode;
       allow update: if false;
-      allow delete: if signedIn()
+      allow delete: if activeUser()
         && resource.data.userId == request.auth.uid
         && !existsAfter(/databases/$(database)/documents/users/$(request.auth.uid))
         && !existsAfter(/databases/$(database)/documents/publicProfiles/$(request.auth.uid));
