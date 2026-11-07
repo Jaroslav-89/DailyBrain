@@ -10,7 +10,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthent
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileCollectiblesRepository
 import com.jaroapps.dailybrain.feature.shop.domain.repository.GiftDeliveryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveProfileStatisticsUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveSelectedProfileUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
