@@ -83,6 +83,7 @@ import com.jaroapps.dailybrain.feature.profile.presentation.PreferencesScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.FriendsScreen
 import com.jaroapps.dailybrain.feature.profile.presentation.PublicProfileSyncViewModel
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.common.domain.usecase.ProcessMissedStreakDaysUseCase
 import com.jaroapps.dailybrain.ui.theme.AppThemePreference
 import com.jaroapps.dailybrain.feature.home.presentation.HomeAppearancePreference
 import com.jaroapps.dailybrain.feature.publicprofile.presentation.PublicUserProfileScreen
@@ -99,12 +100,14 @@ import java.time.format.DateTimeFormatter
 fun AppNavHost(startDestination: String = Route.STARTUP) {
     val navController = rememberNavController()
     val observeUserProfile: ObserveUserProfileUseCase = koinInject()
+    val processMissedStreakDays: ProcessMissedStreakDaysUseCase = koinInject()
     val activeProfile by observeUserProfile().collectAsState(initial = null)
     val context = LocalContext.current
     LaunchedEffect(activeProfile?.localAccountId) {
         activeProfile?.localAccountId?.let { localAccountId ->
             AppThemePreference.ensureLoaded(context, localAccountId)
             HomeAppearancePreference.ensureLoaded(context, localAccountId)
+            runCatching { processMissedStreakDays() }
         }
     }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
