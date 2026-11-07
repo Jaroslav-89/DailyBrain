@@ -37,9 +37,9 @@ data class HomeUiState(
     val currentWeekDates: List<LocalDate>
         get() = weekDates(currentWeekStart)
 
-    /** First real completed exercise date; protected days never define the beginning of history. */
+    /** First real training day; dates protected by patches do not start the history range. */
     val firstTrainingDate: LocalDate?
-        get() = completedExerciseDatesByType.values.asSequence().flatten().minOrNull()
+        get() = completedDates.asSequence().filterNot { it in patchedDates }.minOrNull()
 
     val firstTrainingWeekStart: LocalDate
         get() = firstTrainingDate?.with(TemporalAdjusters.previousOrSame(DayOfWeek.MONDAY))
