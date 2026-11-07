@@ -24,13 +24,13 @@ class ActiveUserProvider(
         if (settingsDao.isProfileSelectionRequired() == true) {
             throw ProfileSelectionRequiredException()
         }
-        settingsDao.getActiveLocalAccountId()?.let { return it }
+        settingsDao.getActiveLocalAccountId()?.takeIf(String::isNotBlank)?.let { return it }
 
         return initializationMutex.withLock {
             if (settingsDao.isProfileSelectionRequired() == true) {
                 throw ProfileSelectionRequiredException()
             }
-            settingsDao.getActiveLocalAccountId()?.let { return@withLock it }
+            settingsDao.getActiveLocalAccountId()?.takeIf(String::isNotBlank)?.let { return@withLock it }
 
             val profileDao = database.userProfileDao()
             val profile = profileDao.getLegacyDefaultProfile() ?: UserProfileEntity(
