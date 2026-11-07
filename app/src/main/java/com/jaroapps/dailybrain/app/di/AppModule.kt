@@ -80,6 +80,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileAuthSess
 import com.jaroapps.dailybrain.feature.profile.data.auth.FirebaseAuthenticationRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.ReauthenticateGoogleAccountUseCase
 import com.jaroapps.dailybrain.feature.profile.data.repository.ProfileStatisticsRepositoryImpl
 import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileStatisticsRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
@@ -225,13 +226,18 @@ val appModule = module {
             userDirectoryRepository = get(),
         )
     }
+    factory {
+        ReauthenticateGoogleAccountUseCase(
+            userProfileRepository = get(),
+            profileAuthSessionManager = get(),
+        )
+    }
     factory { ObserveUserProfileUseCase(repository = get()) }
     factory { ObserveLocalProfilesUseCase(repository = get()) }
     factory { CreateLocalProfileUseCase(repository = get()) }
     factory {
         SwitchActiveProfileUseCase(
             repository = get(),
-            profileAuthSessionManager = get(),
             stateChangedNotifier = get(),
         )
     }
@@ -241,7 +247,7 @@ val appModule = module {
     factory { SaveUserProfileUseCase(repository = get()) }
     single<ProfileStatisticsRepository> { ProfileStatisticsRepositoryImpl(database = get(), activeUserProvider = get()) }
     factory { ObserveProfileStatisticsUseCase(repository = get()) }
-    viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteActiveProfile = get(), linkGoogleAccountUseCase = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
+    viewModel { ProfileViewModel(observeUserProfile = get(), observeProfileStatistics = get(), saveUserProfile = get(), observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteActiveProfile = get(), linkGoogleAccountUseCase = get(), reauthenticateGoogleAccountUseCase = get(), firebaseAuthenticationRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
     viewModel { ProfileSelectionViewModel(observeLocalProfiles = get(), createLocalProfile = get(), switchActiveProfile = get(), deleteLocalProfile = get()) }
     viewModel { UserDirectoryViewModel(observeUserProfile = get(), userDirectoryRepository = get(), userProfileRepository = get(), firebaseAuthenticationRepository = get()) }
     viewModel { PublicProfileSyncViewModel(observeUserProfile = get(), observeProfileStatistics = get(), observeAvatar = get(), userDirectoryRepository = get(), profileCollectiblesRepository = get(), giftDeliveryRepository = get()) }
