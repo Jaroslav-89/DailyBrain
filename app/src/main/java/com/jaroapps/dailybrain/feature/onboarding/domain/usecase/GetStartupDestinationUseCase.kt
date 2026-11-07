@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 
 enum class StartupDestination {
+    PROFILE_SELECTION,
     APP_ONBOARDING,
     HOME,
 }
