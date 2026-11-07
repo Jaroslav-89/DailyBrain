@@ -1,5 +1,6 @@
 package com.jaroapps.dailybrain.feature.history.presentation
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -8,13 +9,15 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -32,9 +35,10 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -55,8 +59,10 @@ fun CalendarScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     val trainingDayColor = colorResource(R.color.color_training_completed)
+    val patchedDayColor = colorResource(R.color.color_training_patched)
     val missedDayColor = colorResource(R.color.color_training_missed)
     val todayWithoutTrainingColor = colorResource(R.color.color_training_neutral)
+    val challengeColor = colorResource(R.color.color_button_green)
 
     Column(
         modifier = modifier
@@ -81,9 +87,7 @@ fun CalendarScreen(
                 fontWeight = FontWeight.SemiBold,
             )
             Spacer(Modifier.weight(1f))
-            IconButton(
-                onClick = { /* Sharing will be implemented in a later iteration. */ },
-            ) {
+            IconButton(onClick = { /* Sharing will be implemented in a later iteration. */ }) {
                 Icon(
                     imageVector = Icons.Filled.Share,
                     contentDescription = "Поделиться прогрессом",
@@ -114,6 +118,69 @@ fun CalendarScreen(
                     text = "дней подряд",
                     style = MaterialTheme.typography.titleMedium,
                 )
+            }
+        }
+
+        Spacer(Modifier.height(12.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                CalendarProgressRow(
+                    title = "7-дневная серия",
+                    completed = state.weeklyStreakProgress,
+                    total = 7,
+                    suffix = "дней",
+                    color = trainingDayColor,
+                )
+                CalendarProgressRow(
+                    title = "Месячная серия",
+                    completed = state.monthlyStreakProgress,
+                    total = state.monthlyStreakTarget,
+                    suffix = "дней",
+                    color = trainingDayColor,
+                )
+            }
+        }
+
+        Spacer(Modifier.height(14.dp))
+        Text(
+            text = "Задание на неделю",
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+        )
+        Spacer(Modifier.height(8.dp))
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = MaterialTheme.shapes.large,
+            color = MaterialTheme.colorScheme.surfaceVariant,
+        ) {
+            Column(
+                modifier = Modifier.padding(14.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                state.weeklyChallengeConditions.forEach { condition ->
+                    CalendarProgressRow(
+                        title = condition.title,
+                        completed = condition.completedCount,
+                        total = condition.requiredCount,
+                        suffix = "упр.",
+                        color = challengeColor,
+                    )
+                }
+                if (state.isWeeklyChallengeCompleted) {
+                    Text(
+                        text = "Недельное задание выполнено!",
+                        color = challengeColor,
+                        style = MaterialTheme.typography.labelLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
             }
         }
 
@@ -215,6 +282,7 @@ fun CalendarScreen(
                         if (date != null) {
                             val ringColor = when {
                                 date in state.activeDates -> trainingDayColor
+                                date in state.patchedDates -> patchedDayColor
                                 date == state.today -> todayWithoutTrainingColor
                                 state.firstTrainingDate != null &&
                                     date >= state.firstTrainingDate &&
@@ -232,10 +300,14 @@ fun CalendarScreen(
                                             .border(1.5.dp, ringColor, CircleShape),
                                     )
                                 }
-                                Text(
-                                    text = date.dayOfMonth.toString(),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
+                                if (date in state.patchedDates) {
+                                    Text(text = "🩹", fontSize = 18.sp)
+                                } else {
+                                    Text(
+                                        text = date.dayOfMonth.toString(),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
                             }
                         }
                     }
@@ -244,14 +316,54 @@ fun CalendarScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                CalendarLegend(trainingDayColor, "Тренировка")
+                CalendarLegend(patchedDayColor, "Пластырь")
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+                CalendarLegend(missedDayColor, "Пропуск")
+                CalendarLegend(todayWithoutTrainingColor, "Сегодня")
+            }
+        }
+    }
+}
+
+@Composable
+private fun CalendarProgressRow(
+    title: String,
+    completed: Int,
+    total: Int,
+    suffix: String,
+    color: Color,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
         ) {
-            CalendarLegend(trainingDayColor, "Тренировка выполнена")
-            CalendarLegend(missedDayColor, "Пропуск")
-            CalendarLegend(todayWithoutTrainingColor, "Сегодня")
+            Text(title, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Medium)
+            Text(
+                text = "$completed/$total $suffix",
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = MaterialTheme.colorScheme.onSurface,
+            )
+        }
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(7.dp)
+                .clip(RoundedCornerShape(50))
+                .background(MaterialTheme.colorScheme.surface),
+        ) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth((completed.toFloat() / total.coerceAtLeast(1)).coerceIn(0f, 1f))
+                    .fillMaxHeight()
+                    .background(color, RoundedCornerShape(50)),
+            )
         }
     }
 }
