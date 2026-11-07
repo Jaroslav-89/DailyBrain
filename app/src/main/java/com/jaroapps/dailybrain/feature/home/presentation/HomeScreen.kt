@@ -469,6 +469,8 @@ fun HomeScreen(
     }
 }
 
+}
+
 @Composable
 private fun arithmeticButtonColor(status: ArithmeticDayStatus): Color = when (status) {
     ArithmeticDayStatus.LOADING,
