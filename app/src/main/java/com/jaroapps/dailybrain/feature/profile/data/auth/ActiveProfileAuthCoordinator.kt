@@ -14,7 +14,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.repository.ProfileGoogleSi
 import kotlinx.coroutines.CancellationException
 
 /**
- * Keeps the single FirebaseAuth session aligned with the selected local DailyBrain profile.
+ * Restores a previously linked profile's Firebase session on explicit user request.
  * Google tokens remain in memory and are exchanged with Firebase only after checking the stored subject.
  */
 class ActiveProfileAuthCoordinator(
@@ -22,12 +22,9 @@ class ActiveProfileAuthCoordinator(
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
 ) : ProfileAuthSessionManager {
 
-    override suspend fun ensureAuthenticated(profile: UserProfile) {
+    override suspend fun reauthenticate(profile: UserProfile) {
         val expectedFirebaseUid = profile.firebaseUid?.takeIf(String::isNotBlank)
-        if (expectedFirebaseUid == null) {
-            firebaseAuthenticationRepository.signOut()
-            return
-        }
+            ?: throw ProfileGoogleAccountNotLinkedException()
 
         if (firebaseAuthenticationRepository.currentUserId() == expectedFirebaseUid) return
 

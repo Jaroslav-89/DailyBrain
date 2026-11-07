@@ -3,11 +3,11 @@ package com.jaroapps.dailybrain.feature.profile.domain.repository
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 
 /**
- * Ensures Firebase is authenticated as the Google account linked to the target local profile.
- * Implementations may request interactive Google sign-in when the persisted Firebase session differs.
+ * Re-authenticates Firebase for a profile that already has a Google account binding.
+ * Implementations may request interactive Google sign-in when the current session differs.
  */
 interface ProfileAuthSessionManager {
-    suspend fun ensureAuthenticated(profile: UserProfile)
+    suspend fun reauthenticate(profile: UserProfile)
 }
 
 class ProfileGoogleSignInCancelledException : IllegalStateException()
