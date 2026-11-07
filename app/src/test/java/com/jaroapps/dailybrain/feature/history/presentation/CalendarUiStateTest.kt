@@ -37,7 +37,7 @@ class CalendarUiStateTest {
         assertEquals(3, state.weeklyStreakProgress)
         assertEquals(3, state.monthlyStreakProgress)
         assertEquals(31, state.monthlyStreakTarget)
-        assertFalse(state.hasTrainingToday.not())
+        assertTrue(state.hasTrainingToday)
     }
 
     @Test
