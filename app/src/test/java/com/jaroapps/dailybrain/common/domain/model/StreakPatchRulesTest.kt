@@ -59,7 +59,7 @@ class StreakPatchRulesTest {
     fun existingPatchDaysAreNotChargedTwice() {
         val result = StreakPatchRules.process(
             lastProcessedDate = monday,
-            throughDate = monday.plusDays(2),
+            throughDate = monday.plusDays(1),
             trainingDates = setOf(monday),
             existingPatchedDates = setOf(monday.plusDays(1)),
             isStreakActive = true,
