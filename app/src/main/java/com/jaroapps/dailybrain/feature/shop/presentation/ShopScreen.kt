@@ -52,6 +52,8 @@ import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticItem
 import com.jaroapps.dailybrain.feature.avatar.domain.model.AvatarCosmeticType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarAssetPreview
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
+import com.jaroapps.dailybrain.feature.profile.presentation.UserDirectoryViewModel
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinEconomy
 import com.jaroapps.dailybrain.feature.rewards.domain.model.EndorphinGiftType
 import com.jaroapps.dailybrain.feature.rewards.presentation.EndorphinAmount
@@ -66,6 +68,8 @@ fun ShopScreen(
     viewModel: ShopViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val directoryViewModel: UserDirectoryViewModel = koinViewModel()
+    val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
         var skipInitialResume = true
@@ -85,6 +89,17 @@ fun ShopScreen(
     var selectedProduct by remember { mutableStateOf<ShopProductDetails?>(null) }
     var pendingPurchase by remember { mutableStateOf<PendingShopPurchase?>(null) }
     var pendingGift by remember { mutableStateOf<PendingShopGift?>(null) }
+
+    fun requestGift(gift: PendingShopGift) {
+        if (directoryState.cloudSessionStatus != ProfileCloudSessionStatus.READY) {
+            selectedProduct = null
+            onOpenFriendsSearch()
+        } else {
+            pendingGift = gift
+            selectedProduct = null
+            viewModel.refreshRecipients()
+        }
+    }
 
     Scaffold(
         modifier = modifier.fillMaxSize(),
@@ -275,9 +290,7 @@ fun ShopScreen(
                     when (product) {
                         is ShopProductDetails.Gift -> Button(
                             onClick = {
-                                pendingGift = PendingShopGift.Gift(product.item)
-                                selectedProduct = null
-                                viewModel.refreshRecipients()
+                                requestGift(PendingShopGift.Gift(product.item))
                             },
                             enabled = !state.isPurchasing,
                             colors = shopButtonColors(),
@@ -295,9 +308,7 @@ fun ShopScreen(
                             }
                             Button(
                                 onClick = {
-                                    pendingGift = PendingShopGift.Cosmetic(product.item)
-                                    selectedProduct = null
-                                    viewModel.refreshRecipients()
+                                    requestGift(PendingShopGift.Cosmetic(product.item))
                                 },
                                 enabled = !state.isPurchasing,
                                 colors = shopButtonColors(),
