@@ -5,7 +5,7 @@ import kotlinx.coroutines.CancellationException
 import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteLocalProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +27,7 @@ class ProfileSelectionViewModel(
     observeLocalProfiles: ObserveLocalProfilesUseCase,
     private val createLocalProfile: CreateLocalProfileUseCase,
     private val switchActiveProfile: SwitchActiveProfileUseCase,
-    private val deleteLocalProfile: DeleteLocalProfileUseCase,
+    private val deleteProfileUseCase: DeleteProfileUseCase,
 ) : ViewModel() {
     private val profilesLoaded = MutableStateFlow(false)
     private val profiles = observeLocalProfiles()
@@ -80,7 +80,7 @@ class ProfileSelectionViewModel(
     fun deleteProfile(localAccountId: String) {
         viewModelScope.launch {
             runAction {
-                deleteLocalProfile(localAccountId)
+                deleteProfileUseCase(localAccountId)
             }
         }
     }

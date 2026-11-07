@@ -61,6 +61,7 @@ import java.time.ZoneOffset
 fun EditProfileScreen(
     onBack: () -> Unit,
     onEditAvatar: () -> Unit,
+    onProfileDeleted: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: ProfileViewModel = koinViewModel(),
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
@@ -258,6 +259,14 @@ fun EditProfileScreen(
                 text = {
                     Column {
                         Text(stringResource(R.string.profile_delete_warning))
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            "Локальные данные будут удалены сразу. Облачная очистка удалит полученные подарки и подписки, " +
+                                "но сохранит подарки, отправленные другим пользователям, и их эндорфины. " +
+                                "Если сети нет, очистка завершится при следующем входе через Google.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                         if (state.deleteError) {
                             Spacer(Modifier.height(8.dp))
                             Text(
@@ -269,7 +278,7 @@ fun EditProfileScreen(
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { viewModel.deleteProfile(onDeleted = onBack) },
+                        onClick = { viewModel.deleteProfile(onDeleted = onProfileDeleted) },
                     ) {
                         Text(stringResource(R.string.profile_delete_confirm))
                     }
@@ -469,7 +478,7 @@ fun EditProfileScreen(
                 viewModel.clearDeleteError()
                 deleteDialogVisible = true
             },
-            enabled = !state.isSaving && state.profiles.size > 1,
+            enabled = !state.isSaving,
             modifier = Modifier.fillMaxWidth(),
             colors = ButtonDefaults.buttonColors(
                 containerColor = MaterialTheme.colorScheme.error,
@@ -478,16 +487,6 @@ fun EditProfileScreen(
         ) {
             Text("Удаление аккаунта")
         }
-        if (state.profiles.size <= 1) {
-            Spacer(Modifier.height(8.dp))
-            Text(
-                stringResource(R.string.profile_delete_last_profile_hint),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.bodySmall,
-            )
-        }
-
-
     }
 }
 

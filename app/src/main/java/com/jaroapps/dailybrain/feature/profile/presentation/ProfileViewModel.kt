@@ -23,7 +23,7 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.SaveUserProfileUse
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveLocalProfilesUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.CreateLocalProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.SwitchActiveProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteActiveProfileUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.usecase.DeleteProfileUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ReauthenticateGoogleAccountUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,7 +78,7 @@ class ProfileViewModel(
     observeLocalProfiles: ObserveLocalProfilesUseCase,
     private val createLocalProfile: CreateLocalProfileUseCase,
     private val switchActiveProfile: SwitchActiveProfileUseCase,
-    private val deleteActiveProfile: DeleteActiveProfileUseCase,
+    private val deleteProfileUseCase: DeleteProfileUseCase,
     private val linkGoogleAccountUseCase: LinkGoogleAccountUseCase,
     private val reauthenticateGoogleAccountUseCase: ReauthenticateGoogleAccountUseCase,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
@@ -193,7 +193,9 @@ class ProfileViewModel(
         viewModelScope.launch {
             deleteError.value = false
             try {
-                deleteActiveProfile()
+                val localAccountId = uiState.value.profile?.localAccountId
+                    ?: throw IllegalStateException("Active local profile is unavailable.")
+                deleteProfileUseCase(localAccountId)
                 onDeleted()
             } catch (_: Exception) {
                 deleteError.value = true
