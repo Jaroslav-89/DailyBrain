@@ -15,8 +15,17 @@ enum class StartupDestination {
 class GetStartupDestinationUseCase(
     private val repository: OnboardingProgressRepository,
 ) {
-    operator fun invoke() = repository.observeActiveProgress().map { progress ->
-        if (progress.hasSeenAppIntro) StartupDestination.HOME
-        else StartupDestination.APP_ONBOARDING
-    }
+    operator fun invoke() = repository.observeProfileSelectionRequired()
+        .map { it == true }
+        .distinctUntilChanged()
+        .flatMapLatest { selectionRequired ->
+            if (selectionRequired) {
+                flowOf(StartupDestination.PROFILE_SELECTION)
+            } else {
+                repository.observeActiveProgress().map { progress ->
+                    if (progress.hasSeenAppIntro) StartupDestination.HOME
+                    else StartupDestination.APP_ONBOARDING
+                }
+            }
+        }
 }
