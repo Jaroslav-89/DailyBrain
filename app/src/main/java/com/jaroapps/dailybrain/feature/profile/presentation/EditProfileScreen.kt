@@ -279,9 +279,20 @@ fun EditProfileScreen(
                 },
                 confirmButton = {
                     TextButton(
-                        onClick = { viewModel.deleteProfile(onDeleted = onProfileDeleted) },
+                        onClick = {
+                            val localAccountId = deleteProfileLocalAccountId ?: return@TextButton
+                            viewModel.deleteProfile(localAccountId) {
+                                deleteDialogVisible = false
+                                deleteProfileLocalAccountId = null
+                                onProfileDeleted()
+                            }
+                        },
+                        enabled = !state.isDeletingProfile,
                     ) {
-                        Text(stringResource(R.string.profile_delete_confirm))
+                        Text(
+                            if (state.isDeletingProfile) "Удаляем..."
+                            else stringResource(R.string.profile_delete_confirm),
+                        )
                     }
                 },
                 dismissButton = {
