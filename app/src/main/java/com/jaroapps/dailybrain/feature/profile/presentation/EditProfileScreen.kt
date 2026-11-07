@@ -367,6 +367,10 @@ fun EditProfileScreen(
                 !directoryState.isSavingUsername &&
                 !directoryState.isUnlinkingGoogle,
             modifier = Modifier.fillMaxWidth(),
+            colors = ButtonDefaults.buttonColors(
+                containerColor = colorResource(R.color.color_action_green),
+                contentColor = colorResource(R.color.color_on_action_green),
+            ),
         ) {
             Text(
                 if (state.isSaving || directoryState.isSavingUsername) {

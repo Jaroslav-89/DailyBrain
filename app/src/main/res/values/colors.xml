@@ -82,6 +82,12 @@
     <color name="color_exercise_memory">#FF3786B4</color>
     <color name="color_exercise_counting">#FFC58A27</color>
     <color name="color_exercise_stroop">#FF46875F</color>
+    <color name="color_action_green">#FFC5E8C8</color>
+    <color name="color_on_action_green">#FF173D27</color>
+    <color name="color_home_dynamic_text">#FF282D35</color>
+    <color name="color_home_dynamic_text_secondary">#FF424A54</color>
+    <color name="color_exercise_glow_inner">#A6FFD17A</color>
+    <color name="color_exercise_glow_middle">#66F09A38</color>
     <color name="color_on_accent">#FFFFFFFF</color>
     <color name="color_positive_amount">#FF2F805A</color>
     <color name="color_streak_ring_shadow">#FFA85A0B</color>

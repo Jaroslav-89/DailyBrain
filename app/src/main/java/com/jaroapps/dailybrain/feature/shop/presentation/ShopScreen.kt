@@ -19,6 +19,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -37,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.res.painterResource
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.text.font.FontWeight
@@ -136,6 +138,10 @@ fun ShopScreen(
                                 onClick = viewModel::purchasePatch,
                                 enabled = !state.isPurchasing &&
                                     (state.profile?.patchCount ?: 0) < EndorphinEconomy.MAX_PATCH_COUNT,
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = colorResource(R.color.color_action_green),
+                                    contentColor = colorResource(R.color.color_on_action_green),
+                                ),
                             ) { Text("Купить") }
                         }
                     }
@@ -275,7 +281,15 @@ private fun GiftProductCard(giftType: EndorphinGiftType, enabled: Boolean, onGif
             )
             Text(giftType.displayName, fontWeight = FontWeight.SemiBold)
             EndorphinAmount(giftType.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
-            Button(onClick = onGift, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+            Button(
+                onClick = onGift,
+                enabled = enabled,
+                modifier = Modifier.fillMaxWidth(),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = colorResource(R.color.color_action_green),
+                    contentColor = colorResource(R.color.color_on_action_green),
+                ),
+            ) {
                 Text("Подарить")
             }
         }
@@ -309,7 +323,15 @@ private fun CosmeticProductCard(
                 Text("Куплено", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             } else {
                 EndorphinAmount(item.price.toString(), textStyle = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onBuy, enabled = enabled, modifier = Modifier.fillMaxWidth()) {
+                Button(
+                    onClick = onBuy,
+                    enabled = enabled,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.color_action_green),
+                        contentColor = colorResource(R.color.color_on_action_green),
+                    ),
+                ) {
                     Text("Купить")
                 }
             }

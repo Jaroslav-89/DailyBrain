@@ -79,7 +79,18 @@ fun HomeScreen(
     LaunchedEffect(context) {
         HomeAppearancePreference.ensureLoaded(context)
     }
-    val homeBackground = if (HomeAppearancePreference.dynamicBackgroundEnabled) {
+    val dynamicBackgroundEnabled = HomeAppearancePreference.dynamicBackgroundEnabled
+    val homeTextColor = if (dynamicBackgroundEnabled) {
+        colorResource(R.color.color_home_dynamic_text)
+    } else {
+        MaterialTheme.colorScheme.onSurface
+    }
+    val homeSecondaryTextColor = if (dynamicBackgroundEnabled) {
+        colorResource(R.color.color_home_dynamic_text_secondary)
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    val homeBackground = if (dynamicBackgroundEnabled) {
         dynamicWeekBackground(state)
     } else {
         SolidColor(MaterialTheme.colorScheme.background)
@@ -118,6 +129,7 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
+                    color = homeTextColor,
                 )
                 androidx.compose.foundation.Image(
                     painter = painterResource(R.drawable.ic_notification_brain),
@@ -140,6 +152,7 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
+                    color = homeTextColor,
                 )
                 Icon(
                     imageVector = Icons.Filled.Star,
@@ -160,6 +173,7 @@ fun HomeScreen(
                     style = MaterialTheme.typography.titleLarge,
                     fontSize = 22.sp,
                     fontWeight = FontWeight.Bold,
+                    color = homeTextColor,
                 )
                 androidx.compose.foundation.Image(
                     painter = painterResource(R.drawable.ic_endorphin_molecule),
@@ -175,12 +189,13 @@ fun HomeScreen(
             text = "Ваше задание на неделю",
             style = MaterialTheme.typography.titleLarge,
             fontWeight = FontWeight.Bold,
+            color = homeTextColor,
         )
         Text(
             text = "${state.currentWeekDates.first().format(WeekDateFormatter)} - " +
                 state.currentWeekDates.last().format(WeekDateFormatter),
             style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            color = homeSecondaryTextColor,
             modifier = Modifier.padding(top = 2.dp),
         )
 
@@ -367,7 +382,9 @@ fun HomeScreen(
                             style = MaterialTheme.typography.titleMedium,
                             fontSize = 16.sp,
                             fontWeight = FontWeight.Bold,
-                            color = if (today) colorResource(R.color.color_training_completed) else MaterialTheme.colorScheme.onSurface,
+                            color = if (dynamicBackgroundEnabled) homeTextColor
+                                else if (today) colorResource(R.color.color_training_completed)
+                                else MaterialTheme.colorScheme.onSurface,
                             textAlign = TextAlign.Center,
                             maxLines = 1,
                         )
@@ -415,9 +432,9 @@ private fun dynamicWeekBackground(state: HomeUiState): Brush {
 }
 
 private fun lightenForBackground(color: Color): Color = Color(
-    red = color.red + (1f - color.red) * 0.80f,
-    green = color.green + (1f - color.green) * 0.80f,
-    blue = color.blue + (1f - color.blue) * 0.80f,
+    red = color.red + (1f - color.red) * 0.58f,
+    green = color.green + (1f - color.green) * 0.58f,
+    blue = color.blue + (1f - color.blue) * 0.58f,
     alpha = 1f,
 )
 
@@ -452,7 +469,7 @@ private fun RoundExerciseButton(
         if (!completed) {
             StaticRing(
                 modifier = Modifier.fillMaxSize(),
-                radius = size / 2 + 6.dp,
+                radius = size / 2 + 12.dp,
             )
         }
 
@@ -488,31 +505,21 @@ private fun StaticRing(
     modifier: Modifier = Modifier,
     radius: Dp,
 ) {
-    val shadowColor = colorResource(R.color.color_streak_ring_shadow)
-    val ringColor = colorResource(R.color.color_training_completed)
-    val highlightColor = colorResource(R.color.color_streak_ring_highlight)
+    val innerGlow = colorResource(R.color.color_exercise_glow_inner)
+    val middleGlow = colorResource(R.color.color_exercise_glow_middle)
     Canvas(modifier = modifier) {
-        val ringRadius = radius.toPx()
-        val lowerCenter = center.copy(y = center.y + 2.dp.toPx())
-        val upperCenter = center.copy(y = center.y - 1.dp.toPx())
-        // Dark lower edge gives the orange ring a raised, beveled look.
+        val glowRadius = radius.toPx()
         drawCircle(
-            color = shadowColor,
-            radius = ringRadius,
-            center = lowerCenter,
-            style = Stroke(width = 5.dp.toPx()),
-        )
-        drawCircle(
-            color = ringColor,
-            radius = ringRadius,
-            center = upperCenter,
-            style = Stroke(width = 4.dp.toPx()),
-        )
-        drawCircle(
-            color = highlightColor,
-            radius = ringRadius - 1.dp.toPx(),
-            center = upperCenter.copy(y = upperCenter.y - 0.5.dp.toPx()),
-            style = Stroke(width = 1.dp.toPx()),
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to innerGlow,
+                    0.62f to middleGlow,
+                    1f to Color.Transparent,
+                ),
+                center = center,
+                radius = glowRadius,
+            ),
+            radius = glowRadius,
         )
     }
 }
@@ -537,30 +544,21 @@ private fun PulsingRing(
         label = "pulsingExerciseRingRadius",
     )
 
-    val shadowColor = colorResource(R.color.color_streak_ring_shadow)
-    val ringColor = colorResource(R.color.color_training_completed)
-    val highlightColor = colorResource(R.color.color_streak_ring_highlight)
+    val innerGlow = colorResource(R.color.color_exercise_glow_inner)
+    val middleGlow = colorResource(R.color.color_exercise_glow_middle)
     Canvas(modifier = modifier) {
-        val ringRadius = radiusDp.dp.toPx()
-        val lowerCenter = center.copy(y = center.y + 2.dp.toPx())
-        val upperCenter = center.copy(y = center.y - 1.dp.toPx())
+        val glowRadius = radiusDp.dp.toPx()
         drawCircle(
-            color = shadowColor,
-            radius = ringRadius,
-            center = lowerCenter,
-            style = Stroke(width = 5.dp.toPx()),
-        )
-        drawCircle(
-            color = ringColor,
-            radius = ringRadius,
-            center = upperCenter,
-            style = Stroke(width = 4.dp.toPx()),
-        )
-        drawCircle(
-            color = highlightColor,
-            radius = ringRadius - 1.dp.toPx(),
-            center = upperCenter.copy(y = upperCenter.y - 0.5.dp.toPx()),
-            style = Stroke(width = 1.dp.toPx()),
+            brush = Brush.radialGradient(
+                colorStops = arrayOf(
+                    0f to innerGlow,
+                    0.62f to middleGlow,
+                    1f to Color.Transparent,
+                ),
+                center = center,
+                radius = glowRadius,
+            ),
+            radius = glowRadius,
         )
     }
 }
