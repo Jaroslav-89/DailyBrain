@@ -58,8 +58,11 @@ interface FeedEventDao {
     @Query("UPDATE feed_events SET syncState = :syncState WHERE localAccountId = :localAccountId AND eventId = :eventId")
     suspend fun updateSyncState(localAccountId: String, eventId: String, syncState: String)
 
-    @Query("DELETE FROM feed_events WHERE localAccountId = :localAccountId AND isLocal = 0 AND eventType != 'NEW_FOLLOWER'")
+    @Query("DELETE FROM feed_events WHERE localAccountId = :localAccountId AND isLocal = 0 AND eventType NOT IN ('NEW_FOLLOWER', 'GAME_ROOM_INVITATION')")
     suspend fun deleteCachedFriendEvents(localAccountId: String)
+
+    @Query("DELETE FROM feed_events WHERE localAccountId = :localAccountId AND eventType = 'GAME_ROOM_INVITATION'")
+    suspend fun deleteGameRoomInvitationEvents(localAccountId: String)
 
     @Query("DELETE FROM feed_events WHERE localAccountId = :localAccountId")
     suspend fun deleteForLocalAccount(localAccountId: String)

@@ -13,6 +13,8 @@ import com.jaroapps.dailybrain.core.database.entity.FeedEventEntity
 import com.jaroapps.dailybrain.feature.feed.domain.FeedEvent
 import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import com.jaroapps.dailybrain.feature.rewards.data.RewardRecalculator
+import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.GameInvitationStatus
+import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.repository.RockPaperScissorsRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.requireMatchingFirebaseSession
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
@@ -28,6 +30,7 @@ class FeedRepositoryImpl(
     context: Context,
     private val database: AppDatabase,
     private val activeUserProvider: ActiveUserProvider,
+    private val rockPaperScissorsRepository: RockPaperScissorsRepository,
 ) : FeedRepository {
     private val appContext = context.applicationContext
 
@@ -146,6 +149,35 @@ class FeedRepositoryImpl(
             )
         }
 
+        // Invitations are private inbox records, not public feedEvents documents.
+        // Keep the last successful local cache if this optional read fails.
+        val gameInvitationEvents = try {
+            rockPaperScissorsRepository.getFeedInvitations(firebaseUid).map { invitation ->
+                FeedEventEntity(
+                    localAccountId = localAccountId,
+                    eventId = "game_room_invitation:" + invitation.invitationId,
+                    authorFirebaseUid = invitation.inviterUid,
+                    authorName = invitation.inviterName.ifBlank { "Пользователь DailyBrain" },
+                    authorUsername = null,
+                    eventType = "GAME_ROOM_INVITATION",
+                    occurredAtEpochMs = invitation.createdAtEpochMs,
+                    periodKey = invitation.roomId,
+                    exerciseType = invitation.invitationId,
+                    valueInt = if (invitation.status == GameInvitationStatus.ACCEPTED) 1 else 0,
+                    relatedUserFirebaseUid = invitation.inviterUid,
+                    relatedUserName = invitation.roomName,
+                    isLocal = false,
+                    isRevoked = false,
+                    syncState = SYNCED,
+                )
+            }
+        } catch (cancelled: kotlinx.coroutines.CancellationException) {
+            throw cancelled
+        } catch (error: Exception) {
+            android.util.Log.w(LOG_TAG, "Could not refresh game-room invitations; keeping cached invitations.", error)
+            null
+        }
+
         // Replace the friend cache only after all per-author queries completed successfully.
         // A failed query leaves the last successfully loaded cache intact.
         database.withTransaction {
@@ -155,6 +187,10 @@ class FeedRepositoryImpl(
             val relationshipEvents = followedEvents + newFollowerEvents
             if (friendEvents.isNotEmpty() || relationshipEvents.isNotEmpty()) {
                 database.feedEventDao().upsertAll(friendEvents + relationshipEvents)
+            }
+            if (gameInvitationEvents != null) {
+                database.feedEventDao().deleteGameRoomInvitationEvents(localAccountId)
+                if (gameInvitationEvents.isNotEmpty()) database.feedEventDao().upsertAll(gameInvitationEvents)
             }
         }
 
