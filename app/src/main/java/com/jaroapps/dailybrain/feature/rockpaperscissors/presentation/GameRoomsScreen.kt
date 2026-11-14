@@ -108,6 +108,16 @@ fun GameRoomsScreen(
     var showAuthDialog by remember { mutableStateOf(false) }
     var authPromptDismissed by remember { mutableStateOf(false) }
 
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.refresh()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
+
     LaunchedEffect(state.cloudSessionStatus, state.profile) {
         if (state.profile != null && state.cloudSessionStatus != ProfileCloudSessionStatus.READY &&
             !authPromptDismissed
