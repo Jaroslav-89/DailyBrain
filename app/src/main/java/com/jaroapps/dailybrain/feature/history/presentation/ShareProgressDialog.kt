@@ -4,14 +4,12 @@ import android.content.Context
 import android.content.Intent
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -26,6 +24,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -45,7 +47,9 @@ fun ShareProgressDialog(
 ) {
     val profileState by profileViewModel.uiState.collectAsState()
     val context = LocalContext.current
-    var selectedTemplate by remember { mutableStateOf(ShareCardTemplate.CLASSIC) }
+    var selectedPage by remember { mutableStateOf(0) }
+    val templates = listOf(ShareCardTemplate.CLASSIC, ShareCardTemplate.PREMIUM)
+    val selectedTemplate = templates[selectedPage]
     val displayName = profileState.profile?.effectiveDisplayName ?: "Участник DailyBrain"
     val bitmap = remember(
         selectedTemplate,
@@ -82,31 +86,51 @@ fun ShareProgressDialog(
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    TemplateChoice(
-                        title = "Classic",
-                        selected = selectedTemplate == ShareCardTemplate.CLASSIC,
-                        modifier = Modifier.weight(1f),
-                        onClick = { selectedTemplate = ShareCardTemplate.CLASSIC },
-                    )
-                    TemplateChoice(
-                        title = "Premium",
-                        selected = selectedTemplate == ShareCardTemplate.PREMIUM,
-                        modifier = Modifier.weight(1f),
-                        onClick = { selectedTemplate = ShareCardTemplate.PREMIUM },
-                    )
-                }
+                var horizontalDrag by remember { mutableStateOf(0f) }
                 Image(
                     bitmap = bitmap.asImageBitmap(),
-                    contentDescription = "Предпросмотр карточки прогресса",
+                    contentDescription = "Предпросмотр карточки прогресса, ${selectedPage + 1} из ${templates.size}",
                     modifier = Modifier
                         .fillMaxWidth()
                         .aspectRatio(4f / 5f)
-                        .clip(RoundedCornerShape(16.dp)),
+                        .clip(RoundedCornerShape(16.dp))
+                        .pointerInput(selectedPage) {
+                            detectHorizontalDragGestures(
+                                onHorizontalDrag = { _, dragAmount ->
+                                    horizontalDrag += dragAmount
+                                },
+                                onDragEnd = {
+                                    if (horizontalDrag < -48f) {
+                                        selectedPage = (selectedPage + 1).coerceAtMost(templates.lastIndex)
+                                    } else if (horizontalDrag > 48f) {
+                                        selectedPage = (selectedPage - 1).coerceAtLeast(0)
+                                    }
+                                    horizontalDrag = 0f
+                                },
+                                onDragCancel = { horizontalDrag = 0f },
+                            )
+                        },
                 )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.Center,
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    templates.indices.forEach { index ->
+                        val selected = index == selectedPage
+                        Box(
+                            modifier = Modifier
+                                .padding(horizontal = 5.dp, vertical = 2.dp)
+                                .size(if (selected) 11.dp else 7.dp)
+                                .clip(RoundedCornerShape(50))
+                                .background(
+                                    if (selected) MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.35f),
+                                )
+                                .clickable { selectedPage = index },
+                        )
+                    }
+                }
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
@@ -129,35 +153,6 @@ fun ShareProgressDialog(
     }
 }
 
-@Composable
-private fun TemplateChoice(
-    title: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-) {
-    val shape = RoundedCornerShape(12.dp)
-    Surface(
-        modifier = modifier
-            .clip(shape)
-            .border(
-                width = if (selected) 2.dp else 1.dp,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-                shape = shape,
-            ),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        onClick = onClick,
-        shape = shape,
-    ) {
-        Text(
-            text = title,
-            modifier = Modifier.padding(vertical = 11.dp),
-            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            style = MaterialTheme.typography.labelLarge,
-            fontWeight = FontWeight.SemiBold,
-        )
-    }
-}
 
 private fun shareProgressImage(context: Context, bitmap: android.graphics.Bitmap) {
     val shareDirectory = File(context.cacheDir, "share").apply { mkdirs() }
