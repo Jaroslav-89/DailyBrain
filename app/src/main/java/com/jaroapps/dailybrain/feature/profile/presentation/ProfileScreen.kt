@@ -429,6 +429,14 @@ fun ProfileScreen(
                 stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue },
                 BestKind.DURATION,
             )
+            Spacer(Modifier.height(8.dp))
+            BestResultCard(
+                stringResource(R.string.exercise_number_grid),
+                stats.bestExerciseStats.firstOrNull {
+                    it.exerciseType == ExerciseType.storageValueForGridSize(5)
+                },
+                BestKind.DURATION,
+            )
 
         }
     }
