@@ -19,6 +19,6 @@ interface RockPaperScissorsGameplayRepository {
     suspend fun getRoundHistory(firebaseUid: String, roomId: String): List<GameMatchHistoryItem>
     fun observeChat(firebaseUid: String, roomId: String): Flow<List<GameChatMessage>>
     suspend fun sendChatMessage(firebaseUid: String, roomId: String, text: String)
-    suspend fun markChatRead(firebaseUid: String, roomId: String)
+    suspend fun markChatRead(firebaseUid: String, roomId: String, readAtEpochMs: Long)
     suspend fun acknowledgeRoundAnnouncement(firebaseUid: String, roomId: String, roundId: String)
 }

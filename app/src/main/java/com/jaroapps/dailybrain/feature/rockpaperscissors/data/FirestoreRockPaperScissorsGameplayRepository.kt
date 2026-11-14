@@ -603,14 +603,13 @@ class FirestoreRockPaperScissorsGameplayRepository(
         batch.commit().awaitResult()
     }
 
-    override suspend fun markChatRead(firebaseUid: String, roomId: String) {
+    override suspend fun markChatRead(firebaseUid: String, roomId: String, readAtEpochMs: Long) {
+        if (readAtEpochMs <= 0L) return
         val firestore = firestoreFor(firebaseUid)
-        val memberRef = firestore.collection(GAME_ROOMS).document(roomId)
+        firestore.collection(GAME_ROOMS).document(roomId)
             .collection(MEMBERS).document(firebaseUid)
-        val latest = firestore.collection(GAME_ROOMS).document(roomId)
-            .collection(CHAT_STATE).document(CHAT_SUMMARY).get().awaitResult()
-            .getLong("lastMessageAtEpochMs") ?: 0L
-        memberRef.update("lastReadMessageAtEpochMs", latest).awaitResult()
+            .update("lastReadMessageAtEpochMs", readAtEpochMs)
+            .awaitResult()
     }
 
     override suspend fun acknowledgeRoundAnnouncement(firebaseUid: String, roomId: String, roundId: String) {

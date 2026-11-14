@@ -57,6 +57,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.compose.runtime.DisposableEffect
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.CreateGameRoomRequest
@@ -91,6 +95,23 @@ fun GameRoomScreen(
     var showInviteDialog by remember { mutableStateOf(false) }
     var selectedParticipant by remember { mutableStateOf<GameParticipant?>(null) }
     val snapshot = state.snapshot
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner, viewModel) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_RESUME -> viewModel.onScreenResumed()
+                Lifecycle.Event.ON_PAUSE -> viewModel.onScreenPaused()
+                else -> Unit
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        viewModel.onScreenResumed()
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            viewModel.onScreenPaused()
+        }
+    }
 
     BackHandler(enabled = state.isChatOpen) { viewModel.closeChat() }
     LaunchedEffect(state.exitRequested) { if (state.exitRequested) onBack() }

@@ -22,7 +22,6 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
@@ -63,12 +62,15 @@ class GameRoomViewModel(
     private var pendingJob: Job? = null
     private var chatJob: Job? = null
     private var currentUid: String? = null
+    private var isScreenActive = false
+    private var lastMarkedChatReadAtEpochMs = 0L
 
     init {
         viewModelScope.launch {
             observeUserProfile().collect { profile ->
-                currentName = profile.username?.takeIf(String::isNotBlank)?.let { "@$it" }
-                    ?: profile.effectiveDisplayName
+                currentName = profile.username?.takeIf(String::isNotBlank)?.let { "@" + it }
+                    ?: profile.displayName?.takeIf(String::isNotBlank)
+                    ?: profile.generatedAlias
             }
         }
         viewModelScope.launch {
@@ -80,60 +82,93 @@ class GameRoomViewModel(
             }.collect { uid ->
                 if (uid == currentUid) return@collect
                 currentUid = uid
-                roomJob?.cancel()
-                pendingJob?.cancel()
+                stopObservers()
+                lastMarkedChatReadAtEpochMs = 0L
                 if (uid == null) {
                     _uiState.update {
                         it.copy(
                             firebaseUid = null,
                             snapshot = null,
                             isLoading = false,
+                            pendingOpponentUids = emptySet(),
+                            chatMessages = emptyList(),
                             errorMessage = "Восстановите подключение Google-аккаунта для доступа к комнате.",
                         )
                     }
                     return@collect
                 }
-                _uiState.update { it.copy(firebaseUid = uid, isLoading = true, errorMessage = null) }
-                roomJob = viewModelScope.launch {
-                    try {
-                        gameplayRepository.observeRoom(uid, roomId).collect { snapshot ->
-                            _uiState.update { it.copy(snapshot = snapshot, isLoading = false, errorMessage = null) }
-                        }
-                    } catch (cancelled: CancellationException) {
-                        throw cancelled
-                    } catch (error: Exception) {
-                        _uiState.update {
-                            it.copy(
-                                isLoading = false,
-                                errorMessage = error.message ?: "Не удалось загрузить комнату.",
-                            )
-                        }
-                    }
+                _uiState.update {
+                    it.copy(firebaseUid = uid, isLoading = true, errorMessage = null, pendingOpponentUids = emptySet())
                 }
-                pendingJob = viewModelScope.launch {
-                    activeUserProvider.observeUserId()
-                        .flatMapLatest { localUserId ->
-                            database.pendingGameMoveDao().observePendingForRoom(localUserId, roomId)
-                        }
-                        .collect { pending ->
-                            _uiState.update { it.copy(pendingOpponentUids = pending.map { move -> move.opponentUid }.toSet()) }
-                        }
-                }
-                viewModelScope.launch {
-                    runCatching { gameplayRepository.syncPendingMoves(uid, roomId) }
-                }
+                if (isScreenActive) startObservers(uid)
             }
         }
     }
 
+    fun onScreenResumed() {
+        if (isScreenActive) return
+        isScreenActive = true
+        currentUid?.let(::startObservers)
+    }
+
+    fun onScreenPaused() {
+        if (!isScreenActive) return
+        isScreenActive = false
+        stopObservers()
+    }
+
+    private fun startObservers(uid: String) {
+        if (roomJob?.isActive == true) return
+        roomJob = viewModelScope.launch {
+            try {
+                gameplayRepository.observeRoom(uid, roomId).collect { snapshot ->
+                    _uiState.update { it.copy(snapshot = snapshot, isLoading = false, errorMessage = null) }
+                    if (_uiState.value.isChatOpen) markChatRead(snapshot.latestMessageAtEpochMs)
+                }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                _uiState.update {
+                    it.copy(isLoading = false, errorMessage = error.message ?: "Не удалось загрузить комнату.")
+                }
+            }
+        }
+        pendingJob = viewModelScope.launch {
+            activeUserProvider.observeUserId()
+                .flatMapLatest { localUserId ->
+                    database.pendingGameMoveDao().observePendingForRoom(localUserId, roomId)
+                }
+                .collect { pending ->
+                    _uiState.update { it.copy(pendingOpponentUids = pending.map { move -> move.opponentUid }.toSet()) }
+                }
+        }
+        viewModelScope.launch {
+            runCatching { gameplayRepository.syncPendingMoves(uid, roomId) }
+                .onFailure { error ->
+                    if (error !is CancellationException) {
+                        _uiState.update { it.copy(errorMessage = error.message ?: "Не удалось синхронизировать ходы.") }
+                    }
+                }
+        }
+        if (_uiState.value.isChatOpen) startChatListener(uid)
+    }
+
+    private fun stopObservers() {
+        roomJob?.cancel()
+        roomJob = null
+        pendingJob?.cancel()
+        pendingJob = null
+        chatJob?.cancel()
+        chatJob = null
+    }
+
     fun submitMove(opponentUid: String, move: RockPaperScissorsMove) {
         val uid = currentUid ?: return
+        if (!isScreenActive) return
         val roundId = _uiState.value.snapshot?.room?.currentRoundId ?: return
-        val alreadyPending = opponentUid in _uiState.value.pendingOpponentUids
-        val alreadySubmitted = _uiState.value.snapshot?.pairs
-            ?.firstOrNull { it.opponentUid == opponentUid }
-            ?.submittedUids?.contains(uid) == true
-        if (alreadyPending || alreadySubmitted) return
+        val pair = _uiState.value.snapshot?.pairs?.firstOrNull { it.opponentUid == opponentUid }
+        val alreadySubmitted = pair?.status == "WAITING" && uid in pair.submittedUids
+        if (opponentUid in _uiState.value.pendingOpponentUids || alreadySubmitted) return
         viewModelScope.launch {
             _uiState.update { it.copy(errorMessage = null) }
             try {
@@ -148,6 +183,7 @@ class GameRoomViewModel(
 
     fun refresh() {
         val uid = currentUid ?: return
+        if (!isScreenActive) return
         viewModelScope.launch {
             runCatching { gameplayRepository.syncPendingMoves(uid, roomId) }
                 .onFailure { error ->
@@ -160,6 +196,7 @@ class GameRoomViewModel(
 
     fun loadHistory() {
         val uid = currentUid ?: return
+        if (!isScreenActive) return
         viewModelScope.launch {
             _uiState.update { it.copy(isHistoryLoading = true, errorMessage = null) }
             try {
@@ -168,32 +205,46 @@ class GameRoomViewModel(
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(isHistoryLoading = false, errorMessage = error.message ?: "Не удалось загрузить историю.")
-                }
+                _uiState.update { it.copy(isHistoryLoading = false, errorMessage = error.message ?: "Не удалось загрузить историю.") }
             }
         }
     }
 
     fun openChat() {
         val uid = currentUid ?: return
-        if (chatJob?.isActive == true) {
-            _uiState.update { it.copy(isChatOpen = true) }
-            return
-        }
         _uiState.update { it.copy(isChatOpen = true, chatError = null) }
-        viewModelScope.launch { runCatching { gameplayRepository.markChatRead(uid, roomId) } }
+        if (!isScreenActive) return
+        markChatRead(_uiState.value.snapshot?.latestMessageAtEpochMs ?: 0L)
+        startChatListener(uid)
+    }
+
+    private fun startChatListener(uid: String) {
+        if (!isScreenActive || chatJob?.isActive == true) return
         chatJob = viewModelScope.launch {
             try {
                 gameplayRepository.observeChat(uid, roomId).collect { messages ->
                     _uiState.update { it.copy(chatMessages = messages, chatError = null) }
-                    runCatching { gameplayRepository.markChatRead(uid, roomId) }
+                    markChatRead(messages.lastOrNull()?.createdAtEpochMs ?: 0L)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
                 _uiState.update { it.copy(chatError = error.message ?: "Не удалось загрузить чат.") }
             }
+        }
+    }
+
+    private fun markChatRead(timestamp: Long) {
+        val uid = currentUid ?: return
+        if (timestamp <= 0L || timestamp <= lastMarkedChatReadAtEpochMs || !isScreenActive) return
+        lastMarkedChatReadAtEpochMs = timestamp
+        viewModelScope.launch {
+            runCatching { gameplayRepository.markChatRead(uid, roomId, timestamp) }
+                .onFailure { error ->
+                    if (error !is CancellationException) {
+                        lastMarkedChatReadAtEpochMs = minOf(lastMarkedChatReadAtEpochMs, timestamp - 1L)
+                    }
+                }
         }
     }
 
@@ -253,18 +304,12 @@ class GameRoomViewModel(
             try {
                 val user = userDirectoryRepository.findUserByUsername(uid, normalized)
                 _uiState.update {
-                    it.copy(
-                        isSearchingUser = false,
-                        inviteSearchResult = user,
-                        errorMessage = if (user == null) "Пользователь не найден." else null,
-                    )
+                    it.copy(isSearchingUser = false, inviteSearchResult = user, errorMessage = if (user == null) "Пользователь не найден." else null)
                 }
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {
-                _uiState.update {
-                    it.copy(isSearchingUser = false, errorMessage = error.message ?: "Не удалось найти пользователя.")
-                }
+                _uiState.update { it.copy(isSearchingUser = false, errorMessage = error.message ?: "Не удалось найти пользователя.") }
             }
         }
     }
@@ -297,9 +342,7 @@ class GameRoomViewModel(
     }
 
     override fun onCleared() {
-        roomJob?.cancel()
-        pendingJob?.cancel()
-        chatJob?.cancel()
+        stopObservers()
         super.onCleared()
     }
 }
