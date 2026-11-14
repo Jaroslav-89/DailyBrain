@@ -46,6 +46,9 @@ class StatisticsViewModel(
             val weeklySessions = filteredSessions.filter(::isInLastSevenDays)
             val totalTasks = filteredSessions.sumOf { it.taskCount.coerceAtLeast(0) }
             val totalCorrect = filteredSessions.sumOf { it.correctCount.coerceAtLeast(0) }
+            val weightedAccuracy = filteredSessions.sumOf { session ->
+                session.accuracyPercent.coerceIn(0.0, 100.0) * session.taskCount.coerceAtLeast(0)
+            }
 
             return ExerciseStatistics(
                 trainingCount = filteredSessions.size,
@@ -53,11 +56,14 @@ class StatisticsViewModel(
                 totalDurationMs = filteredSessions.sumOf { it.durationMs.coerceAtLeast(0L) },
                 averageDurationMs = filteredSessions.takeIf { it.isNotEmpty() }
                     ?.map { it.durationMs.coerceAtLeast(0L) }?.average()?.toLong() ?: 0L,
-                averageAccuracyPercent = if (totalTasks > 0) totalCorrect.toDouble() / totalTasks * 100.0 else 0.0,
+                averageAccuracyPercent = if (totalTasks > 0) weightedAccuracy / totalTasks else 0.0,
                 bestAccuracyPercent = filteredSessions.filter {
                     it.taskCount > 0 &&
-                        (it.exerciseType == ExerciseType.ARITHMETIC.storageValue ||
-                            it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue)
+                        ExerciseType.fromStorage(it.exerciseType) in setOf(
+                            ExerciseType.ARITHMETIC,
+                            ExerciseType.MEMORY_WORDS,
+                            ExerciseType.NUMBER_GRID,
+                        )
                 }.maxOfOrNull { it.accuracyPercent.coerceIn(0.0, 100.0) } ?: 0.0,
                 totalTaskCount = totalTasks,
                 totalCorrectCount = totalCorrect,
@@ -68,6 +74,29 @@ class StatisticsViewModel(
         val memoryAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue }
         val countingAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }
         val stroopAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }
+        val numberGridStorageValue = ExerciseType.storageValueForGridSize(5)
+        val numberGridAggregate = aggregate.exerciseStatistics.firstOrNull { it.exerciseType == numberGridStorageValue }
+        val numberGridDailyResults = sessions
+            .filter {
+                it.exerciseType == numberGridStorageValue &&
+                    it.accuracyPercent >= 95.0 &&
+                    it.durationMs >= 0L
+            }
+            .groupBy { session ->
+                Instant.ofEpochMilli(session.finishedAtEpochMs).atZone(zone).toLocalDate()
+                    .format(DateTimeFormatter.BASIC_ISO_DATE).toInt()
+            }
+            .map { (date, daySessions) ->
+                com.jaroapps.dailybrain.feature.statistics.domain.model.DailyExerciseResult(
+                    date = date,
+                    arithmeticBestTimeMs = null,
+                    memoryBestCorrectCount = null,
+                    stroopBestTimeMs = null,
+                    countingBestTimeMs = null,
+                    numberGridBestTimeMs = daySessions.minOfOrNull { it.durationMs },
+                )
+            }
+            .sortedBy { it.date }
 
         val periodStart = when (period) {
             ChartPeriod.DAY -> today
@@ -82,12 +111,18 @@ class StatisticsViewModel(
             !rowDate.isAfter(today) && (periodStart == null || !rowDate.isBefore(periodStart))
         }
 
+        val filteredNumberGridDailyResults = numberGridDailyResults.filter { row ->
+            val rowDate = row.date.toLocalDate()
+            !rowDate.isAfter(today) && (periodStart == null || !rowDate.isBefore(periodStart))
+        }
+
         StatisticsUiState(
             overall = calculateStats(sessions),
             arithmetic = calculateStats(sessions.filter { it.exerciseType == ExerciseType.ARITHMETIC.storageValue }),
             memoryWords = calculateStats(sessions.filter { it.exerciseType == ExerciseType.MEMORY_WORDS.storageValue }),
             countingTraining = calculateStats(sessions.filter { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }),
             stroopTest = calculateStats(sessions.filter { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }),
+            numberGrid = calculateStats(sessions.filter { it.exerciseType == numberGridStorageValue }),
             currentStreakDays = aggregate.overall?.currentStreakDays ?: 0,
             bestStreakDays = aggregate.overall?.bestStreakDays ?: 0,
             arithmeticBestDurationMs = arithmeticAggregate?.bestDurationMs,
@@ -95,8 +130,10 @@ class StatisticsViewModel(
             memoryBestDurationMs = memoryAggregate?.bestDurationMs,
             countingBestDurationMs = countingAggregate?.bestDurationMs,
             stroopBestDurationMs = stroopAggregate?.bestDurationMs,
+            numberGridBestDurationMs = numberGridAggregate?.bestDurationMs,
             chartPeriod = period,
             dailyResults = filteredDailyResults,
+            numberGridDailyResults = filteredNumberGridDailyResults,
         )
     }.stateIn(
         scope = viewModelScope,
