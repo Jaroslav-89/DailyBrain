@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -194,88 +193,84 @@ fun ProfileScreen(
                                         )
                                     }
                                 }
-                            profile?.let { user ->
-                                user.birthDate?.let { birthDate ->
-                                    val agePeriod = Period.between(birthDate, today)
-                                    if (!agePeriod.isNegative) {
+                                profile?.let { user ->
+                                    user.birthDate?.let { birthDate ->
+                                        val agePeriod = Period.between(birthDate, today)
+                                        if (!agePeriod.isNegative) {
+                                            Text(
+                                                "Возраст: " + pluralStringResource(
+                                                    R.plurals.profile_age_years,
+                                                    agePeriod.years,
+                                                    agePeriod.years,
+                                                ),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            )
+                                        }
+                                    }
+                                    user.country?.takeIf(String::isNotBlank)?.let {
+                                        Text(it, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    user.city?.takeIf(String::isNotBlank)?.let {
+                                        Text(it, style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    user.gender?.let { gender ->
+                                        val genderText = when (gender) {
+                                            UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
+                                            UserGender.MALE -> stringResource(R.string.profile_gender_male)
+                                        }
                                         Text(
-                                            "Возраст: " + pluralStringResource(
-                                                R.plurals.profile_age_years,
-                                                agePeriod.years,
-                                                agePeriod.years,
-                                            ),
+                                            stringResource(R.string.profile_gender_display, genderText),
                                             style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    }
+                                    if (user.displayName.isNullOrBlank()) {
+                                        Text(
+                                            text = stringResource(R.string.profile_alias, user.generatedAlias),
+                                            style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         )
                                     }
-                                }
-                                user.country?.takeIf(String::isNotBlank)?.let {
-                                    Text(it, style = MaterialTheme.typography.bodyMedium)
-                                }
-                                user.city?.takeIf(String::isNotBlank)?.let {
-                                    Text(it, style = MaterialTheme.typography.bodyMedium)
-                                }
-                                user.gender?.let { gender ->
-                                    val genderText = when (gender) {
-                                        UserGender.FEMALE -> stringResource(R.string.profile_gender_female)
-                                        UserGender.MALE -> stringResource(R.string.profile_gender_male)
+                                    user.username?.takeIf(String::isNotBlank)?.let { username ->
+                                        Text(
+                                            text = "@$username",
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.primary,
+                                        )
                                     }
-                                    Text(
-                                        stringResource(R.string.profile_gender_display, genderText),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                    )
-                                }
-                                if (user.displayName.isNullOrBlank()) {
-                                    Text(
-                                        text = stringResource(R.string.profile_alias, user.generatedAlias),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                user.username?.takeIf(String::isNotBlank)?.let { username ->
-                                    Text(
-                                        text = "@$username",
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.primary,
-                                    )
                                 }
                             }
                         }
-                    }
-                    accountPeriod?.let { elapsed ->
-                        val tenureParts = buildList {
-                            if (elapsed.years > 0) {
-                                add(pluralStringResource(R.plurals.profile_tenure_years, elapsed.years, elapsed.years))
+                        accountPeriod?.let { elapsed ->
+                            val tenureParts = buildList {
+                                if (elapsed.years > 0) {
+                                    add(pluralStringResource(R.plurals.profile_tenure_years, elapsed.years, elapsed.years))
+                                }
+                                if (elapsed.months > 0) {
+                                    add(pluralStringResource(R.plurals.profile_tenure_months, elapsed.months, elapsed.months))
+                                }
+                                add(pluralStringResource(R.plurals.profile_tenure_days, elapsed.days, elapsed.days))
                             }
-                            if (elapsed.months > 0) {
-                                add(pluralStringResource(R.plurals.profile_tenure_months, elapsed.months, elapsed.months))
-                            }
-                            add(pluralStringResource(R.plurals.profile_tenure_days, elapsed.days, elapsed.days))
-                        }
-                        Spacer(Modifier.height(12.dp))
-                        Text(
-                            text = stringResource(R.string.profile_member_since, tenureParts.joinToString(" ")),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                    Box(
-                        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
-                        contentAlignment = Alignment.TopEnd,
-                    ) {
-                        IconButton(
-                            onClick = { showShareDialog = true },
-                        ) {
-                            Icon(
-                                imageVector = Icons.Filled.Share,
-                                contentDescription = "Поделиться профилем",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            Spacer(Modifier.height(12.dp))
+                            Text(
+                                text = stringResource(R.string.profile_member_since, tenureParts.joinToString(" ")),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
                     }
+                    IconButton(
+                        onClick = { showShareDialog = true },
+                        modifier = Modifier.align(Alignment.TopEnd),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Поделиться профилем",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
-
 
             if (state.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
                 Spacer(Modifier.height(12.dp))
