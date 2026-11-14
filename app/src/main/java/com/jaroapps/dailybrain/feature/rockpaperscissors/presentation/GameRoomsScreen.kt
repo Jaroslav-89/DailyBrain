@@ -337,7 +337,7 @@ private fun GameRoomCard(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(
-                    onClick = if (isMyRoom) onOpen else onJoin,
+                    onClick = if (isJoined) onOpen else onJoin,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
                     colors = ButtonDefaults.buttonColors(
