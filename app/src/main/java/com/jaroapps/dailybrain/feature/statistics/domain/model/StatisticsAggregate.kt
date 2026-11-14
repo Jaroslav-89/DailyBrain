@@ -26,4 +26,5 @@ data class DailyExerciseResult(
     val memoryBestCorrectCount: Int?,
     val stroopBestTimeMs: Long?,
     val countingBestTimeMs: Long?,
+    val numberGridBestTimeMs: Long? = null,
 )
