@@ -316,6 +316,8 @@ fun PublicUserProfileScreen(
                         PublicBestResultCard("Счёт", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.COUNTING_TRAINING.storageValue }, PublicBestKind.DURATION)
                         Spacer(Modifier.height(8.dp))
                         PublicBestResultCard("Тест Струпа", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.STROOP_TEST.storageValue }, PublicBestKind.DURATION)
+                        Spacer(Modifier.height(8.dp))
+                        PublicBestResultCard("Таблица Шульте", stats.bestExerciseStats.firstOrNull { it.exerciseType == ExerciseType.storageValueForGridSize(5) }, PublicBestKind.DURATION)
                     }
                     }
 
