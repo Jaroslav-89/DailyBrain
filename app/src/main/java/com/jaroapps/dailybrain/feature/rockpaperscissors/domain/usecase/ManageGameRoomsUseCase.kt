@@ -24,6 +24,7 @@ class ManageGameRoomsUseCase(
     suspend fun declineInvitation(uid: String, invitationId: String) =
         repository.declineInvitation(uid, invitationId)
     suspend fun leaveRoom(uid: String, roomId: String) = repository.leaveRoom(uid, roomId)
+    suspend fun deleteRoom(uid: String, roomId: String) = repository.deleteRoom(uid, roomId)
     suspend fun updateRoom(uid: String, roomId: String, request: CreateGameRoomRequest) =
         repository.updateRoom(uid, roomId, request)
 }
