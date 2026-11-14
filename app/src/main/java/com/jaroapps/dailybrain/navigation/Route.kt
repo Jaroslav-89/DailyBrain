@@ -16,6 +16,7 @@ object Route {
     fun exerciseRules(exercise: String): String = "exercise_rules/$exercise"
     fun exerciseCountdown(exercise: String): String = "exercise_countdown/$exercise"
     const val HOME = "home"
+    const val MINI_GAMES = "mini_games"
     const val PROFILE = "profile"
     const val PROFILE_SELECTION = "profile_selection"
     const val PROFILE_SETTINGS = "profile_settings"
@@ -41,6 +42,7 @@ object Route {
     const val MEMORY_TRAINING = "memory_training"
     const val STROOP_TEST = "stroop_test"
     const val COUNTING_TRAINING = "counting_training"
+    const val NUMBER_GRID = "number_grid"
 
     fun dayHistory(date: Int): String = "day_history/$date"
     fun rewardHistory(currency: String): String = "reward_history/$currency"
