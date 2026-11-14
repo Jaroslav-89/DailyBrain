@@ -42,6 +42,10 @@ import com.jaroapps.dailybrain.feature.arithmetic.domain.usecase.GenerateArithme
 import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewModel
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingViewModel
 import com.jaroapps.dailybrain.feature.numbergrid.presentation.NumberGridViewModel
+import com.jaroapps.dailybrain.feature.rockpaperscissors.data.FirestoreRockPaperScissorsRepository
+import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.repository.RockPaperScissorsRepository
+import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.usecase.ManageGameRoomsUseCase
+import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomsViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
@@ -139,7 +143,7 @@ val appModule = module {
             AppDatabase::class.java,
             "daily_brain.db",
         )
-            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23, DatabaseMigrations.MIGRATION_23_24, DatabaseMigrations.MIGRATION_24_25)
+            .addMigrations(DatabaseMigrations.MIGRATION_1_2, DatabaseMigrations.MIGRATION_2_3, DatabaseMigrations.MIGRATION_3_4, DatabaseMigrations.MIGRATION_4_5, DatabaseMigrations.MIGRATION_5_6, DatabaseMigrations.MIGRATION_6_7, DatabaseMigrations.MIGRATION_7_8, DatabaseMigrations.MIGRATION_8_9, DatabaseMigrations.MIGRATION_9_10, DatabaseMigrations.MIGRATION_10_11, DatabaseMigrations.MIGRATION_11_12, DatabaseMigrations.MIGRATION_12_13, DatabaseMigrations.MIGRATION_13_14, DatabaseMigrations.MIGRATION_14_15, DatabaseMigrations.MIGRATION_15_16, DatabaseMigrations.MIGRATION_16_17, DatabaseMigrations.MIGRATION_17_18, DatabaseMigrations.MIGRATION_18_19, DatabaseMigrations.MIGRATION_19_20, DatabaseMigrations.MIGRATION_20_21, DatabaseMigrations.MIGRATION_21_22, DatabaseMigrations.MIGRATION_22_23, DatabaseMigrations.MIGRATION_23_24, DatabaseMigrations.MIGRATION_24_25, DatabaseMigrations.MIGRATION_25_26)
             .build()
     }
 
@@ -385,6 +389,21 @@ val appModule = module {
 
     // Number grid mini-game
     viewModel { NumberGridViewModel(saveCompletedTraining = get(), strings = get()) }
+
+    // Rock-paper-scissors multiplayer rooms.
+    single<RockPaperScissorsRepository> { FirestoreRockPaperScissorsRepository(context = androidContext()) }
+    factory { ManageGameRoomsUseCase(repository = get()) }
+    viewModel {
+        GameRoomsViewModel(
+            observeUserProfile = get(),
+            firebaseAuthenticationRepository = get(),
+            googleSignInProvider = get(),
+            linkGoogleAccount = get(),
+            reauthenticateGoogleAccount = get(),
+            userDirectoryRepository = get(),
+            manageGameRooms = get(),
+        )
+    }
 
     // Stroop feature
     factory { GenerateStroopStimuliUseCase() }

@@ -704,4 +704,27 @@ object DatabaseMigrations {
         }
     }
 
+    /** Persist unsubmitted rock-paper-scissors moves for retry after connectivity returns. */
+    val MIGRATION_25_26 = object : Migration(25, 26) {
+        override fun migrate(database: SupportSQLiteDatabase) {
+            database.execSQL(
+                """
+                CREATE TABLE pending_game_moves (
+                    ownerUserId TEXT NOT NULL,
+                    roomId TEXT NOT NULL,
+                    roundId TEXT NOT NULL,
+                    opponentUid TEXT NOT NULL,
+                    move TEXT NOT NULL,
+                    createdAtEpochMs INTEGER NOT NULL,
+                    PRIMARY KEY(ownerUserId, roomId, roundId, opponentUid)
+                )
+                """.trimIndent(),
+            )
+            database.execSQL(
+                "CREATE INDEX index_pending_game_moves_ownerUserId_createdAtEpochMs " +
+                    "ON pending_game_moves(ownerUserId, createdAtEpochMs)",
+            )
+        }
+    }
+
 }

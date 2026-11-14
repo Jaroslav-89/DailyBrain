@@ -17,6 +17,7 @@ import com.jaroapps.dailybrain.core.database.dao.GiftOutboxDao
 import com.jaroapps.dailybrain.core.database.dao.PendingProfileDeletionDao
 import com.jaroapps.dailybrain.core.database.dao.StreakPatchDao
 import com.jaroapps.dailybrain.core.database.dao.AppAnnouncementDao
+import com.jaroapps.dailybrain.core.database.dao.PendingGameMoveDao
 import com.jaroapps.dailybrain.core.database.entity.DailyExerciseResultEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
@@ -35,6 +36,7 @@ import com.jaroapps.dailybrain.core.database.entity.PendingProfileDeletionEntity
 import com.jaroapps.dailybrain.core.database.entity.StreakPatchDayEntity
 import com.jaroapps.dailybrain.core.database.entity.StreakPatchStateEntity
 import com.jaroapps.dailybrain.core.database.entity.AppAnnouncementEntity
+import com.jaroapps.dailybrain.core.database.entity.PendingGameMoveEntity
 
 @Database(
     entities = [
@@ -56,8 +58,9 @@ import com.jaroapps.dailybrain.core.database.entity.AppAnnouncementEntity
         StreakPatchDayEntity::class,
         StreakPatchStateEntity::class,
         AppAnnouncementEntity::class,
+        PendingGameMoveEntity::class,
     ],
-    version = 25,
+    version = 26,
     exportSchema = false,
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -77,4 +80,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun pendingProfileDeletionDao(): PendingProfileDeletionDao
     abstract fun streakPatchDao(): StreakPatchDao
     abstract fun appAnnouncementDao(): AppAnnouncementDao
+    abstract fun pendingGameMoveDao(): PendingGameMoveDao
 }

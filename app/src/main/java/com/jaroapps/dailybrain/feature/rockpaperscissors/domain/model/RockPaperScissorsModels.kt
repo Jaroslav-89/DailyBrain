@@ -59,6 +59,71 @@ data class CreateGameRoomRequest(
     val targetScore: Int,
 )
 
+data class GameParticipant(
+    val firebaseUid: String,
+    val name: String,
+    val score: Int,
+    val wins: Int,
+    val draws: Int,
+    val losses: Int,
+    val rockCount: Int,
+    val paperCount: Int,
+    val scissorsCount: Int,
+    val matchesPlayed: Int,
+)
+
+data class GamePairState(
+    val opponentUid: String,
+    val opponentName: String,
+    val matchNumber: Int,
+    val status: String,
+    val submittedUids: List<String>,
+    val ownMove: RockPaperScissorsMove? = null,
+    val opponentMove: RockPaperScissorsMove? = null,
+    val outcome: RockPaperScissorsOutcome? = null,
+    val ownPoints: Int? = null,
+    val opponentPoints: Int? = null,
+    val resolvedAtEpochMs: Long? = null,
+)
+
+data class GameRoomSnapshot(
+    val room: GameRoom,
+    val participants: List<GameParticipant>,
+    val pairs: List<GamePairState>,
+    val latestMessageAtEpochMs: Long = 0L,
+    val roundAnnouncement: GameRoundAnnouncement? = null,
+)
+
+data class GameRoundAnnouncement(
+    val roundId: String,
+    val winnerUid: String?,
+    val winnerName: String?,
+    val winningScore: Int,
+    val finishedAtEpochMs: Long,
+)
+
+data class GameChatMessage(
+    val messageId: String,
+    val senderUid: String,
+    val senderName: String,
+    val text: String,
+    val createdAtEpochMs: Long,
+)
+
+data class GameMatchHistoryItem(
+    val matchId: String,
+    val firstUid: String,
+    val firstName: String,
+    val firstMove: RockPaperScissorsMove,
+    val secondUid: String,
+    val secondName: String,
+    val secondMove: RockPaperScissorsMove,
+    val winnerUid: String?,
+    val firstPoints: Int,
+    val secondPoints: Int,
+    val createdAtEpochMs: Long,
+)
+
 object RockPaperScissorsRules {
     const val MIN_PARTICIPANTS = 2
     const val MAX_PARTICIPANTS = 8
