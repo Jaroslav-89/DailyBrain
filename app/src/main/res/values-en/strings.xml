@@ -280,4 +280,24 @@
     <string name="privacy_policy_changes_title">8. Policy changes</string>
     <string name="privacy_policy_changes_body">This policy may be updated when app features or data practices change. The current version is available in the app on this screen. Please review the updated policy when continuing to use online features.</string>
 
+    <string name="mini_games_title">Mini-games</string>
+    <string name="mini_games_description">Short games for attention, concentration, and processing speed.</string>
+    <string name="mini_games_number_grid_description">Find every number from 1 to 25 in ascending order. Mistakes do not reset progress, but reduce accuracy.</string>
+    <string name="mini_games_start">Start game</string>
+    <string name="exercise_number_grid">Schulte table</string>
+    <string name="exercise_number_grid_size">Schulte table %1$d×%1$d</string>
+    <string name="intro_number_grid">Find numbers in a randomly arranged grid. Try to spot each target as quickly as you can while staying accurate.</string>
+    <string name="rules_number_grid">Tap the numbers in ascending order, from 1 to 25. The last correctly selected cell stays green until you find the next number. Incorrect taps increase the error count and reduce accuracy. The exercise ends when you select 25.</string>
+    <string name="number_grid_find_number">Find the number</string>
+    <string name="number_grid_errors">Errors: %1$d</string>
+    <string name="number_grid_accuracy">Accuracy: %1$s%%</string>
+    <string name="number_grid_result_title">Training completed!</string>
+    <string name="number_grid_result_time">Time: %1$s</string>
+    <string name="number_grid_result_accuracy">Accuracy: %1$s%%</string>
+    <string name="number_grid_result_errors">Errors: %1$d</string>
+    <string name="number_grid_retry">Play again</string>
+    <string name="number_grid_back_to_games">Back to mini-games</string>
+    <string name="statistics_number_grid_record">Best 5×5 time (at least 95% accuracy)</string>
+    <string name="history_errors">Errors: %1$d</string>
+
 </resources>
