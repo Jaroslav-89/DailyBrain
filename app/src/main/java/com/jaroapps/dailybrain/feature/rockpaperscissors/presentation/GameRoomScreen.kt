@@ -337,7 +337,14 @@ fun GameRoomScreen(
                         Modifier.fillMaxWidth().height(360.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        items(state.history, key = { it.matchId }) { match -> MatchHistoryCard(match) }
+                        items(state.history, key = { it.matchId }) { match ->
+                            val participants = state.snapshot?.participants.orEmpty()
+                            val firstName = participants.firstOrNull { it.firebaseUid == match.firstUid }?.name
+                                ?: match.firstName
+                            val secondName = participants.firstOrNull { it.firebaseUid == match.secondUid }?.name
+                                ?: match.secondName
+                            MatchHistoryCard(match, firstName, secondName)
+                        }
                     }
                 }
             },
@@ -534,7 +541,11 @@ private fun MoveButton(label: String, enabled: Boolean, modifier: Modifier, onCl
 }
 
 @Composable
-private fun MatchHistoryCard(match: GameMatchHistoryItem) {
+private fun MatchHistoryCard(
+    match: GameMatchHistoryItem,
+    firstName: String,
+    secondName: String,
+) {
     Card(Modifier.fillMaxWidth()) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text(
@@ -546,7 +557,7 @@ private fun MatchHistoryCard(match: GameMatchHistoryItem) {
                 style = MaterialTheme.typography.labelSmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            Text(match.firstName + " " + moveEmoji(match.firstMove) + " — " + moveEmoji(match.secondMove) + " " + match.secondName)
+            Text(firstName + " " + moveEmoji(match.firstMove) + " — " + moveEmoji(match.secondMove) + " " + secondName)
             Text(match.firstPoints.toString() + " : " + match.secondPoints + " очков", fontWeight = FontWeight.SemiBold)
         }
     }
