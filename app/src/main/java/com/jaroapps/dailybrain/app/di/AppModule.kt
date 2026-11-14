@@ -43,7 +43,9 @@ import com.jaroapps.dailybrain.feature.arithmetic.presentation.ArithmeticViewMod
 import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingViewModel
 import com.jaroapps.dailybrain.feature.numbergrid.presentation.NumberGridViewModel
 import com.jaroapps.dailybrain.feature.rockpaperscissors.data.FirestoreRockPaperScissorsRepository
+import com.jaroapps.dailybrain.feature.rockpaperscissors.data.FirestoreRockPaperScissorsGameplayRepository
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.repository.RockPaperScissorsRepository
+import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.repository.RockPaperScissorsGameplayRepository
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.usecase.ManageGameRoomsUseCase
 import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomsViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
@@ -392,6 +394,9 @@ val appModule = module {
 
     // Rock-paper-scissors multiplayer rooms.
     single<RockPaperScissorsRepository> { FirestoreRockPaperScissorsRepository(context = androidContext()) }
+    single<RockPaperScissorsGameplayRepository> {
+        FirestoreRockPaperScissorsGameplayRepository(context = androidContext(), database = get(), activeUserProvider = get())
+    }
     factory { ManageGameRoomsUseCase(repository = get()) }
     viewModel {
         GameRoomsViewModel(

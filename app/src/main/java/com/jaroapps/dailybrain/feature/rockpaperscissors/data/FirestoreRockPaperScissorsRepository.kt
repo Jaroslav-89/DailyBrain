@@ -413,6 +413,15 @@ class FirestoreRockPaperScissorsRepository(
         "paperCount" to 0,
         "scissorsCount" to 0,
         "matchesPlayed" to 0,
+        "roundWins" to 0,
+        "roundDraws" to 0,
+        "roundLosses" to 0,
+        "roundRockCount" to 0,
+        "roundPaperCount" to 0,
+        "roundScissorsCount" to 0,
+        "roundMatchesPlayed" to 0,
+        "lastReadMessageAtEpochMs" to 0,
+        "lastSeenFinishedRoundId" to "",
         "joinedAtEpochMs" to now,
     )
 

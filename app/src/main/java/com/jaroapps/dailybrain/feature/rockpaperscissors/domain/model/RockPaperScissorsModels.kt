@@ -70,6 +70,8 @@ data class GameParticipant(
     val paperCount: Int,
     val scissorsCount: Int,
     val matchesPlayed: Int,
+    val lastReadMessageAtEpochMs: Long = 0L,
+    val lastSeenFinishedRoundId: String? = null,
 )
 
 data class GamePairState(
@@ -92,6 +94,7 @@ data class GameRoomSnapshot(
     val pairs: List<GamePairState>,
     val latestMessageAtEpochMs: Long = 0L,
     val roundAnnouncement: GameRoundAnnouncement? = null,
+    val hasUnreadMessages: Boolean = false,
 )
 
 data class GameRoundAnnouncement(
