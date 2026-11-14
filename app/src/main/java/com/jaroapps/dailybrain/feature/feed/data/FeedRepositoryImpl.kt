@@ -168,7 +168,7 @@ class FeedRepositoryImpl(
                     relatedUserName = invitation.roomName,
                     isLocal = false,
                     isRevoked = false,
-                    syncState = SYNCED,
+                    syncState = LOCAL_ONLY,
                 )
             }
         } catch (cancelled: kotlinx.coroutines.CancellationException) {

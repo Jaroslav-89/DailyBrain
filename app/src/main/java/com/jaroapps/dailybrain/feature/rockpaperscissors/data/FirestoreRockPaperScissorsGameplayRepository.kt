@@ -40,6 +40,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class FirestoreRockPaperScissorsGameplayRepository(
     context: Context,
     private val database: AppDatabase,
