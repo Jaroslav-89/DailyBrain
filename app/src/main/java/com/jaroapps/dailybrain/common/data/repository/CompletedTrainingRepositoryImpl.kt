@@ -119,6 +119,7 @@ class CompletedTrainingRepositoryImpl(
             ExerciseType.MEMORY_WORDS -> dao.recordMemoryBest(userId, date, session.correctCount.coerceAtLeast(0))
             ExerciseType.STROOP_TEST -> dao.recordStroopBest(userId, date, duration)
             ExerciseType.COUNTING_TRAINING -> dao.recordCountingBest(userId, date, duration)
+            ExerciseType.NUMBER_GRID -> Unit // Daily chart values are derived from session history by grid size.
             null -> Unit
         }
     }
@@ -184,8 +185,11 @@ class CompletedTrainingRepositoryImpl(
         val exerciseType = ExerciseType.fromStorage(session.exerciseType)
         val duration = session.durationMs.coerceAtLeast(0L)
 
-        val durationEligible = session.exerciseType != ExerciseType.ARITHMETIC.storageValue ||
-            session.accuracyPercent >= StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT
+        val durationEligible = when (exerciseType) {
+            ExerciseType.ARITHMETIC, ExerciseType.NUMBER_GRID ->
+                session.accuracyPercent >= StatisticsRules.ARITHMETIC_BEST_TIME_MIN_ACCURACY_PERCENT
+            else -> true
+        }
         val candidateBestDuration = if (durationEligible) duration else null
         val bestDuration = if (candidateBestDuration == null) {
             previous?.bestDurationMs
@@ -196,7 +200,9 @@ class CompletedTrainingRepositoryImpl(
         }
 
         val accuracyIsMeasured = session.taskCount > 0 &&
-            (exerciseType == ExerciseType.ARITHMETIC || exerciseType == ExerciseType.MEMORY_WORDS)
+            (exerciseType == ExerciseType.ARITHMETIC ||
+                exerciseType == ExerciseType.MEMORY_WORDS ||
+                exerciseType == ExerciseType.NUMBER_GRID)
         val candidateAccuracy = session.accuracyPercent.coerceIn(0.0, 100.0)
             .takeIf { accuracyIsMeasured }
         val bestAccuracy = if (candidateAccuracy == null) {
