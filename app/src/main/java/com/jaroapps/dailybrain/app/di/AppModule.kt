@@ -426,7 +426,6 @@ val appModule = module {
         GameRoomsViewModel(
             observeUserProfile = get(),
             firebaseAuthenticationRepository = get(),
-            googleSignInProvider = get(),
             userDirectoryRepository = get(),
             manageGameRooms = get(),
         )

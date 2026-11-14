@@ -535,7 +535,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
             }
         }
         if (operations > 0) batch.commit().awaitResult()
-        deleteQueryInChunks(roundRef.collection(MATCHES).orderBy("createdAtEpochMs"))
+        deleteQueryInChunks(firestore, roundRef.collection(MATCHES).orderBy("createdAtEpochMs"))
         roundRef.delete().awaitResult()
     }
 

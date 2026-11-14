@@ -216,7 +216,7 @@ fun GameRoomsScreen(
                     style = MaterialTheme.typography.bodyLarge,
                 )
                 Button(
-                    onClick = viewModel::authenticate,
+                    onClick = ::startGoogleConnection,
                     enabled = !isAuthWorking,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(

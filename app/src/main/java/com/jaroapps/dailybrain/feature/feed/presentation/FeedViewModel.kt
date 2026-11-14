@@ -33,7 +33,7 @@ data class FeedUiState(
 class FeedViewModel(
     private val repository: FeedRepository,
     observeUserProfile: ObserveUserProfileUseCase,
-    firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
+    private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
     private val manageGameRooms: ManageGameRoomsUseCase,
 ) : ViewModel() {
     private val events = MutableStateFlow<List<FeedEvent>>(emptyList())
