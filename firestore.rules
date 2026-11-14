@@ -602,7 +602,7 @@ service cloud.firestore {
         let previousRoundId = resource.data.currentRoundId;
         let nextRoundId = request.resource.data.currentRoundId;
         let resultPath = /databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId);
-        let result = existsAfter(resultPath) ? getAfter(resultPath).data : {};
+        let result = existsAfter(resultPath) ? getAfter(resultPath).data : null;
         return request.auth.uid in resource.data.memberUids
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'currentRoundId', 'roundNumber', 'lastFinishedRoundId',
