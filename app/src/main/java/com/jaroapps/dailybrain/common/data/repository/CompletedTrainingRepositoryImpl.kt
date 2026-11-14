@@ -12,6 +12,7 @@ import com.jaroapps.dailybrain.core.database.entity.ExerciseStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.OverallStatisticsEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingDayEntity
 import com.jaroapps.dailybrain.core.database.entity.TrainingSessionEntity
+import com.jaroapps.dailybrain.core.database.entity.RewardLedgerEntity
 import com.jaroapps.dailybrain.core.utils.formatMillisToDate
 import com.jaroapps.dailybrain.feature.rewards.data.RewardRecalculator
 import kotlinx.coroutines.flow.Flow
@@ -57,9 +58,42 @@ class CompletedTrainingRepositoryImpl(
     override suspend fun initializeRewardState() {
         val userId = activeUserProvider.currentUserId()
         database.withTransaction {
-            val profile = database.userProfileDao().getProfile(userId)
+            val profileDao = database.userProfileDao()
+            val profile = profileDao.getProfile(userId)
             if (profile?.rewardsInitialized != true) {
                 RewardRecalculator.recalculate(database, userId)
+            }
+
+            // TEMPORARY TEST OVERRIDE: normalize the selected local profile's wallet to 5,000.
+            // The stable ledger key makes this adjustment idempotent across app launches.
+            val ledgerDao = database.rewardLedgerDao()
+            if (ledgerDao.getByKey(userId, TEMPORARY_TEST_REWARD_KEY) == null) {
+                val now = System.currentTimeMillis()
+                val currentBalance = ledgerDao.getEndorphinBalance(userId)
+                ledgerDao.upsertAll(
+                    listOf(
+                        RewardLedgerEntity(
+                            userId = userId,
+                            rewardKey = TEMPORARY_TEST_REWARD_KEY,
+                            deltaXp = 0,
+                            deltaEndorphins = TEMPORARY_TEST_ENDORPHIN_BALANCE - currentBalance,
+                            category = "TEST_ADJUSTMENT",
+                            reason = "TEMPORARY_TEST_BALANCE",
+                            occurredAtEpochMs = now,
+                            isActive = true,
+                        ),
+                    ),
+                )
+
+                val updatedProfile = requireNotNull(profileDao.getProfile(userId)) {
+                    "Active local profile does not exist."
+                }
+                profileDao.save(
+                    updatedProfile.copy(
+                        endorphinBalance = TEMPORARY_TEST_ENDORPHIN_BALANCE,
+                        updatedAtEpochMs = now,
+                    ),
+                )
             }
         }
     }
@@ -69,6 +103,11 @@ class CompletedTrainingRepositoryImpl(
         database.withTransaction {
             recalculateDailyExerciseResultInTransaction(date, userId)
         }
+    }
+
+    private companion object {
+        const val TEMPORARY_TEST_REWARD_KEY = "temporary_test_balance_5000"
+        const val TEMPORARY_TEST_ENDORPHIN_BALANCE = 5_000
     }
 
     private suspend fun recalculateDailyExerciseResultInTransaction(date: Int, userId: String) {
