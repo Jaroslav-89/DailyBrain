@@ -217,6 +217,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
             if (!match.exists()) {
                 transaction.set(matchRef, mapOf(
                     "matchId" to matchId,
+                    "roundId" to roundId,
                     "uidA" to uidA,
                     "uidB" to uidB,
                     "nameA" to "",
@@ -354,10 +355,10 @@ class FirestoreRockPaperScissorsGameplayRepository(
             } else emptyMap()
 
             val memberAUpdate = memberResultUpdate(
-                memberA, moveA, outcomeA, if (roundFinishedNow) 0 else scoreA, matchId,
+                memberA, moveA, outcomeA, if (roundFinishedNow) 0 else scoreA, roundId, matchId,
             )
             val memberBUpdate = memberResultUpdate(
-                memberB, moveB, outcomeB, if (roundFinishedNow) 0 else scoreB, matchId,
+                memberB, moveB, outcomeB, if (roundFinishedNow) 0 else scoreB, roundId, matchId,
             )
             transaction.update(memberARef, if (roundFinishedNow) memberAUpdate + roundResetFields() else memberAUpdate)
             transaction.update(memberBRef, if (roundFinishedNow) memberBUpdate + roundResetFields() else memberBUpdate)
@@ -439,6 +440,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
         move: RockPaperScissorsMove,
         outcome: RockPaperScissorsOutcome,
         newScore: Int,
+        roundId: String,
         matchId: String,
     ): Map<String, Any> {
         val win = if (outcome == RockPaperScissorsOutcome.WIN) 1 else 0
@@ -465,6 +467,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
             "roundMatchesPlayed" to ((current.getLong("roundMatchesPlayed")?.toInt() ?: 0) + 1),
             "lastPlayedAtEpochMs" to System.currentTimeMillis(),
             "lastResultMatchId" to matchId,
+            "lastResultRoundId" to roundId,
         )
     }
 

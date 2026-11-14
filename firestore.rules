@@ -540,7 +540,6 @@ service cloud.firestore {
             && resource.data.get('inviteCode', '') != ''
             && exists(/databases/$(database)/documents/gameRoomCodes/$(resource.data.inviteCode))
           )
-          || exists(/databases/$(database)/documents/gameRoomInvitations/$(request.auth.uid)/items/$(roomId))
         );
 
       allow list: if activeUser()
@@ -603,7 +602,6 @@ service cloud.firestore {
       allow delete: if canDeleteOwnData(request.auth.uid)
         && resource.data.ownerUid == request.auth.uid
         && resource.data.memberUids.size() == 1
-        && !(request.auth.uid in request.resource.data.get('memberUids', []))
         && !existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid));
 
       match /members/{uid} {
@@ -624,6 +622,25 @@ service cloud.firestore {
               !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSeenFinishedRoundId'])
               || request.resource.data.lastSeenFinishedRoundId is string
             );
+        }
+
+        function validRoundResetUpdate() {
+          let roomBefore = get(/databases/$(database)/documents/gameRooms/$(roomId)).data;
+          let roomAfter = getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data;
+          return request.auth.uid in roomBefore.memberUids
+            && roomAfter.currentRoundId != roomBefore.currentRoundId
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'score', 'roundWins', 'roundDraws', 'roundLosses',
+              'roundRockCount', 'roundPaperCount', 'roundScissorsCount', 'roundMatchesPlayed'
+            ])
+            && request.resource.data.score == 0
+            && request.resource.data.roundWins == 0
+            && request.resource.data.roundDraws == 0
+            && request.resource.data.roundLosses == 0
+            && request.resource.data.roundRockCount == 0
+            && request.resource.data.roundPaperCount == 0
+            && request.resource.data.roundScissorsCount == 0
+            && request.resource.data.roundMatchesPlayed == 0;
         }
 
         function validResultStatsUpdate() {
@@ -659,11 +676,14 @@ service cloud.firestore {
           && request.resource.data.name.size() <= 80
           && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids.hasAny([uid])
           && (
-            memberRoom().isPublic == true
-            || request.resource.data.get('joinedAsOwner', false) == true
+            getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.isPublic == true
+            || (
+              request.resource.data.get('joinedAsOwner', false) == true
+              && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.ownerUid == uid
+            )
             || (
               request.resource.data.get('joinedViaCode', '') is string
-              && request.resource.data.joinedViaCode == memberRoom().get('inviteCode', '')
+              && request.resource.data.joinedViaCode == getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.get('inviteCode', '')
               && exists(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.joinedViaCode))
               && get(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.joinedViaCode)).data.roomId == roomId
             )
@@ -674,7 +694,11 @@ service cloud.firestore {
             )
           );
 
-        allow update: if activeUser() && (validOwnReadMarkerUpdate() || validResultStatsUpdate());
+        allow update: if activeUser() && (
+          validOwnReadMarkerUpdate()
+          || validResultStatsUpdate()
+          || validRoundResetUpdate()
+        );
         allow delete: if signedIn()
           && (
             request.auth.uid == uid
@@ -685,10 +709,10 @@ service cloud.firestore {
       match /rounds/{roundId} {
         allow get, list: if activeUser() && currentRoomMember();
         allow create: if activeUser()
-          && currentRoomMember()
+          && request.auth.uid in getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
           && request.resource.data.roundId == roundId
           && request.resource.data.status == 'ACTIVE'
-          && request.resource.data.targetScore == memberRoom().targetScore
+          && request.resource.data.targetScore == getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.targetScore
           && request.resource.data.roundNumber is int;
         allow update: if activeUser()
           && currentRoomMember()
@@ -709,8 +733,8 @@ service cloud.firestore {
             return request.resource.data.uidA is string
               && request.resource.data.uidB is string
               && request.resource.data.uidA != request.resource.data.uidB
-              && request.resource.data.uidA in memberRoom().memberUids
-              && request.resource.data.uidB in memberRoom().memberUids
+              && request.resource.data.uidA in get(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
+              && request.resource.data.uidB in get(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
               && request.auth.uid in [request.resource.data.uidA, request.resource.data.uidB];
           }
 
@@ -746,6 +770,9 @@ service cloud.firestore {
                 && request.resource.data.pointsB is int
               )
             );
+          allow delete: if activeUser()
+            && currentRoomMember()
+            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED';
         }
 
         match /matches/{matchId} {
@@ -813,7 +840,7 @@ service cloud.firestore {
               && request.resource.data.uid == uid
               && request.resource.data.choice in ['ROCK', 'PAPER', 'SCISSORS']
               && request.resource.data.createdAtEpochMs is int
-              && parentMatch().status == 'WAITING'
+              && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.status == 'WAITING'
               && uid in [parentMatch().uidA, parentMatch().uidB];
             allow update: if false;
             allow delete: if activeUser()
@@ -852,7 +879,7 @@ service cloud.firestore {
       match /roundResults/{roundId} {
         allow get, list: if activeUser() && currentRoomMember();
         allow create: if activeUser()
-          && currentRoomMember()
+          && request.auth.uid in getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
           && request.resource.data.roundId == roundId
           && request.resource.data.winningScore is int
           && request.resource.data.finishedAtEpochMs is int;
@@ -941,7 +968,7 @@ service cloud.firestore {
         && request.resource.data.winningScore is int
         && request.resource.data.finishedAtEpochMs is int
         && request.resource.data.status == 'UNREAD'
-        && exists(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)/members/$(request.auth.uid));
+        && exists(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)/members/$(uid));
       allow update: if canAccessOwnData(uid)
         && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
         && request.resource.data.status == 'READ';
