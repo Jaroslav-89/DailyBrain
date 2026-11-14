@@ -451,7 +451,8 @@ service cloud.firestore {
         let after = request.resource.data.get('memberUids', []);
         let memberPath = /databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid);
         let memberAfter = getAfter(memberPath).data;
-        return !(request.auth.uid in before)
+        return resource.data.get('status', '') == 'OPEN'
+          && !(request.auth.uid in before)
           && request.auth.uid in after
           && after.size() == before.size() + 1
           && after.hasAll(before)
@@ -515,7 +516,8 @@ service cloud.firestore {
       }
 
       function validRoomSettingsUpdate() {
-        return request.auth.uid == resource.data.ownerUid
+        return resource.data.get('status', '') == 'OPEN'
+          && request.auth.uid == resource.data.ownerUid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
             'name', 'isPublic', 'inviteCode', 'maxParticipants', 'targetScore', 'updatedAtEpochMs'
           ])
@@ -746,6 +748,7 @@ service cloud.firestore {
           && request.resource.data.uid == uid
           && request.resource.data.name is string
           && request.resource.data.name.size() <= 80
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.status == 'OPEN'
           && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids.hasAny([uid])
           && (
             getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.isPublic == true
@@ -786,6 +789,7 @@ service cloud.firestore {
       match /rounds/{roundId} {
         allow get, list: if activeUser() && currentRoomMember();
         allow create: if activeUser()
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.status == 'OPEN'
           && request.auth.uid in getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
           && request.resource.data.roundId == roundId
           && request.resource.data.status == 'ACTIVE'
@@ -858,6 +862,7 @@ service cloud.firestore {
 
           allow create: if activeUser()
             && currentRoomMember()
+            && get(roomPath()).data.status == 'OPEN'
             && participantsInPair()
             && request.resource.data.status == 'WAITING'
             && request.resource.data.submittedUids is list
@@ -867,6 +872,7 @@ service cloud.firestore {
 
           allow update: if activeUser()
             && currentRoomMember()
+            && get(roomPath()).data.status == 'OPEN'
             && participantsInPair()
             && resource.data.uidA == request.resource.data.uidA
             && resource.data.uidB == request.resource.data.uidB
@@ -908,6 +914,7 @@ service cloud.firestore {
           allow get, list: if matchRoomMember();
 
           allow create: if matchRoomMember()
+            && get(roomPath()).data.status == 'OPEN'
             && request.resource.data.matchId == matchId
             && request.resource.data.uidA is string
             && request.resource.data.uidB is string
@@ -919,6 +926,7 @@ service cloud.firestore {
             && request.resource.data.createdAtEpochMs is int;
 
           allow update: if matchRoomMember()
+            && get(roomPath()).data.status == 'OPEN'
             && resource.data.status == 'WAITING'
             && request.resource.data.status == 'RESOLVED'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -978,6 +986,7 @@ service cloud.firestore {
             allow create: if activeUser()
               && request.auth.uid == uid
               && matchRoomMember()
+              && get(roomPath()).data.status == 'OPEN'
               && request.resource.data.uid == uid
               && request.resource.data.choice in ['ROCK', 'PAPER', 'SCISSORS']
               && request.resource.data.createdAtEpochMs is int
@@ -1002,6 +1011,7 @@ service cloud.firestore {
         allow get, list: if activeUser() && currentRoomMember();
         allow create: if activeUser()
           && currentRoomMember()
+          && get(roomPath()).data.status == 'OPEN'
           && request.resource.data.keys().hasOnly(['senderUid', 'senderName', 'text', 'createdAtEpochMs'])
           && request.resource.data.senderUid == request.auth.uid
           && request.resource.data.senderName is string
@@ -1018,6 +1028,7 @@ service cloud.firestore {
         allow get, list: if activeUser() && currentRoomMember();
         allow create, update: if activeUser()
           && currentRoomMember()
+          && get(roomPath()).data.status == 'OPEN'
           && summaryId == 'summary'
           && request.resource.data.keys().hasOnly(['lastMessageAtEpochMs'])
           && request.resource.data.lastMessageAtEpochMs is int;
@@ -1101,6 +1112,7 @@ service cloud.firestore {
         && request.resource.data.status == 'PENDING'
         && exists(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId))
         && get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.ownerUid is string
+        && get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.status == 'OPEN'
         && request.auth.uid in get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids
         && !(recipientUid in get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids)
         && recipientUid != request.auth.uid
