@@ -65,6 +65,7 @@ fun CalendarScreen(
 ) {
     val state by viewModel.uiState.collectAsState()
     var showRules by remember { mutableStateOf(false) }
+    var showShareDialog by remember { mutableStateOf(false) }
     val trainingDayColor = colorResource(R.color.color_training_completed)
     val patchedDayColor = colorResource(R.color.color_training_patched)
     val missedDayColor = colorResource(R.color.color_training_missed)
@@ -97,7 +98,7 @@ fun CalendarScreen(
             IconButton(onClick = { showRules = true }) {
                 Icon(Icons.Filled.Info, contentDescription = "Правила получения наград")
             }
-            IconButton(onClick = { /* Sharing will be implemented in a later iteration. */ }) {
+            IconButton(onClick = { showShareDialog = true }) {
                 Icon(
                     imageVector = Icons.Filled.Share,
                     contentDescription = "Поделиться прогрессом",
@@ -374,6 +375,13 @@ fun CalendarScreen(
                 }
             }
         }
+    }
+
+    if (showShareDialog) {
+        ShareProgressDialog(
+            calendarState = state,
+            onDismiss = { showShareDialog = false },
+        )
     }
 
     if (showRules) {
