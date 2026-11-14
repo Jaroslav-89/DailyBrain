@@ -26,6 +26,7 @@ interface RockPaperScissorsRepository {
     suspend fun acceptInvitation(firebaseUid: String, invitationId: String): GameRoom
     suspend fun declineInvitation(firebaseUid: String, invitationId: String)
     suspend fun leaveRoom(firebaseUid: String, roomId: String)
+    suspend fun deleteRoom(firebaseUid: String, roomId: String)
     suspend fun updateRoom(
         firebaseUid: String,
         roomId: String,
