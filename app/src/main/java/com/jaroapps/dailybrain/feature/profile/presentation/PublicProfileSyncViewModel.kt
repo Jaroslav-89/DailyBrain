@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.jaroapps.dailybrain.common.domain.usecase.InitializeRewardStateUseCase
 import com.jaroapps.dailybrain.feature.avatar.data.AvatarJsonCodec
 import com.jaroapps.dailybrain.feature.avatar.domain.usecase.ObserveAvatarUseCase
+import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserProfileRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
@@ -16,7 +17,6 @@ import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveSelectedPro
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
@@ -136,7 +136,7 @@ class PublicProfileSyncViewModel(
                         runSyncStep("Could not sync public collectibles") {
                             profileCollectiblesRepository.syncOwnPublic(firebaseUid, snapshot.collectibles)
                             val badgeCount = snapshot.collectibles.count {
-                                it.kind == com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind.BADGE
+                                it.kind == ProfileCollectibleKind.BADGE
                             }
                             Log.d(TAG, "Published $badgeCount active badges for profile $firebaseUid")
                         }
