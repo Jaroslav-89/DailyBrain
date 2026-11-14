@@ -82,24 +82,43 @@ class ProfileCollectiblesRepositoryImpl(
         val app = configuredApp()
         requireCurrentUser(app, ownerFirebaseUid)
 
-        val collection = FirebaseFirestore.getInstance(app)
+        val firestore = FirebaseFirestore.getInstance(app)
+        val collection = firestore
             .collection(PUBLIC_PROFILE_CARDS)
             .document(ownerFirebaseUid)
             .collection(COLLECTIBLES)
-        val existing = collection.get().awaitResult().documents
-        val desiredIds = items.mapTo(mutableSetOf()) { documentId(it) }
 
+        // Upsert the complete Room snapshot. Missing local items are not treated as deletions:
+        // the local database can be temporarily incomplete while legacy rewards are recalculated
+        // or when another device has newer data.
         items.chunked(MAX_BATCH_WRITES).forEach { chunk ->
-            val batch = FirebaseFirestore.getInstance(app).batch()
+            val batch = firestore.batch()
             chunk.forEach { item ->
                 batch.set(collection.document(documentId(item)), item.toPublicMap())
             }
             batch.commit().awaitResult()
         }
 
-        existing.filterNot { it.id in desiredIds }.chunked(MAX_BATCH_WRITES).forEach { stale ->
-            val batch = FirebaseFirestore.getInstance(app).batch()
-            stale.forEach { batch.delete(it.reference) }
+        // Remove only badges that the reward recalculator explicitly marked as revoked.
+        // This avoids deleting valid cloud badges simply because they were absent from a snapshot.
+        val activeBadgeIds = items.asSequence()
+            .filter { it.kind == ProfileCollectibleKind.BADGE }
+            .map(ProfileCollectible::id)
+            .toSet()
+        val revokedBadgeIds = database.userBadgeDao()
+            .getForUser(localUserId)
+            .asSequence()
+            .filter(UserBadgeEntity::isRevoked)
+            .map(UserBadgeEntity::badgeId)
+            .filterNot(activeBadgeIds::contains)
+            .distinct()
+            .toList()
+
+        revokedBadgeIds.chunked(MAX_BATCH_WRITES).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach { badgeId ->
+                batch.delete(collection.document(documentId(ProfileCollectibleKind.BADGE, badgeId)))
+            }
             batch.commit().awaitResult()
         }
     }
