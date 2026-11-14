@@ -1026,6 +1026,11 @@ service cloud.firestore {
         && get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.ownerUid is string
         && request.auth.uid in get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids
         && !(recipientUid in get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids)
+        && recipientUid != request.auth.uid
+        && exists(/databases/$(database)/documents/publicProfiles/$(recipientUid))
+        && !exists(/databases/$(database)/documents/deletedProfiles/$(recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(request.auth.uid)/users/$(recipientUid))
+        && !exists(/databases/$(database)/documents/blockedUsers/$(recipientUid)/users/$(request.auth.uid))
         && get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids.size()
           < get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.maxParticipants;
       allow update: if activeUser()

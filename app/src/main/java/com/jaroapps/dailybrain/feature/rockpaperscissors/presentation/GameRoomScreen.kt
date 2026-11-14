@@ -30,6 +30,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
+import androidx.compose.material3.Divider
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -204,7 +205,7 @@ fun GameRoomScreen(
                                 ) {
                                     Column(Modifier.weight(1f)) {
                                         Text("Код приватной комнаты", style = MaterialTheme.typography.labelSmall)
-                                        Text(snapshot.room.inviteCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                        Text(snapshot.room.inviteCode.orEmpty(), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                                     }
                                     TextButton(onClick = {
                                         clipboardManager.setText(AnnotatedString(snapshot.room.inviteCode.orEmpty()))
