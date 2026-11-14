@@ -67,6 +67,7 @@ fun GameRoomsScreen(
     viewModel: GameRoomsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val lifecycleOwner = LocalLifecycleOwner.current
     val profileViewModel: ProfileViewModel = koinViewModel()
     val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
     val googleSignInClient: GoogleSignInClient = koinInject()
