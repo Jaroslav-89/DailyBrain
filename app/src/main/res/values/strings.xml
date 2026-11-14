@@ -291,4 +291,24 @@
     <string name="privacy_policy_changes_title">8. Изменения политики</string>
     <string name="privacy_policy_changes_body">Политика может обновляться при изменении функций приложения или способов обработки данных. Актуальная версия размещается непосредственно в приложении на этом экране. Продолжая пользоваться сетевыми функциями после обновления, вы можете ознакомиться с новой редакцией политики.</string>
 
+    <string name="mini_games_title">Мини-игры</string>
+    <string name="mini_games_description">Короткие игры на внимание, концентрацию и скорость реакции.</string>
+    <string name="mini_games_number_grid_description">Найди все числа от 1 до 25 по порядку. Ошибки не сбрасывают прогресс, но снижают точность.</string>
+    <string name="mini_games_start">Начать игру</string>
+    <string name="exercise_number_grid">Таблица Шульте</string>
+    <string name="exercise_number_grid_size">Таблица Шульте %1$d×%1$d</string>
+    <string name="intro_number_grid">Тебе предстоит находить числа в случайно расположенной таблице. Старайся замечать нужное число как можно быстрее, сохраняя точность.</string>
+    <string name="rules_number_grid">Нажимай на числа по возрастанию — от 1 до 25. Последняя правильно выбранная клетка остаётся зелёной, пока ты не найдёшь следующую. Ошибочные нажатия увеличивают счётчик ошибок и снижают точность. Тренировка завершается после выбора числа 25.</string>
+    <string name="number_grid_find_number">Найди число</string>
+    <string name="number_grid_errors">Ошибки: %1$d</string>
+    <string name="number_grid_accuracy">Точность: %1$s%%</string>
+    <string name="number_grid_result_title">Тренировка завершена!</string>
+    <string name="number_grid_result_time">Время: %1$s</string>
+    <string name="number_grid_result_accuracy">Точность: %1$s%%</string>
+    <string name="number_grid_result_errors">Ошибки: %1$d</string>
+    <string name="number_grid_retry">Повторить</string>
+    <string name="number_grid_back_to_games">В мини-игры</string>
+    <string name="statistics_number_grid_record">Лучшее время 5×5 (точность не ниже 95%)</string>
+    <string name="history_errors">Ошибок: %1$d</string>
+
 </resources>
