@@ -430,6 +430,524 @@ service cloud.firestore {
       allow delete: if signedIn() && resource.data.authorUid == request.auth.uid;
     }
 
+
+    // Multiplayer rock-paper-scissors rooms.
+    match /gameRooms/{roomId} {
+      function roomPath() {
+        return /databases/$(database)/documents/gameRooms/$(roomId);
+      }
+
+      function currentRoomMember() {
+        return signedIn()
+          && exists(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid));
+      }
+
+      function memberUid(uid) {
+        return exists(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(uid));
+      }
+
+      function validRoomJoinUpdate() {
+        let before = resource.data.get('memberUids', []);
+        let after = request.resource.data.get('memberUids', []);
+        let memberPath = /databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid);
+        let memberAfter = getAfter(memberPath).data;
+        return !(request.auth.uid in before)
+          && request.auth.uid in after
+          && after.size() == before.size() + 1
+          && after.hasAll(before)
+          && existsAfter(memberPath)
+          && memberAfter.uid == request.auth.uid
+          && (
+            resource.data.isPublic == true
+            || memberAfter.get('joinedAsOwner', false) == true
+            || (
+              memberAfter.get('joinedViaCode', '') is string
+              && memberAfter.get('joinedViaCode', '') == resource.data.get('inviteCode', '')
+              && exists(/databases/$(database)/documents/gameRoomCodes/$(memberAfter.joinedViaCode))
+              && get(/databases/$(database)/documents/gameRoomCodes/$(memberAfter.joinedViaCode)).data.roomId == roomId
+            )
+            || (
+              memberAfter.get('joinedViaInvitationId', '') is string
+              && existsAfter(/databases/$(database)/documents/gameRoomInvitations/$(request.auth.uid)/items/$(memberAfter.joinedViaInvitationId))
+              && getAfter(/databases/$(database)/documents/gameRoomInvitations/$(request.auth.uid)/items/$(memberAfter.joinedViaInvitationId)).data.status == 'ACCEPTED'
+              && getAfter(/databases/$(database)/documents/gameRoomInvitations/$(request.auth.uid)/items/$(memberAfter.joinedViaInvitationId)).data.roomId == roomId
+            )
+          );
+      }
+
+      function validRoomLeaveUpdate() {
+        let before = resource.data.get('memberUids', []);
+        let after = request.resource.data.get('memberUids', []);
+        return request.auth.uid in before
+          && !(request.auth.uid in after)
+          && after.size() == before.size() - 1
+          && before.hasAll(after)
+          && !existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid))
+          && (request.resource.data.ownerUid == resource.data.ownerUid
+            || request.resource.data.ownerUid in after);
+      }
+
+      function validRoomSettingsUpdate() {
+        return request.auth.uid == resource.data.ownerUid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'name', 'isPublic', 'inviteCode', 'maxParticipants', 'targetScore', 'updatedAtEpochMs'
+          ])
+          && request.resource.data.name is string
+          && request.resource.data.name.size() > 0
+          && request.resource.data.name.size() <= 40
+          && request.resource.data.isPublic is bool
+          && request.resource.data.maxParticipants is int
+          && request.resource.data.maxParticipants >= 2
+          && request.resource.data.maxParticipants <= 8
+          && request.resource.data.maxParticipants >= resource.data.memberUids.size()
+          && request.resource.data.targetScore is int
+          && request.resource.data.targetScore >= 5
+          && request.resource.data.targetScore <= 500
+          && (
+            (request.resource.data.isPublic == true && request.resource.data.inviteCode == null)
+            || (
+              request.resource.data.isPublic == false
+              && validInviteCode(request.resource.data.inviteCode)
+              && existsAfter(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.inviteCode))
+              && getAfter(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.inviteCode)).data.roomId == roomId
+            )
+          );
+      }
+
+      function validRoundAdvance() {
+        let previousRoundId = resource.data.currentRoundId;
+        let nextRoundId = request.resource.data.currentRoundId;
+        return request.auth.uid in resource.data.memberUids
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'currentRoundId', 'roundNumber', 'lastFinishedRoundId',
+            'lastWinnerUid', 'lastWinnerName', 'lastWinnerScore',
+            'lastRoundFinishedAtEpochMs', 'updatedAtEpochMs'
+          ])
+          && nextRoundId is string
+          && nextRoundId != previousRoundId
+          && request.resource.data.lastFinishedRoundId == previousRoundId
+          && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId))
+          && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(nextRoundId))
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(nextRoundId)).data.status == 'ACTIVE';
+      }
+
+      allow get: if activeUser()
+        && (
+          resource.data.get('isPublic', false) == true
+          || request.auth.uid in resource.data.get('memberUids', [])
+          || (
+            resource.data.get('inviteCode', '') is string
+            && resource.data.get('inviteCode', '') != ''
+            && exists(/databases/$(database)/documents/gameRoomCodes/$(resource.data.inviteCode))
+          )
+          || exists(/databases/$(database)/documents/gameRoomInvitations/$(request.auth.uid)/items/$(roomId))
+        );
+
+      allow list: if activeUser()
+        && (
+          resource.data.get('isPublic', false) == true
+          || request.auth.uid in resource.data.get('memberUids', [])
+        );
+
+      allow create: if activeUser()
+        && request.resource.data.keys().hasOnly([
+          'name', 'ownerUid', 'ownerName', 'isPublic', 'inviteCode',
+          'maxParticipants', 'targetScore', 'memberUids', 'status',
+          'currentRoundId', 'roundNumber', 'createdAtEpochMs', 'updatedAtEpochMs'
+        ])
+        && request.resource.data.name is string
+        && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 40
+        && request.resource.data.ownerUid == request.auth.uid
+        && request.resource.data.ownerName is string
+        && request.resource.data.ownerName.size() <= 80
+        && request.resource.data.isPublic is bool
+        && request.resource.data.maxParticipants is int
+        && request.resource.data.maxParticipants >= 2
+        && request.resource.data.maxParticipants <= 8
+        && request.resource.data.targetScore is int
+        && request.resource.data.targetScore >= 5
+        && request.resource.data.targetScore <= 500
+        && request.resource.data.memberUids == [request.auth.uid]
+        && request.resource.data.status == 'OPEN'
+        && request.resource.data.currentRoundId == '1'
+        && request.resource.data.roundNumber == 1
+        && request.resource.data.createdAtEpochMs is int
+        && request.resource.data.updatedAtEpochMs is int
+        && (
+          (request.resource.data.isPublic == true && request.resource.data.inviteCode == null)
+          || (
+            request.resource.data.isPublic == false
+            && validInviteCode(request.resource.data.inviteCode)
+            && existsAfter(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.inviteCode))
+            && getAfter(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.inviteCode)).data.roomId == roomId
+          )
+        )
+        && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid))
+        && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid)).data.joinedAsOwner == true
+        && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/1);
+
+      allow update: if activeUser()
+        && (
+          validRoomSettingsUpdate()
+          || validRoomJoinUpdate()
+          || validRoomLeaveUpdate()
+          || validRoundAdvance()
+          || (
+            currentRoomMember()
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['updatedAtEpochMs'])
+            && request.resource.data.updatedAtEpochMs is int
+          )
+        );
+
+      allow delete: if canDeleteOwnData(request.auth.uid)
+        && resource.data.ownerUid == request.auth.uid
+        && resource.data.memberUids.size() == 1
+        && !(request.auth.uid in request.resource.data.get('memberUids', []))
+        && !existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid));
+
+      match /members/{uid} {
+        function memberRoom() {
+          return get(/databases/$(database)/documents/gameRooms/$(roomId)).data;
+        }
+
+        function validOwnReadMarkerUpdate() {
+          return request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'lastReadMessageAtEpochMs', 'lastSeenFinishedRoundId'
+            ])
+            && (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastReadMessageAtEpochMs'])
+              || request.resource.data.lastReadMessageAtEpochMs is int
+            )
+            && (
+              !request.resource.data.diff(resource.data).affectedKeys().hasAny(['lastSeenFinishedRoundId'])
+              || request.resource.data.lastSeenFinishedRoundId is string
+            );
+        }
+
+        function validResultStatsUpdate() {
+          let roundId = request.resource.data.lastResultRoundId;
+          let matchId = request.resource.data.lastResultMatchId;
+          let matchPath = /databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId);
+          let match = getAfter(matchPath).data;
+          return request.auth.uid in memberRoom().memberUids
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+              'score', 'wins', 'draws', 'losses', 'rockCount', 'paperCount', 'scissorsCount',
+              'matchesPlayed', 'roundWins', 'roundDraws', 'roundLosses',
+              'roundRockCount', 'roundPaperCount', 'roundScissorsCount',
+              'roundMatchesPlayed', 'lastPlayedAtEpochMs', 'lastResultMatchId', 'lastResultRoundId'
+            ])
+            && roundId is string
+            && matchId is string
+            && existsAfter(matchPath)
+            && match.status == 'RESOLVED'
+            && (match.uidA == uid || match.uidB == uid)
+            && (match.uidA == request.auth.uid || match.uidB == request.auth.uid)
+            && request.resource.data.lastPlayedAtEpochMs is int
+            && request.resource.data.score is int
+            && request.resource.data.matchesPlayed == resource.data.matchesPlayed + 1;
+        }
+
+        allow get: if activeUser() && (request.auth.uid == uid || currentRoomMember());
+        allow list: if activeUser() && currentRoomMember();
+
+        allow create: if activeUser()
+          && request.auth.uid == uid
+          && request.resource.data.uid == uid
+          && request.resource.data.name is string
+          && request.resource.data.name.size() <= 80
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids.hasAny([uid])
+          && (
+            memberRoom().isPublic == true
+            || request.resource.data.get('joinedAsOwner', false) == true
+            || (
+              request.resource.data.get('joinedViaCode', '') is string
+              && request.resource.data.joinedViaCode == memberRoom().get('inviteCode', '')
+              && exists(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.joinedViaCode))
+              && get(/databases/$(database)/documents/gameRoomCodes/$(request.resource.data.joinedViaCode)).data.roomId == roomId
+            )
+            || (
+              request.resource.data.get('joinedViaInvitationId', '') is string
+              && getAfter(/databases/$(database)/documents/gameRoomInvitations/$(uid)/items/$(request.resource.data.joinedViaInvitationId)).data.status == 'ACCEPTED'
+              && getAfter(/databases/$(database)/documents/gameRoomInvitations/$(uid)/items/$(request.resource.data.joinedViaInvitationId)).data.roomId == roomId
+            )
+          );
+
+        allow update: if activeUser() && (validOwnReadMarkerUpdate() || validResultStatsUpdate());
+        allow delete: if signedIn()
+          && (
+            request.auth.uid == uid
+            || request.auth.uid == memberRoom().ownerUid
+          );
+      }
+
+      match /rounds/{roundId} {
+        allow get, list: if activeUser() && currentRoomMember();
+        allow create: if activeUser()
+          && currentRoomMember()
+          && request.resource.data.roundId == roundId
+          && request.resource.data.status == 'ACTIVE'
+          && request.resource.data.targetScore == memberRoom().targetScore
+          && request.resource.data.roundNumber is int;
+        allow update: if activeUser()
+          && currentRoomMember()
+          && resource.data.status == 'ACTIVE'
+          && request.resource.data.status == 'FINISHED'
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'winnerUid', 'winnerName', 'winningScore', 'finishedAtEpochMs'
+          ])
+          && request.resource.data.winningScore is int
+          && request.resource.data.finishedAtEpochMs is int
+          && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(roundId));
+        allow delete: if activeUser()
+          && currentRoomMember()
+          && resource.data.status == 'FINISHED';
+        
+        match /pairs/{pairId} {
+          function participantsInPair() {
+            return request.resource.data.uidA is string
+              && request.resource.data.uidB is string
+              && request.resource.data.uidA != request.resource.data.uidB
+              && request.resource.data.uidA in memberRoom().memberUids
+              && request.resource.data.uidB in memberRoom().memberUids
+              && request.auth.uid in [request.resource.data.uidA, request.resource.data.uidB];
+          }
+
+          allow get, list: if activeUser() && currentRoomMember();
+
+          allow create: if activeUser()
+            && currentRoomMember()
+            && participantsInPair()
+            && request.resource.data.status == 'WAITING'
+            && request.resource.data.submittedUids is list
+            && request.auth.uid in request.resource.data.submittedUids
+            && request.resource.data.matchId is string
+            && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.matchId)/moves/$(request.auth.uid));
+
+          allow update: if activeUser()
+            && currentRoomMember()
+            && participantsInPair()
+            && resource.data.uidA == request.resource.data.uidA
+            && resource.data.uidB == request.resource.data.uidB
+            && (
+              (
+                request.resource.data.status == 'WAITING'
+                && request.resource.data.submittedUids is list
+                && request.auth.uid in request.resource.data.submittedUids
+                && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.matchId)/moves/$(request.auth.uid))
+              )
+              || (
+                request.resource.data.status == 'RESOLVED'
+                && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.matchId)).data.status == 'RESOLVED'
+                && request.resource.data.moveA is string
+                && request.resource.data.moveB is string
+                && request.resource.data.pointsA is int
+                && request.resource.data.pointsB is int
+              )
+            );
+        }
+
+        match /matches/{matchId} {
+          function matchRoomMember() {
+            return activeUser()
+              && exists(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid));
+          }
+
+          function beats(moveA, moveB) {
+            return (moveA == 'ROCK' && moveB == 'SCISSORS')
+              || (moveA == 'SCISSORS' && moveB == 'PAPER')
+              || (moveA == 'PAPER' && moveB == 'ROCK');
+          }
+
+          function expectedPoints(moveA, moveB) {
+            return moveA == moveB ? 2 : (beats(moveA, moveB) ? 3 : 1);
+          }
+
+          allow get, list: if matchRoomMember();
+
+          allow create: if matchRoomMember()
+            && request.resource.data.matchId == matchId
+            && request.resource.data.uidA is string
+            && request.resource.data.uidB is string
+            && request.resource.data.uidA != request.resource.data.uidB
+            && request.auth.uid in [request.resource.data.uidA, request.resource.data.uidB]
+            && request.resource.data.uidA in memberRoom().memberUids
+            && request.resource.data.uidB in memberRoom().memberUids
+            && request.resource.data.status == 'WAITING'
+            && request.resource.data.createdAtEpochMs is int;
+
+          allow update: if matchRoomMember()
+            && resource.data.status == 'WAITING'
+            && request.resource.data.status == 'RESOLVED'
+            && request.resource.data.uidA == resource.data.uidA
+            && request.resource.data.uidB == resource.data.uidB
+            && request.auth.uid in [resource.data.uidA, resource.data.uidB]
+            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)/moves/$(resource.data.uidA)).data.choice == request.resource.data.moveA
+            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)/moves/$(resource.data.uidB)).data.choice == request.resource.data.moveB
+            && request.resource.data.pointsA == expectedPoints(request.resource.data.moveA, request.resource.data.moveB)
+            && request.resource.data.pointsB == expectedPoints(request.resource.data.moveB, request.resource.data.moveA)
+            && request.resource.data.resolvedAtEpochMs is int;
+
+          allow delete: if activeUser()
+            && matchRoomMember()
+            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED';
+
+          match /moves/{uid} {
+            function parentMatch() {
+              return get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data;
+            }
+
+            allow get: if activeUser()
+              && (
+                request.auth.uid == uid
+                || (
+                  matchRoomMember()
+                  && exists(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)/moves/$(request.auth.uid))
+                )
+              );
+            allow list: if false;
+            allow create: if activeUser()
+              && request.auth.uid == uid
+              && matchRoomMember()
+              && request.resource.data.uid == uid
+              && request.resource.data.choice in ['ROCK', 'PAPER', 'SCISSORS']
+              && request.resource.data.createdAtEpochMs is int
+              && parentMatch().status == 'WAITING'
+              && uid in [parentMatch().uidA, parentMatch().uidB];
+            allow update: if false;
+            allow delete: if activeUser()
+              && matchRoomMember()
+              && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.status == 'RESOLVED';
+          }
+        }
+      }
+
+      match /messages/{messageId} {
+        allow get, list: if activeUser() && currentRoomMember();
+        allow create: if activeUser()
+          && currentRoomMember()
+          && request.resource.data.keys().hasOnly(['senderUid', 'senderName', 'text', 'createdAtEpochMs'])
+          && request.resource.data.senderUid == request.auth.uid
+          && request.resource.data.senderName is string
+          && request.resource.data.senderName.size() <= 80
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0
+          && request.resource.data.text.size() <= 500
+          && request.resource.data.createdAtEpochMs is int;
+        allow update: if false;
+        allow delete: if activeUser() && currentRoomMember();
+      }
+
+      match /chatState/{summaryId} {
+        allow get, list: if activeUser() && currentRoomMember();
+        allow create, update: if activeUser()
+          && currentRoomMember()
+          && summaryId == 'summary'
+          && request.resource.data.keys().hasOnly(['lastMessageAtEpochMs'])
+          && request.resource.data.lastMessageAtEpochMs is int;
+        allow delete: if false;
+      }
+
+      match /roundResults/{roundId} {
+        allow get, list: if activeUser() && currentRoomMember();
+        allow create: if activeUser()
+          && currentRoomMember()
+          && request.resource.data.roundId == roundId
+          && request.resource.data.winningScore is int
+          && request.resource.data.finishedAtEpochMs is int;
+        allow update: if false;
+        allow delete: if false;
+      }
+    }
+
+    match /gameRoomCodes/{code} {
+      allow get: if signedIn();
+      allow list: if false;
+      allow create: if activeUser()
+        && validInviteCode(code)
+        && request.resource.data.keys().hasOnly(['roomId'])
+        && request.resource.data.roomId is string
+        && getAfter(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.ownerUid == request.auth.uid
+        && getAfter(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.inviteCode == code;
+      allow update: if false;
+      allow delete: if canDeleteOwnData(request.auth.uid)
+        && (
+          !existsAfter(/databases/$(database)/documents/gameRooms/$(resource.data.roomId))
+          || getAfter(/databases/$(database)/documents/gameRooms/$(resource.data.roomId)).data.inviteCode != code
+        );
+    }
+
+    match /gameRoomMemberships/{uid}/rooms/{roomId} {
+      allow get, list: if canAccessOwnData(uid);
+      allow create, update: if activeUser()
+        && request.auth.uid == uid
+        && request.resource.data.keys().hasOnly(['roomId', 'joinedAtEpochMs'])
+        && request.resource.data.roomId == roomId
+        && request.resource.data.joinedAtEpochMs is int
+        && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(uid));
+      allow delete: if signedIn() && request.auth.uid == uid;
+    }
+
+    match /gameRoomInvitations/{recipientUid}/items/{invitationId} {
+      allow get, list: if canAccessOwnData(recipientUid);
+      allow create: if activeUser()
+        && request.resource.data.keys().hasOnly([
+          'invitationId', 'roomId', 'roomName', 'inviterUid', 'inviterName',
+          'createdAtEpochMs', 'status'
+        ])
+        && request.resource.data.invitationId == invitationId
+        && request.resource.data.roomId is string
+        && request.resource.data.roomName is string
+        && request.resource.data.roomName.size() <= 40
+        && request.resource.data.inviterUid == request.auth.uid
+        && request.resource.data.inviterName is string
+        && request.resource.data.inviterName.size() <= 80
+        && request.resource.data.createdAtEpochMs is int
+        && request.resource.data.status == 'PENDING'
+        && exists(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId))
+        && get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.ownerUid is string
+        && request.auth.uid in get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids
+        && !(recipientUid in get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids)
+        && get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.memberUids.size()
+          < get(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)).data.maxParticipants;
+      allow update: if activeUser()
+        && request.auth.uid == recipientUid
+        && resource.data.status == 'PENDING'
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status', 'respondedAtEpochMs'])
+        && request.resource.data.status in ['ACCEPTED', 'DECLINED']
+        && request.resource.data.respondedAtEpochMs is int
+        && (
+          request.resource.data.status != 'ACCEPTED'
+          || (
+            existsAfter(/databases/$(database)/documents/gameRooms/$(resource.data.roomId)/members/$(recipientUid))
+            && recipientUid in getAfter(/databases/$(database)/documents/gameRooms/$(resource.data.roomId)).data.memberUids
+          )
+        );
+      allow delete: if canDeleteOwnData(recipientUid)
+        || (signedIn() && resource.data.inviterUid == request.auth.uid);
+    }
+
+    match /gameRoomNotifications/{uid}/items/{notificationId} {
+      allow get, list: if canAccessOwnData(uid);
+      allow create: if activeUser()
+        && request.resource.data.keys().hasOnly([
+          'roomId', 'roundId', 'roomName', 'winnerUid', 'winnerName',
+          'winningScore', 'finishedAtEpochMs', 'status'
+        ])
+        && request.resource.data.roomId is string
+        && request.resource.data.roundId is string
+        && request.resource.data.roomName is string
+        && request.resource.data.winningScore is int
+        && request.resource.data.finishedAtEpochMs is int
+        && request.resource.data.status == 'UNREAD'
+        && exists(/databases/$(database)/documents/gameRooms/$(request.resource.data.roomId)/members/$(request.auth.uid));
+      allow update: if canAccessOwnData(uid)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status'])
+        && request.resource.data.status == 'READ';
+      allow delete: if canDeleteOwnData(uid);
+    }
+
     // Gifts are immutable deliveries. The client may retry the same gift ID, but cannot
     // alter a delivery after creation. The recipient alone can read the inbox.
     match /giftDeliveries/{recipientUid}/items/{giftId} {
