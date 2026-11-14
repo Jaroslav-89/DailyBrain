@@ -112,7 +112,7 @@ class FirestoreRockPaperScissorsRepository(
         firebaseUid: String,
         memberName: String,
         roomId: String,
-    ): GameRoom = joinRoom(firebaseUid, memberName, roomId, requirePublic = true)
+    ): GameRoom = joinRoom(firebaseUid, memberName, roomId, requirePublic = true, joinedViaCode = null)
 
     override suspend fun joinRoomByCode(
         firebaseUid: String,
