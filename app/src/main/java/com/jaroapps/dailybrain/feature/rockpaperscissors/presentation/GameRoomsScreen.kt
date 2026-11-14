@@ -310,6 +310,7 @@ fun GameRoomsScreen(
 private fun GameRoomCard(
     room: GameRoom,
     isMyRoom: Boolean,
+    isJoined: Boolean,
     enabled: Boolean,
     onOpen: () -> Unit,
     onJoin: () -> Unit,
