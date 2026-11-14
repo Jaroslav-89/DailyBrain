@@ -57,6 +57,8 @@ import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.common.domain.model.ExerciseType
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarPreview
 import com.jaroapps.dailybrain.feature.avatar.presentation.AvatarViewModel
+import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
+import com.jaroapps.dailybrain.feature.history.presentation.ShareProgressDialog
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserGender
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCollectibleKind
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
@@ -82,6 +84,8 @@ fun ProfileScreen(
     directoryViewModel: UserDirectoryViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val calendarViewModel: CalendarViewModel = koinViewModel()
+    val calendarState by calendarViewModel.uiState.collectAsStateWithLifecycle()
     val collectibles by viewModel.collectibles.collectAsStateWithLifecycle()
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner, viewModel) {
@@ -98,6 +102,7 @@ fun ProfileScreen(
     val profile = state.profile
     val stats = state.statistics
     var showMyQrDialog by remember { mutableStateOf(false) }
+    var showShareDialog by remember { mutableStateOf(false) }
     var showAddFriendsDialog by remember { mutableStateOf(false) }
     val directoryState by directoryViewModel.uiState.collectAsStateWithLifecycle()
     val relationshipsReady =
@@ -149,44 +154,44 @@ fun ProfileScreen(
                 shape = MaterialTheme.shapes.large,
                 color = MaterialTheme.colorScheme.surfaceVariant,
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(16.dp),
-                        verticalAlignment = Alignment.Top,
-                    ) {
-                        Surface(
-                            modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
-                            shape = MaterialTheme.shapes.medium,
-                            color = MaterialTheme.colorScheme.surface,
+                Box {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(16.dp),
+                            verticalAlignment = Alignment.Top,
                         ) {
-                            AvatarPreview(
-                                configuration = avatarState.configuration,
-                                modifier = Modifier.fillMaxSize(),
-                            )
-                        }
-                        Column(
-                            modifier = Modifier.weight(1f),
-                            verticalArrangement = Arrangement.spacedBy(6.dp),
-                        ) {
-                            Row(
-                                horizontalArrangement = Arrangement.spacedBy(6.dp),
-                                verticalAlignment = Alignment.CenterVertically,
+                            Surface(
+                                modifier = Modifier.width(84.dp).aspectRatio(3f / 4f),
+                                shape = MaterialTheme.shapes.medium,
+                                color = MaterialTheme.colorScheme.surface,
                             ) {
-                                Text(
-                                    text = profile?.effectiveDisplayName ?: stringResource(R.string.profile_loading),
-                                    modifier = Modifier.weight(1f),
-                                    style = MaterialTheme.typography.headlineSmall,
-                                    fontWeight = FontWeight.Bold,
+                                AvatarPreview(
+                                    configuration = avatarState.configuration,
+                                    modifier = Modifier.fillMaxSize(),
                                 )
-                                if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
-                                    Icon(
-                                        imageVector = Icons.Filled.CheckCircle,
-                                        contentDescription = "Google аккаунт подтверждён",
-                                        tint = colorResource(R.color.color_success),
-                                        modifier = Modifier.size(20.dp),
-                                    )
-                                }
                             }
+                            Column(
+                                modifier = Modifier.weight(1f).padding(end = 36.dp),
+                                verticalArrangement = Arrangement.spacedBy(6.dp),
+                            ) {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Text(
+                                        text = profile?.effectiveDisplayName ?: stringResource(R.string.profile_loading),
+                                        style = MaterialTheme.typography.headlineSmall,
+                                        fontWeight = FontWeight.Bold,
+                                    )
+                                    if (state.cloudSessionStatus == ProfileCloudSessionStatus.READY) {
+                                        Icon(
+                                            imageVector = Icons.Filled.CheckCircle,
+                                            contentDescription = "Google аккаунт подтверждён",
+                                            tint = colorResource(R.color.color_success),
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                    }
+                                }
                             profile?.let { user ->
                                 profileAgeLabel(user, today)?.let { age ->
                                     Text(
@@ -234,6 +239,16 @@ fun ProfileScreen(
                             text = stringResource(R.string.profile_member_since, formatAccountPeriod(elapsed)),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    IconButton(
+                        onClick = { showShareDialog = true },
+                        modifier = Modifier.align(Alignment.TopEnd),
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Share,
+                            contentDescription = "Поделиться профилем",
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
@@ -448,6 +463,13 @@ fun ProfileScreen(
             isLoading = profile.inviteCode == null && directoryState.isLoadingInviteCode,
             error = if (profile.inviteCode != null) null else directoryState.inviteCodeError,
             onDismiss = { showMyQrDialog = false },
+        )
+    }
+    if (showShareDialog) {
+        ShareProgressDialog(
+            calendarState = calendarState,
+            onDismiss = { showShareDialog = false },
+            profileViewModel = viewModel,
         )
     }
     if (showAddFriendsDialog) {
