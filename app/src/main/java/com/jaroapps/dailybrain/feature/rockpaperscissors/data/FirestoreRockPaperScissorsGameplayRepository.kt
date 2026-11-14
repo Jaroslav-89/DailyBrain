@@ -154,15 +154,50 @@ class FirestoreRockPaperScissorsGameplayRepository(
                     opponentUid = item.opponentUid,
                     move = move,
                 )
-                // A move from an older round is deliberately discarded instead of being replayed.
-                deletePending(localUserId, item)
+                // Keep the pending row until result calculation succeeds. If Firestore rejects
+                // the resolution transaction, the next screen entry can retry it.
                 if (accepted) {
                     resolvePairIfReady(firestore, firebaseUid, item.roomId, item.roundId, item.opponentUid)
                 }
+                // A move from an older round is deliberately discarded instead of being replayed.
+                deletePending(localUserId, item)
             } catch (error: Exception) {
                 if (isNetworkUnavailable(error)) return
                 throw error
             }
+        }
+
+        // A previous attempt may already have persisted both moves and then failed while
+        // calculating the result. Such a pair has no local pending move to replay, so scan
+        // the active round whenever the room is opened or refreshed.
+        for (candidateRoomId in roomsToCheck) {
+            val room = firestore.collection(GAME_ROOMS).document(candidateRoomId).get().awaitResult()
+            val activeRoundId = room.getString("currentRoundId") ?: continue
+            recoverReadyPairs(firestore, firebaseUid, candidateRoomId, activeRoundId)
+        }
+    }
+
+    private suspend fun recoverReadyPairs(
+        firestore: FirebaseFirestore,
+        firebaseUid: String,
+        roomId: String,
+        roundId: String,
+    ) {
+        val pairSnapshot = firestore.collection(GAME_ROOMS).document(roomId)
+            .collection(ROUNDS).document(roundId)
+            .collection(PAIRS)
+            .get()
+            .awaitResult()
+
+        for (pair in pairSnapshot.documents) {
+            if (pair.getString("status") != MATCH_WAITING) continue
+            val uidA = pair.getString("uidA") ?: continue
+            val uidB = pair.getString("uidB") ?: continue
+            if (firebaseUid != uidA && firebaseUid != uidB) continue
+            val submitted = pair.stringList("submittedUids")
+            if (uidA !in submitted || uidB !in submitted) continue
+            val opponentUid = if (firebaseUid == uidA) uidB else uidA
+            resolvePairIfReady(firestore, firebaseUid, roomId, roundId, opponentUid)
         }
     }
 
