@@ -71,6 +71,8 @@ import com.jaroapps.dailybrain.feature.minigames.presentation.MiniGamesScreen
 import com.jaroapps.dailybrain.feature.numbergrid.presentation.NumberGridScreen
 import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomsScreen
 import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomScreen
+import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameInvitationPromptDialog
+import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameInvitationPromptViewModel
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedItemDetailScreen
 import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryScreen
@@ -115,6 +117,8 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     val observeUserProfile: ObserveUserProfileUseCase = koinInject()
     val processMissedStreakDays: ProcessMissedStreakDaysWithAnnouncementUseCase = koinInject()
     val activeProfile by observeUserProfile().collectAsState(initial = null)
+    val invitationPromptViewModel: GameInvitationPromptViewModel = koinViewModel()
+    val invitationPrompt by invitationPromptViewModel.uiState.collectAsState()
     val context = LocalContext.current
     LaunchedEffect(activeProfile?.localAccountId) {
         activeProfile?.localAccountId?.let { localAccountId ->
@@ -126,6 +130,16 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     }
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
+    val mainRoutes = setOf(Route.HOME, Route.MINI_GAMES, Route.STATISTICS, Route.FEED, Route.SHOP, Route.PROFILE)
+    LaunchedEffect(currentRoute, activeProfile?.localAccountId) {
+        if (currentRoute in mainRoutes) invitationPromptViewModel.checkForPrompt()
+    }
+    LaunchedEffect(invitationPrompt.openRoomId) {
+        invitationPrompt.openRoomId?.let { roomId ->
+            invitationPromptViewModel.consumeOpenRoom()
+            navController.navigate(Route.rockPaperScissorsRoom(roomId))
+        }
+    }
     val showBottomNavigation = currentRoute in setOf(
         Route.HOME,
         Route.MINI_GAMES,
@@ -596,6 +610,15 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                 }
             }
             if (activeProfile != null) AnnouncementHost()
+            invitationPrompt.invitation?.let { invitation ->
+                GameInvitationPromptDialog(
+                    invitation = invitation,
+                    isAccepting = invitationPrompt.isAccepting,
+                    errorMessage = invitationPrompt.errorMessage,
+                    onAccept = invitationPromptViewModel::acceptInvitation,
+                    onDismiss = invitationPromptViewModel::dismiss,
+                )
+            }
         }
     }
 }
