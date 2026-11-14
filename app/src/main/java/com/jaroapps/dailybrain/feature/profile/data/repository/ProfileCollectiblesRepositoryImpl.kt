@@ -105,14 +105,10 @@ class ProfileCollectiblesRepositoryImpl(
             .filter { it.kind == ProfileCollectibleKind.BADGE }
             .map(ProfileCollectible::id)
             .toSet()
-        val revokedBadgeIds = database.userBadgeDao()
-            .getForUser(localUserId)
-            .asSequence()
-            .filter(UserBadgeEntity::isRevoked)
-            .map(UserBadgeEntity::badgeId)
-            .filterNot(activeBadgeIds::contains)
-            .distinct()
-            .toList()
+        val revokedBadgeIds = revokedBadgeIdsToDelete(
+            badges = database.userBadgeDao().getForUser(localUserId),
+            activeBadgeIds = activeBadgeIds,
+        )
 
         revokedBadgeIds.chunked(MAX_BATCH_WRITES).forEach { chunk ->
             val batch = firestore.batch()
@@ -177,7 +173,7 @@ class ProfileCollectiblesRepositoryImpl(
 
     private fun documentId(item: ProfileCollectible): String = documentId(item.kind, item.id)
     private fun documentId(kind: ProfileCollectibleKind, id: String): String =
-        (if (kind == ProfileCollectibleKind.GIFT) "gift_" else "badge_") + id
+        publicCollectibleDocumentId(kind, id)
 
     private fun configuredApp(): FirebaseApp =
         FirebaseApp.getApps(appContext).firstOrNull() ?: throw UserDirectoryNotConfiguredException()
@@ -204,3 +200,22 @@ class ProfileCollectiblesRepositoryImpl(
         const val MAX_BATCH_WRITES = 400
     }
 }
+
+
+/** Stable cloud IDs keep same-type badges from different periods as separate documents. */
+internal fun publicCollectibleDocumentId(kind: ProfileCollectibleKind, id: String): String =
+    (if (kind == ProfileCollectibleKind.GIFT) "gift_" else "badge_") + id
+
+/**
+ * Only explicit Room revocations may delete a public badge. Absence from the current snapshot
+ * is deliberately not interpreted as a deletion request.
+ */
+internal fun revokedBadgeIdsToDelete(
+    badges: List<UserBadgeEntity>,
+    activeBadgeIds: Set<String>,
+): List<String> = badges.asSequence()
+    .filter(UserBadgeEntity::isRevoked)
+    .map(UserBadgeEntity::badgeId)
+    .filterNot(activeBadgeIds::contains)
+    .distinct()
+    .toList()
