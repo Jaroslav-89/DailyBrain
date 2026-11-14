@@ -242,9 +242,18 @@ fun ProfileScreen(
                         }
                     }
                     accountPeriod?.let { elapsed ->
+                        val tenureParts = buildList {
+                            if (elapsed.years > 0) {
+                                add(pluralStringResource(R.plurals.profile_tenure_years, elapsed.years, elapsed.years))
+                            }
+                            if (elapsed.months > 0) {
+                                add(pluralStringResource(R.plurals.profile_tenure_months, elapsed.months, elapsed.months))
+                            }
+                            add(pluralStringResource(R.plurals.profile_tenure_days, elapsed.days, elapsed.days))
+                        }
                         Spacer(Modifier.height(12.dp))
                         Text(
-                            text = stringResource(R.string.profile_member_since, formatAccountPeriod(elapsed)),
+                            text = stringResource(R.string.profile_member_since, tenureParts.joinToString(" ")),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
@@ -493,16 +502,6 @@ fun ProfileScreen(
             },
         )
     }
-}
-
-@Composable
-private fun formatAccountPeriod(period: Period): String {
-    val parts = buildList {
-        if (period.years > 0) add(pluralStringResource(R.plurals.profile_tenure_years, period.years, period.years))
-        if (period.months > 0) add(pluralStringResource(R.plurals.profile_tenure_months, period.months, period.months))
-        add(pluralStringResource(R.plurals.profile_tenure_days, period.days, period.days))
-    }
-    return parts.joinToString(" ")
 }
 
 @Composable
