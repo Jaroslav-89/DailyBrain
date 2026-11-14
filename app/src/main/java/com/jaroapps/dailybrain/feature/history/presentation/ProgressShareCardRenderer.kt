@@ -51,7 +51,7 @@ object ProgressShareCardRenderer {
         }
         canvas.drawRoundRect(RectF(66f, 210f, 1014f, 1240f), 44f, 44f, panelPaint)
         val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (premium) 0x66E4C47A else 0x553A9B78
+            color = if (premium) 0x66E4C47A.toInt() else 0x553A9B78.toInt()
             style = Paint.Style.STROKE
             strokeWidth = 3f
         }
@@ -72,7 +72,7 @@ object ProgressShareCardRenderer {
             color = if (premium) 0xFF123B32.toInt() else 0xFFE8F5EE.toInt()
         }
         val tileStroke = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (premium) 0x88E4C47A.toInt() else 0x553A9B78
+            color = if (premium) 0x88E4C47A.toInt() else 0x553A9B78.toInt()
             style = Paint.Style.STROKE
             strokeWidth = 2f
         }
