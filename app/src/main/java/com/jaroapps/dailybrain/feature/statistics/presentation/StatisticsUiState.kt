@@ -28,6 +28,7 @@ data class StatisticsUiState(
     val memoryWords: ExerciseStatistics = ExerciseStatistics(),
     val countingTraining: ExerciseStatistics = ExerciseStatistics(),
     val stroopTest: ExerciseStatistics = ExerciseStatistics(),
+    val numberGrid: ExerciseStatistics = ExerciseStatistics(),
     val currentStreakDays: Int = 0,
     val bestStreakDays: Int = 0,
     val arithmeticBestDurationMs: Long? = null,
@@ -35,6 +36,8 @@ data class StatisticsUiState(
     val memoryBestDurationMs: Long? = null,
     val countingBestDurationMs: Long? = null,
     val stroopBestDurationMs: Long? = null,
+    val numberGridBestDurationMs: Long? = null,
     val chartPeriod: ChartPeriod = ChartPeriod.MONTH,
     val dailyResults: List<DailyExerciseResult> = emptyList(),
+    val numberGridDailyResults: List<DailyExerciseResult> = emptyList(),
 )
