@@ -69,25 +69,19 @@ class GameRoomViewModel(
 
     init {
         viewModelScope.launch {
-            observeUserProfile().collect { profile ->
+            kotlinx.coroutines.flow.combine(
+                observeUserProfile(),
+                firebaseAuthenticationRepository.observeCurrentUserId(),
+            ) { profile, firebaseUid ->
+                profile to profile.firebaseUid?.takeIf { it == firebaseUid && it.isNotBlank() }
+            }.collect { (profile, uid) ->
                 currentName = profile.effectiveDisplayName
-                val uid = profile.firebaseUid?.takeIf {
-                    it.isNotBlank() && it == firebaseAuthenticationRepository.currentUserId()
-                }
                 if (uid != null) {
                     runCatching {
                         gameplayRepository.updateMemberDisplayName(uid, roomId, currentName)
                     }
                 }
-            }
-        }
-        viewModelScope.launch {
-            kotlinx.coroutines.flow.combine(
-                observeUserProfile(),
-                firebaseAuthenticationRepository.observeCurrentUserId(),
-            ) { profile, firebaseUid ->
-                profile.firebaseUid?.takeIf { it == firebaseUid && it.isNotBlank() }
-            }.collect { uid ->
+
                 if (uid == currentUid) return@collect
                 currentUid = uid
                 stopObservers()

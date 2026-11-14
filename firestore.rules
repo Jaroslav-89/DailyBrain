@@ -623,6 +623,7 @@ service cloud.firestore {
           validRoomSettingsUpdate()
           || validRoomJoinUpdate()
           || validRoomLeaveUpdate()
+          || validRoomClosingUpdate()
           || validRoundAdvance()
           || (
             currentRoomMember()
