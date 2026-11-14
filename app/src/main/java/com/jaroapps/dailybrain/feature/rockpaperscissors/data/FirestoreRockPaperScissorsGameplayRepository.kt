@@ -548,6 +548,9 @@ class FirestoreRockPaperScissorsGameplayRepository(
     private suspend fun cleanupRound(firestore: FirebaseFirestore, roomId: String, roundId: String) {
         val roomRef = firestore.collection(GAME_ROOMS).document(roomId)
         val roundRef = roomRef.collection(ROUNDS).document(roundId)
+        val round = roundRef.get().awaitResult()
+        if (!round.exists() || round.getString("status") != ROUND_FINISHED) return
+
         val matches = roundRef.collection(MATCHES).get().awaitResult()
         val moveReferences = matches.documents.flatMap { match ->
             listOfNotNull(match.getString("uidA"), match.getString("uidB"))
