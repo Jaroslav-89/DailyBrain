@@ -258,15 +258,19 @@ fun ProfileScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    IconButton(
-                        onClick = { showShareDialog = true },
-                        modifier = Modifier.align(Alignment.TopEnd),
+                    Box(
+                        modifier = Modifier.matchParentSize(),
+                        contentAlignment = Alignment.TopEnd,
                     ) {
-                        Icon(
-                            imageVector = Icons.Filled.Share,
-                            contentDescription = "Поделиться профилем",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
+                        IconButton(
+                            onClick = { showShareDialog = true },
+                        ) {
+                            Icon(
+                                imageVector = Icons.Filled.Share,
+                                contentDescription = "Поделиться профилем",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
                     }
                 }
             }
