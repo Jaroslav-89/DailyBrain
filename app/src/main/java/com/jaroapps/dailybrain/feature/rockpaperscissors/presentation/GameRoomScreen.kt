@@ -302,6 +302,35 @@ fun GameRoomScreen(
                 showSettings = false
                 viewModel.updateRoom(it)
             },
+            onDelete = {
+                showSettings = false
+                showDeleteRoomConfirmation = true
+            },
+        )
+    }
+
+    if (showDeleteRoomConfirmation && snapshot != null) {
+        AlertDialog(
+            onDismissRequest = { showDeleteRoomConfirmation = false },
+            title = { Text("Удалить комнату?") },
+            text = {
+                Text(
+                    "Комната «" + snapshot.room.name +
+                        "» будет удалена для всех участников. История матчей и код приглашения этой комнаты также будут удалены."
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    enabled = !state.isWorking,
+                    onClick = {
+                        showDeleteRoomConfirmation = false
+                        viewModel.deleteRoom()
+                    },
+                ) { Text("Удалить", color = MaterialTheme.colorScheme.error) }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteRoomConfirmation = false }) { Text("Отмена") }
+            },
         )
     }
 
