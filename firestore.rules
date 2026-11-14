@@ -876,6 +876,10 @@ service cloud.firestore {
                 (request.resource.data.scoreAfterA >= request.resource.data.scoreAfterB
                   ? resource.data.uidA : resource.data.uidB)
             )
+            && request.resource.data.winnerName == (
+              request.resource.data.winnerUid == resource.data.uidA ? request.resource.data.nameA :
+                (request.resource.data.winnerUid == resource.data.uidB ? request.resource.data.nameB : null)
+            )
             && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(resource.data.uidA)).data.score == (request.resource.data.roundFinished ? 0 : request.resource.data.scoreAfterA)
             && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(resource.data.uidB)).data.score == (request.resource.data.roundFinished ? 0 : request.resource.data.scoreAfterB)
             && request.resource.data.resolvedAtEpochMs is int;

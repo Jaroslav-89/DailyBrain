@@ -661,6 +661,13 @@ class FirestoreRockPaperScissorsGameplayRepository(
             paperCount = getLong("roundPaperCount")?.toInt() ?: getLong("paperCount")?.toInt() ?: 0,
             scissorsCount = getLong("roundScissorsCount")?.toInt() ?: getLong("scissorsCount")?.toInt() ?: 0,
             matchesPlayed = getLong("roundMatchesPlayed")?.toInt() ?: getLong("matchesPlayed")?.toInt() ?: 0,
+            totalWins = getLong("wins")?.toInt() ?: 0,
+            totalDraws = getLong("draws")?.toInt() ?: 0,
+            totalLosses = getLong("losses")?.toInt() ?: 0,
+            totalRockCount = getLong("rockCount")?.toInt() ?: 0,
+            totalPaperCount = getLong("paperCount")?.toInt() ?: 0,
+            totalScissorsCount = getLong("scissorsCount")?.toInt() ?: 0,
+            totalMatchesPlayed = getLong("matchesPlayed")?.toInt() ?: 0,
             lastReadMessageAtEpochMs = getLong("lastReadMessageAtEpochMs") ?: 0L,
             lastSeenFinishedRoundId = getString("lastSeenFinishedRoundId"),
         )

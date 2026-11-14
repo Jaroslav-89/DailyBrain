@@ -53,6 +53,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.colorResource
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -96,6 +98,7 @@ fun GameRoomScreen(
     var selectedParticipant by remember { mutableStateOf<GameParticipant?>(null) }
     val snapshot = state.snapshot
     val lifecycleOwner = LocalLifecycleOwner.current
+    val clipboardManager = LocalClipboardManager.current
 
     DisposableEffect(lifecycleOwner, viewModel) {
         val observer = LifecycleEventObserver { _, event ->
@@ -191,6 +194,25 @@ fun GameRoomScreen(
                     modifier = Modifier.fillMaxSize().padding(padding).padding(horizontal = 14.dp),
                     verticalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
+                    if (snapshot.room.visibility == GameRoomVisibility.PRIVATE && !snapshot.room.inviteCode.isNullOrBlank()) {
+                        item {
+                            Card(Modifier.fillMaxWidth()) {
+                                Row(
+                                    Modifier.fillMaxWidth().padding(horizontal = 14.dp, vertical = 10.dp),
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                ) {
+                                    Column(Modifier.weight(1f)) {
+                                        Text("Код приватной комнаты", style = MaterialTheme.typography.labelSmall)
+                                        Text(snapshot.room.inviteCode, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                                    }
+                                    TextButton(onClick = {
+                                        clipboardManager.setText(AnnotatedString(snapshot.room.inviteCode.orEmpty()))
+                                    }) { Text("Копировать") }
+                                }
+                            }
+                        }
+                    }
                     item {
                         RoomScoreboard(
                             participants = snapshot.participants,
@@ -593,15 +615,22 @@ private fun ParticipantStatsDialog(
         title = { Text("Статистика: " + participant.name) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text("Результаты текущего раунда")
+                Text("Статистика в комнате", fontWeight = FontWeight.SemiBold)
+                Text("Всего матчей: " + participant.totalMatchesPlayed)
+                Text("Победы: " + participant.totalWins + " · Ничьи: " +
+                    participant.totalDraws + " · Поражения: " + participant.totalLosses)
+                val totalMoves = participant.totalRockCount + participant.totalPaperCount + participant.totalScissorsCount
+                fun totalPercent(count: Int): Int = if (totalMoves == 0) 0 else count * 100 / totalMoves
+                Text("Камень: " + totalPercent(participant.totalRockCount) + "% · Ножницы: " +
+                    totalPercent(participant.totalScissorsCount) + "% · Бумага: " +
+                    totalPercent(participant.totalPaperCount) + "%")
+                Text("Текущий раунд", fontWeight = FontWeight.SemiBold)
                 Text("Победы: " + participant.wins)
                 Text("Ничьи: " + participant.draws)
                 Text("Поражения: " + participant.losses)
                 Text("Набрано очков: " + participant.score)
-                Text("Распределение ходов")
-                Text("✊ Камень: " + percent(participant.rockCount) + "%")
-                Text("✌️ Ножницы: " + percent(participant.scissorsCount) + "%")
-                Text("✋ Бумага: " + percent(participant.paperCount) + "%")
+                Text("Выборы: ✊ " + percent(participant.rockCount) + "% · ✌️ " +
+                    percent(participant.scissorsCount) + "% · ✋ " + percent(participant.paperCount) + "%")
             }
         },
         confirmButton = { TextButton(onClick = onOpenProfile) { Text("Открыть профиль") } },

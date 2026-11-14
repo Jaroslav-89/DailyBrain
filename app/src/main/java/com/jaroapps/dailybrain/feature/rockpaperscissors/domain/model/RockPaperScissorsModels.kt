@@ -70,6 +70,13 @@ data class GameParticipant(
     val paperCount: Int,
     val scissorsCount: Int,
     val matchesPlayed: Int,
+    val totalWins: Int = 0,
+    val totalDraws: Int = 0,
+    val totalLosses: Int = 0,
+    val totalRockCount: Int = 0,
+    val totalPaperCount: Int = 0,
+    val totalScissorsCount: Int = 0,
+    val totalMatchesPlayed: Int = 0,
     val lastReadMessageAtEpochMs: Long = 0L,
     val lastSeenFinishedRoundId: String? = null,
 )
