@@ -38,7 +38,7 @@ class FirestoreRockPaperScissorsRepository(
             .get()
             .awaitResult()
             .documents
-            .mapNotNull(::toGameRoom)
+            .mapNotNull { document: DocumentSnapshot -> document.toGameRoom() }
             .filter { it.hasSpace && it.ownerUid != firebaseUid }
     }
 
@@ -51,7 +51,7 @@ class FirestoreRockPaperScissorsRepository(
             .get()
             .awaitResult()
             .documents
-            .mapNotNull(::toGameRoom)
+            .mapNotNull { document: DocumentSnapshot -> document.toGameRoom() }
     }
 
     override suspend fun createRoom(
