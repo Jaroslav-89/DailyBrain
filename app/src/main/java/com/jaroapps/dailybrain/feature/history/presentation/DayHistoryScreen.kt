@@ -39,6 +39,7 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
 import java.util.Locale
+import kotlin.math.roundToInt
 
 @Composable
 fun DayHistoryScreen(
@@ -148,6 +149,10 @@ fun DayHistoryScreen(
                                     ExerciseType.MEMORY_WORDS -> stringResource(R.string.exercise_memory)
                                     ExerciseType.COUNTING_TRAINING -> stringResource(R.string.exercise_counting)
                                     ExerciseType.STROOP_TEST -> stringResource(R.string.exercise_stroop)
+                                    ExerciseType.NUMBER_GRID -> stringResource(
+                                        R.string.exercise_number_grid_size,
+                                        kotlin.math.sqrt(session.taskCount.toDouble()).toInt(),
+                                    )
                                     null -> session.exerciseType
                                 }
 
@@ -197,7 +202,13 @@ fun DayHistoryScreen(
                                     Spacer(Modifier.size(4.dp))
                                 }
 
-                                if (
+                                if (exerciseType == ExerciseType.NUMBER_GRID) {
+                                    val errors = (
+                                        (100.0 - session.accuracyPercent).coerceAtLeast(0.0) *
+                                            session.taskCount.coerceAtLeast(0) / 100.0
+                                        ).roundToInt()
+                                    Text(stringResource(R.string.history_errors, errors))
+                                } else if (
                                     exerciseType != ExerciseType.COUNTING_TRAINING &&
                                     exerciseType != ExerciseType.STROOP_TEST
                                 ) {
