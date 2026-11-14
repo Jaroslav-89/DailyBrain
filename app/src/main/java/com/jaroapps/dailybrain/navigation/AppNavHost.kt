@@ -131,8 +131,10 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     val currentBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = currentBackStackEntry?.destination?.route
     val mainRoutes = setOf(Route.HOME, Route.MINI_GAMES, Route.STATISTICS, Route.FEED, Route.SHOP, Route.PROFILE)
-    LaunchedEffect(currentRoute, activeProfile?.localAccountId) {
-        if (currentRoute in mainRoutes) invitationPromptViewModel.checkForPrompt()
+    LaunchedEffect(currentRoute, activeProfile?.localAccountId, invitationPrompt.isSessionReady) {
+        if (currentRoute in mainRoutes && invitationPrompt.isSessionReady) {
+            invitationPromptViewModel.checkForPrompt()
+        }
     }
     LaunchedEffect(invitationPrompt.openRoomId) {
         invitationPrompt.openRoomId?.let { roomId ->

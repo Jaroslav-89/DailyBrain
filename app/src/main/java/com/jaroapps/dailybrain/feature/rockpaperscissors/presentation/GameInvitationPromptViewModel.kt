@@ -20,6 +20,7 @@ data class GameInvitationPromptUiState(
     val isAccepting: Boolean = false,
     val errorMessage: String? = null,
     val openRoomId: String? = null,
+    val isSessionReady: Boolean = false,
 )
 
 class GameInvitationPromptViewModel(
@@ -49,7 +50,13 @@ class GameInvitationPromptViewModel(
                 activeFirebaseUid = uid
                 if (uid != checkedForUid) {
                     checkedForUid = null
-                    _uiState.update { it.copy(invitation = null, errorMessage = null) }
+                    _uiState.update {
+                        it.copy(
+                            invitation = null,
+                            errorMessage = null,
+                            isSessionReady = uid != null,
+                        )
+                    }
                 }
             }
         }

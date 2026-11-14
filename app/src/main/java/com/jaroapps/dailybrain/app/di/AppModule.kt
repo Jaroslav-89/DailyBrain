@@ -255,6 +255,7 @@ val appModule = module {
             context = androidContext(),
             database = get(),
             activeUserProvider = get(),
+            rockPaperScissorsRepository = get(),
         )
     }
     single<FeedSyncTrigger> { FeedSyncManager(repository = get()) }
