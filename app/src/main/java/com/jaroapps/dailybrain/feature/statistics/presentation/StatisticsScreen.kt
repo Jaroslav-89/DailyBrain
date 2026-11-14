@@ -23,6 +23,7 @@ import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Memory
 import androidx.compose.material.icons.filled.Palette
 import androidx.compose.material.icons.filled.RecordVoiceOver
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -66,12 +67,14 @@ fun StatisticsScreen(
         Icons.Filled.Memory to R.string.exercise_memory,
         Icons.Filled.Palette to R.string.exercise_stroop,
         Icons.Filled.RecordVoiceOver to R.string.exercise_counting,
+        Icons.Filled.SportsEsports to R.string.exercise_number_grid,
     )
 
     val stats = when (selectedTab) {
         1 -> state.memoryWords
         2 -> state.stroopTest
         3 -> state.countingTraining
+        4 -> state.numberGrid
         else -> state.arithmetic
     }
 
@@ -205,7 +208,7 @@ fun StatisticsScreen(
         }
         Spacer(Modifier.height(8.dp))
         DailyResultChart(
-            rows = state.dailyResults,
+            rows = if (selectedTab == 4) state.numberGridDailyResults else state.dailyResults,
             selectedTab = selectedTab,
             modifier = Modifier.fillMaxWidth().height(220.dp),
         )
@@ -226,14 +229,18 @@ fun StatisticsScreen(
                     ?: stringResource(R.string.statistics_no_record),
             )
         } else {
-            val bestDuration = if (selectedTab == 2) {
-                state.stroopBestDurationMs
-            } else {
-                state.countingBestDurationMs
+            val bestDuration = when (selectedTab) {
+                2 -> state.stroopBestDurationMs
+                3 -> state.countingBestDurationMs
+                else -> state.numberGridBestDurationMs
             }
             Spacer(Modifier.height(12.dp))
             StatisticCard(
-                title = stringResource(R.string.statistics_best_time),
+                title = if (selectedTab == 4) {
+                    stringResource(R.string.statistics_number_grid_record)
+                } else {
+                    stringResource(R.string.statistics_best_time)
+                },
                 value = if (bestDuration != null) {
                     formatDuration(bestDuration)
                 } else {
@@ -258,7 +265,7 @@ fun StatisticsScreen(
             )
         }
 
-        if (selectedTab == 0) {
+        if (selectedTab == 0 || selectedTab == 4) {
             Spacer(Modifier.height(12.dp))
             StatisticCard(
                 title = stringResource(R.string.statistics_average_accuracy),
@@ -335,6 +342,7 @@ private fun DailyResultChart(
             1 -> row.memoryBestCorrectCount?.toFloat()
             2 -> row.stroopBestTimeMs?.toFloat()
             3 -> row.countingBestTimeMs?.toFloat()
+            4 -> row.numberGridBestTimeMs?.toFloat()
             else -> null
         }
         value?.let {
