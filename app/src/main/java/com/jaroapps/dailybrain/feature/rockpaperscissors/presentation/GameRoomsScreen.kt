@@ -41,14 +41,19 @@ import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.runtime.rememberCoroutineScope
+import kotlinx.coroutines.launch
 import com.jaroapps.dailybrain.R
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
+import com.jaroapps.dailybrain.feature.profile.presentation.ProfileViewModel
+import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInClient
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.CreateGameRoomRequest
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.GameRoom
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.GameRoomInvitation
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.GameRoomVisibility
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.RockPaperScissorsRules
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +63,39 @@ fun GameRoomsScreen(
     viewModel: GameRoomsViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
+    val profileViewModel: ProfileViewModel = koinViewModel()
+    val profileState by profileViewModel.uiState.collectAsStateWithLifecycle()
+    val googleSignInClient: GoogleSignInClient = koinInject()
+    val coroutineScope = rememberCoroutineScope()
+    var isGoogleSignInInProgress by remember { mutableStateOf(false) }
+    var googleSignInError by remember { mutableStateOf<String?>(null) }
+    fun startGoogleConnection() {
+        googleSignInError = null
+        if (state.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
+            profileViewModel.reauthenticateGoogleAccount()
+        } else {
+            if (isGoogleSignInInProgress) return
+            coroutineScope.launch {
+                isGoogleSignInInProgress = true
+                try {
+                    val result = googleSignInClient.signIn()
+                    val expectedSubject = state.profile?.googleSubject
+                    if (expectedSubject != null && result.account.subject != expectedSubject) {
+                        googleSignInError = "Выберите Google-аккаунт, уже привязанный к этому профилю."
+                    } else {
+                        profileViewModel.linkGoogleAccount(result)
+                    }
+                } catch (error: Exception) {
+                    googleSignInError = error.message ?: "Не удалось подключить Google-аккаунт."
+                } finally {
+                    isGoogleSignInInProgress = false
+                }
+            }
+        }
+    }
+    val isAuthWorking = isGoogleSignInInProgress ||
+        profileState.isGoogleLinking || profileState.isGoogleReauthenticating
+    val authErrorMessage = googleSignInError ?: profileState.googleReauthenticationError
     var selectedTab by remember { mutableIntStateOf(0) }
     var showCreateDialog by remember { mutableStateOf(false) }
     var showJoinDialog by remember { mutableStateOf(false) }
@@ -179,21 +217,21 @@ fun GameRoomsScreen(
                 )
                 Button(
                     onClick = viewModel::authenticate,
-                    enabled = !state.isAuthenticating,
+                    enabled = !isAuthWorking,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = colorResource(R.color.color_button_green),
                         contentColor = colorResource(R.color.color_on_accent),
                     ),
                 ) {
-                    if (state.isAuthenticating) CircularProgressIndicator()
+                    if (isAuthWorking) CircularProgressIndicator()
                     else Text(
                         if (state.cloudSessionStatus == ProfileCloudSessionStatus.REAUTH_REQUIRED) {
                             "Восстановить подключение"
                         } else "Подключить Google"
                     )
                 }
-                state.authError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                authErrorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 OutlinedButton(onClick = onBack, modifier = Modifier.fillMaxWidth()) { Text("Позже") }
             }
 
@@ -217,7 +255,7 @@ fun GameRoomsScreen(
             confirmButton = {
                 TextButton(onClick = {
                     showAuthDialog = false
-                    viewModel.authenticate()
+                    startGoogleConnection()
                 }) { Text("Подключить") }
             },
             dismissButton = {

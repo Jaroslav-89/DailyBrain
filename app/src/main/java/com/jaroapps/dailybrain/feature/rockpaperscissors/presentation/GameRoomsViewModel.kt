@@ -2,15 +2,11 @@ package com.jaroapps.dailybrain.feature.rockpaperscissors.presentation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.jaroapps.dailybrain.feature.profile.data.auth.GoogleSignInProvider
-import com.jaroapps.dailybrain.feature.profile.domain.model.LinkGoogleAccountResult
 import com.jaroapps.dailybrain.feature.profile.domain.model.ProfileCloudSessionStatus
 import com.jaroapps.dailybrain.feature.profile.domain.model.PublicUserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.model.UserProfile
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.LinkGoogleAccountUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
-import com.jaroapps.dailybrain.feature.profile.domain.usecase.ReauthenticateGoogleAccountUseCase
 import com.jaroapps.dailybrain.feature.profile.domain.repository.UserDirectoryRepository
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.CreateGameRoomRequest
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.model.GameRoom
@@ -50,9 +46,6 @@ data class GameRoomsUiState(
 class GameRoomsViewModel(
     observeUserProfile: ObserveUserProfileUseCase,
     private val firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
-    private val googleSignInProvider: GoogleSignInProvider,
-    private val linkGoogleAccount: LinkGoogleAccountUseCase,
-    private val reauthenticateGoogleAccount: ReauthenticateGoogleAccountUseCase,
     private val userDirectoryRepository: UserDirectoryRepository,
     private val manageGameRooms: ManageGameRoomsUseCase,
 ) : ViewModel() {
@@ -88,39 +81,6 @@ class GameRoomsViewModel(
                         }
                     }
                 }
-        }
-    }
-
-    fun authenticate() {
-        val state = _uiState.value
-        val profile = state.profile ?: return
-        if (state.isAuthenticating) return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isAuthenticating = true, authError = null) }
-            try {
-                if (!profile.firebaseUid.isNullOrBlank() && !profile.googleSubject.isNullOrBlank()) {
-                    reauthenticateGoogleAccount(profile.localAccountId)
-                } else {
-                    val signIn = googleSignInProvider.signIn()
-                    when (linkGoogleAccount(profile.localAccountId, signIn.account, signIn.idToken)) {
-                        LinkGoogleAccountResult.LINKED -> Unit
-                        LinkGoogleAccountResult.ALREADY_LINKED_TO_ANOTHER_PROFILE ->
-                            throw IllegalStateException("Этот Google-аккаунт уже привязан к другому профилю.")
-                        LinkGoogleAccountResult.FIREBASE_NOT_CONFIGURED ->
-                            throw IllegalStateException("Firebase не настроен. Проверьте app/google-services.json.")
-                        is LinkGoogleAccountResult.FIREBASE_AUTH_FAILED ->
-                            throw IllegalStateException("Не удалось выполнить вход в Firebase.")
-                        LinkGoogleAccountResult.SAVE_FAILED ->
-                            throw IllegalStateException("Не удалось сохранить подключение профиля.")
-                    }
-                }
-            } catch (cancelled: CancellationException) {
-                throw cancelled
-            } catch (error: Exception) {
-                _uiState.update { it.copy(authError = error.message ?: "Не удалось подключить Google-аккаунт.") }
-            } finally {
-                _uiState.update { it.copy(isAuthenticating = false) }
-            }
         }
     }
 

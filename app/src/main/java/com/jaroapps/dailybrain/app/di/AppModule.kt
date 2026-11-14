@@ -285,7 +285,6 @@ val appModule = module {
     }
     single<ProfileAuthSessionManager> {
         ActiveProfileAuthCoordinator(
-            googleSignInProvider = get(),
             firebaseAuthenticationRepository = get(),
         )
     }
@@ -427,8 +426,6 @@ val appModule = module {
             observeUserProfile = get(),
             firebaseAuthenticationRepository = get(),
             googleSignInProvider = get(),
-            linkGoogleAccount = get(),
-            reauthenticateGoogleAccount = get(),
             userDirectoryRepository = get(),
             manageGameRooms = get(),
         )
