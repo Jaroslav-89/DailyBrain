@@ -734,6 +734,13 @@ private fun EditGameRoomDialog(
                         OutlinedButton(onClick = { targetScore = value }) { Text(value.toString()) }
                     }
                 }
+                OutlinedButton(
+                    onClick = onDelete,
+                    enabled = !isWorking,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    Text("Удалить комнату", color = MaterialTheme.colorScheme.error)
+                }
             }
         },
         confirmButton = {
