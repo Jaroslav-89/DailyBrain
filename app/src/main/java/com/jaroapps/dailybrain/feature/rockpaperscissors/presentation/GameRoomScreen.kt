@@ -703,6 +703,7 @@ private fun EditGameRoomDialog(
     isWorking: Boolean,
     onDismiss: () -> Unit,
     onSave: (CreateGameRoomRequest) -> Unit,
+    onDelete: () -> Unit,
 ) {
     var name by remember(room.roomId) { mutableStateOf(room.name) }
     var visibility by remember(room.roomId) { mutableStateOf(room.visibility) }
