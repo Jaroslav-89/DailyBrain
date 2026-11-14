@@ -287,7 +287,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                         "memory" -> "Запоминание слов"
                         "counting" -> "Устный счёт"
                         "stroop" -> "Тест Струпа"
-                        "number_grid" -> "Таблица Шульте"
+                        "number_grid" -> stringResource(R.string.exercise_number_grid)
                         else -> "Арифметика"
                     }
                     ExerciseCountdownScreen(exerciseName = exerciseName) {
