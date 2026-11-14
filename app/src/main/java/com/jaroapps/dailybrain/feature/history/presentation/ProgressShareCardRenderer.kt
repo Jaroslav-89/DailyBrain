@@ -92,9 +92,6 @@ object ProgressShareCardRenderer {
 
         val name = displayName.trim().ifBlank { "Участник DailyBrain" }.take(28)
         drawCentered(canvas, name, 1080f, 42f, primaryText, true)
-        drawCentered(canvas, "Присоединяйтесь к Daily Brain", 1125f, 29f, secondaryText, true)
-        drawCentered(canvas, "и выполняйте короткие упражнения", 1165f, 26f, secondaryText, false)
-        drawCentered(canvas, "для развития интеллекта и памяти!", 1205f, 26f, secondaryText, false)
         drawCentered(canvas, "dailybrain", 1300f, 22f, accent, true)
         return bitmap
     }

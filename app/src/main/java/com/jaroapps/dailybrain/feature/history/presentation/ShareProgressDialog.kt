@@ -112,6 +112,12 @@ fun ShareProgressDialog(
                             )
                         },
                 )
+                Text(
+                    text = "Присоединяйтесь к Daily Brain и выполняйте короткие упражнения для развития интеллекта и памяти!",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                )
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.Center,
@@ -170,6 +176,10 @@ private fun shareProgressImage(context: Context, bitmap: android.graphics.Bitmap
         type = "image/png"
         putExtra(Intent.EXTRA_STREAM, imageUri)
         putExtra(Intent.EXTRA_SUBJECT, "Мой прогресс в DailyBrain")
+        putExtra(
+            Intent.EXTRA_TEXT,
+            "Присоединяйтесь к Daily Brain и выполняйте короткие упражнения для развития интеллекта и памяти!",
+        )
         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
     context.startActivity(Intent.createChooser(sendIntent, "Поделиться прогрессом"))
