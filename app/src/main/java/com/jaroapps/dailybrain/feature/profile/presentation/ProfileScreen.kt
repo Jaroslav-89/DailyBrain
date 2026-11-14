@@ -259,7 +259,7 @@ fun ProfileScreen(
                         )
                     }
                     Box(
-                        modifier = Modifier.matchParentSize(),
+                        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
                         contentAlignment = Alignment.TopEnd,
                     ) {
                         IconButton(
