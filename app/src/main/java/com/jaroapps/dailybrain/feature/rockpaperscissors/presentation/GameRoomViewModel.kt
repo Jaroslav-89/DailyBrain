@@ -294,6 +294,13 @@ class GameRoomViewModel(
         performAction { manageGameRooms.updateRoom(uid, roomId, request) }
     }
 
+    fun deleteRoom() {
+        val uid = currentUid ?: return
+        performAction {
+            manageGameRooms.deleteRoom(uid, roomId)
+            _uiState.update { it.copy(exitRequested = true) }
+        }
+    }
 
     fun loadFriends() {
         val uid = currentUid ?: return
