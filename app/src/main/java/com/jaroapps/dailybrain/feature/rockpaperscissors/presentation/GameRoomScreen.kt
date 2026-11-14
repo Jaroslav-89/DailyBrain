@@ -95,6 +95,7 @@ fun GameRoomScreen(
     var showSettings by remember { mutableStateOf(false) }
     var showHistory by remember { mutableStateOf(false) }
     var showLeaveConfirmation by remember { mutableStateOf(false) }
+    var showDeleteRoomConfirmation by remember { mutableStateOf(false) }
     var showInviteDialog by remember { mutableStateOf(false) }
     var selectedParticipant by remember { mutableStateOf<GameParticipant?>(null) }
     val snapshot = state.snapshot
