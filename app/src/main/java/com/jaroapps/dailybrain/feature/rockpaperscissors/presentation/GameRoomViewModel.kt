@@ -262,7 +262,7 @@ class GameRoomViewModel(
         if (content.isEmpty()) return
         viewModelScope.launch {
             try {
-                gameplayRepository.sendChatMessage(uid, roomId, content)
+                gameplayRepository.sendChatMessage(uid, roomId, currentName, content)
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (error: Exception) {

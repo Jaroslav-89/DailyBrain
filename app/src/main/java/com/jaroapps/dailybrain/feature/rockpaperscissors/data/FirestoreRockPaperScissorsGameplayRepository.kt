@@ -318,7 +318,10 @@ class FirestoreRockPaperScissorsGameplayRepository(
             val pointsB = RockPaperScissorsRules.points(outcomeB)
             val scoreA = (memberA.getLong("score")?.toInt() ?: 0) + pointsA
             val scoreB = (memberB.getLong("score")?.toInt() ?: 0) + pointsB
-            val targetScore = room.getLong("targetScore")?.toInt() ?: RockPaperScissorsRules.DEFAULT_TARGET_SCORE
+            // Settings changed during an active round take effect on the next round.
+            val targetScore = round.getLong("targetScore")?.toInt()
+                ?: (room.getLong("targetScore")?.toInt() ?: RockPaperScissorsRules.DEFAULT_TARGET_SCORE)
+            val nextRoundTargetScore = room.getLong("targetScore")?.toInt() ?: targetScore
             val hasWinner = scoreA >= targetScore || scoreB >= targetScore
             val winnerUid = when {
                 !hasWinner -> null
@@ -404,7 +407,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
                         "roundId" to nextRoundId,
                         "roundNumber" to currentRoundNumber + 1,
                         "status" to ROUND_ACTIVE,
-                        "targetScore" to targetScore,
+                        "targetScore" to nextRoundTargetScore,
                         "startedAtEpochMs" to now,
                     ))
                 }
@@ -587,27 +590,24 @@ class FirestoreRockPaperScissorsGameplayRepository(
         }
     }
 
-    override suspend fun sendChatMessage(firebaseUid: String, roomId: String, text: String) {
+    override suspend fun sendChatMessage(firebaseUid: String, roomId: String, senderName: String, text: String) {
         val normalized = text.trim()
         require(normalized.isNotEmpty()) { "Введите сообщение." }
         require(normalized.length <= MAX_MESSAGE_LENGTH) { "Сообщение слишком длинное." }
+        require(senderName.isNotBlank()) { "Не удалось определить имя отправителя." }
         val firestore = firestoreFor(firebaseUid)
         val roomRef = firestore.collection(GAME_ROOMS).document(roomId)
-        val memberRef = roomRef.collection(MEMBERS).document(firebaseUid)
-        val member = memberRef.get().awaitResult()
-        if (!member.exists()) throw IllegalStateException("Вы больше не состоите в этой комнате.")
         val now = System.currentTimeMillis()
         val messageRef = roomRef.collection(MESSAGES).document()
         val summaryRef = roomRef.collection(CHAT_STATE).document(CHAT_SUMMARY)
         val batch = firestore.batch()
         batch.set(messageRef, mapOf(
             "senderUid" to firebaseUid,
-            "senderName" to member.getString("name").orEmpty(),
+            "senderName" to senderName.take(80),
             "text" to normalized,
             "createdAtEpochMs" to now,
         ))
         batch.set(summaryRef, mapOf("lastMessageAtEpochMs" to now), SetOptions.merge())
-        batch.update(roomRef, "updatedAtEpochMs", now)
         batch.commit().awaitResult()
     }
 

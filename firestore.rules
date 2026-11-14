@@ -531,8 +531,13 @@ service cloud.firestore {
           && nextRoundId != previousRoundId
           && request.resource.data.lastFinishedRoundId == previousRoundId
           && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId))
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId)).data.winnerUid == request.resource.data.lastWinnerUid
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId)).data.winnerName == request.resource.data.lastWinnerName
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId)).data.winningScore == request.resource.data.lastWinnerScore
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(previousRoundId)).data.finishedAtEpochMs == request.resource.data.lastRoundFinishedAtEpochMs
           && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(nextRoundId))
-          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(nextRoundId)).data.status == 'ACTIVE';
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(nextRoundId)).data.status == 'ACTIVE'
+          && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(nextRoundId)).data.targetScore == request.resource.data.targetScore;
       }
 
       allow get: if activeUser()
@@ -861,7 +866,7 @@ service cloud.firestore {
             && request.resource.data.pointsB == expectedPoints(request.resource.data.moveB, request.resource.data.moveA)
             && request.resource.data.scoreAfterA == get(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(resource.data.uidA)).data.score + request.resource.data.pointsA
             && request.resource.data.scoreAfterB == get(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(resource.data.uidB)).data.score + request.resource.data.pointsB
-            && request.resource.data.targetScore == get(/databases/$(database)/documents/gameRooms/$(roomId)).data.targetScore
+            && request.resource.data.targetScore == get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.targetScore
             && request.resource.data.roundFinished == (
               request.resource.data.scoreAfterA >= request.resource.data.targetScore
               || request.resource.data.scoreAfterB >= request.resource.data.targetScore
@@ -952,9 +957,11 @@ service cloud.firestore {
           && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.status == 'RESOLVED'
           && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.roundFinished == true
           && request.resource.data.winnerUid == getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.winnerUid
-          && request.resource.data.winningScore == max(
-            getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterA,
-            getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterB
+          && request.resource.data.winningScore == (
+            getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterA
+              >= getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterB
+              ? getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterA
+              : getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterB
           )
           && request.resource.data.scoreAfterA == getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterA
           && request.resource.data.scoreAfterB == getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.scoreAfterB
