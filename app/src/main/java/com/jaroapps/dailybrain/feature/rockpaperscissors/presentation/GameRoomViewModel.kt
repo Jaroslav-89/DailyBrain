@@ -41,6 +41,8 @@ data class GameRoomUiState(
     val exitRequested: Boolean = false,
     val inviteSearchResult: PublicUserProfile? = null,
     val isSearchingUser: Boolean = false,
+    val friends: List<PublicUserProfile> = emptyList(),
+    val isLoadingFriends: Boolean = false,
 )
 
 class GameRoomViewModel(
@@ -290,6 +292,23 @@ class GameRoomViewModel(
     fun updateRoom(request: CreateGameRoomRequest) {
         val uid = currentUid ?: return
         performAction { manageGameRooms.updateRoom(uid, roomId, request) }
+    }
+
+
+    fun loadFriends() {
+        val uid = currentUid ?: return
+        if (_uiState.value.isLoadingFriends || _uiState.value.friends.isNotEmpty()) return
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoadingFriends = true, errorMessage = null) }
+            try {
+                val friends = userDirectoryRepository.getFollowing(uid)
+                if (currentUid == uid) _uiState.update { it.copy(friends = friends, isLoadingFriends = false) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                _uiState.update { it.copy(isLoadingFriends = false, errorMessage = error.message ?: "Не удалось загрузить список подписок.") }
+            }
+        }
     }
 
     fun searchUserToInvite(username: String) {

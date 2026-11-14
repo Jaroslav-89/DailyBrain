@@ -115,6 +115,9 @@ fun GameRoomScreen(
 
     BackHandler(enabled = state.isChatOpen) { viewModel.closeChat() }
     LaunchedEffect(state.exitRequested) { if (state.exitRequested) onBack() }
+    LaunchedEffect(showInviteDialog) {
+        if (showInviteDialog) viewModel.loadFriends()
+    }
 
     Scaffold(
         topBar = {
@@ -330,6 +333,7 @@ fun GameRoomScreen(
     if (showInviteDialog) {
         InviteRoomUserDialog(
             state = state,
+            onLoadFriends = viewModel::loadFriends,
             onSearch = viewModel::searchUserToInvite,
             onInvite = {
                 viewModel.inviteUser(it)
@@ -656,6 +660,7 @@ private fun EditGameRoomDialog(
 @Composable
 private fun InviteRoomUserDialog(
     state: GameRoomUiState,
+    onLoadFriends: () -> Unit,
     onSearch: (String) -> Unit,
     onInvite: (PublicUserProfile) -> Unit,
     onDismiss: () -> Unit,
@@ -666,6 +671,33 @@ private fun InviteRoomUserDialog(
         title = { Text("Пригласить участника") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("Ваши подписки", fontWeight = FontWeight.SemiBold)
+                when {
+                    state.isLoadingFriends -> CircularProgressIndicator()
+                    state.friends.isEmpty() -> Text("Список подписок пуст.")
+                    else -> LazyColumn(
+                        Modifier.fillMaxWidth().height(130.dp),
+                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    ) {
+                        items(state.friends, key = { it.firebaseUid }) { friend ->
+                            Row(
+                                Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(friend.username, fontWeight = FontWeight.SemiBold)
+                                    friend.displayName?.takeIf(String::isNotBlank)?.let {
+                                        Text(it, style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                                TextButton(onClick = { onInvite(friend) }, enabled = !state.isWorking) {
+                                    Text("Пригласить")
+                                }
+                            }
+                        }
+                    }
+                }
                 OutlinedTextField(value = username, onValueChange = { username = it }, label = { Text("Уникальный ник") }, singleLine = true)
                 Button(
                     onClick = { onSearch(username) },
