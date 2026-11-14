@@ -120,6 +120,7 @@ private fun MonthlyChallengeRules.ExerciseRequirement.toUiCondition(
             ExerciseType.MEMORY_WORDS -> "Запоминание слов"
             ExerciseType.STROOP_TEST -> "Тест Струпа"
             ExerciseType.COUNTING_TRAINING -> "Устный счёт"
+            ExerciseType.NUMBER_GRID -> "Таблица Шульте"
             null -> exerciseType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
         },
         completedCount = completedCount,
@@ -138,6 +139,7 @@ private fun WeeklyAchievementRules.ExerciseRequirement.toUiCondition(
             ExerciseType.MEMORY_WORDS -> "Запоминание слов"
             ExerciseType.STROOP_TEST -> "Тест Струпа"
             ExerciseType.COUNTING_TRAINING -> "Устный счёт"
+            ExerciseType.NUMBER_GRID -> "Таблица Шульте"
             null -> exerciseType.lowercase().replace('_', ' ').replaceFirstChar { it.uppercase() }
         },
         completedCount = completedCount,
