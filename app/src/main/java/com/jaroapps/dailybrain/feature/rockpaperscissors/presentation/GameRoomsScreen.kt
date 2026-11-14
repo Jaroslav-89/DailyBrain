@@ -344,7 +344,7 @@ private fun GameRoomCard(
                         containerColor = colorResource(R.color.color_button_green),
                         contentColor = colorResource(R.color.color_on_accent),
                     ),
-                ) { Text(if (isMyRoom) "Открыть" else "Вступить") }
+                ) { Text(if (isJoined) "Открыть" else "Вступить") }
                 if (isMyRoom) {
                     OutlinedButton(onClick = onInvite, enabled = enabled) { Text("Пригласить") }
                 }
