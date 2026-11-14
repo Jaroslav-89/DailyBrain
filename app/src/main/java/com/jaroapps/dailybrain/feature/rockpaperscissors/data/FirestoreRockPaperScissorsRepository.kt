@@ -218,13 +218,15 @@ class FirestoreRockPaperScissorsRepository(
         )
     }
 
-    override suspend fun getInvitations(firebaseUid: String): List<GameRoomInvitation> {
+    override suspend fun getInvitations(firebaseUid: String): List<GameRoomInvitation> =
+        getFeedInvitations(firebaseUid).filter { it.status == GameInvitationStatus.PENDING }
+
+    override suspend fun getFeedInvitations(firebaseUid: String): List<GameRoomInvitation> {
         val firestore = firestoreFor(firebaseUid)
         return firestore.collection(GAME_ROOM_INVITATIONS)
             .document(firebaseUid)
             .collection(ITEMS)
-            .whereEqualTo("status", GameInvitationStatus.PENDING.name)
-            .orderBy("createdAtEpochMs")
+            .orderBy("createdAtEpochMs", com.google.firebase.firestore.Query.Direction.DESCENDING)
             .limit(INVITATION_LIST_LIMIT.toLong())
             .get()
             .awaitResult()
@@ -233,6 +235,9 @@ class FirestoreRockPaperScissorsRepository(
                 val status = runCatching {
                     GameInvitationStatus.valueOf(document.getString("status") ?: "")
                 }.getOrNull() ?: return@mapNotNull null
+                if (status != GameInvitationStatus.PENDING && status != GameInvitationStatus.ACCEPTED) {
+                    return@mapNotNull null
+                }
                 GameRoomInvitation(
                     invitationId = document.id,
                     roomId = document.getString("roomId") ?: return@mapNotNull null,

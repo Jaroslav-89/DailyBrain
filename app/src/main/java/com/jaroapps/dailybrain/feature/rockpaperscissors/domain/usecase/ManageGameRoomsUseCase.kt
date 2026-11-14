@@ -18,6 +18,7 @@ class ManageGameRoomsUseCase(
     suspend fun inviteUser(uid: String, inviterName: String, roomId: String, user: PublicUserProfile) =
         repository.inviteUser(uid, inviterName, roomId, user)
     suspend fun invitations(uid: String) = repository.getInvitations(uid)
+    suspend fun feedInvitations(uid: String) = repository.getFeedInvitations(uid)
     suspend fun acceptInvitation(uid: String, invitationId: String) =
         repository.acceptInvitation(uid, invitationId)
     suspend fun declineInvitation(uid: String, invitationId: String) =

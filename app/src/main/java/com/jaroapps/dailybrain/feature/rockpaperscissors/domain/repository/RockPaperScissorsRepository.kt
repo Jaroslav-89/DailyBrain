@@ -29,6 +29,7 @@ interface RockPaperScissorsRepository {
     ): GameRoomInvitation
 
     suspend fun getInvitations(firebaseUid: String): List<GameRoomInvitation>
+    suspend fun getFeedInvitations(firebaseUid: String): List<GameRoomInvitation>
     suspend fun acceptInvitation(firebaseUid: String, invitationId: String): GameRoom
     suspend fun declineInvitation(firebaseUid: String, invitationId: String)
     suspend fun leaveRoom(firebaseUid: String, roomId: String)
