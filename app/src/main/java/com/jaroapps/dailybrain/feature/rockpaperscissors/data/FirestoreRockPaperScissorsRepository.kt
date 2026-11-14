@@ -92,7 +92,7 @@ class FirestoreRockPaperScissorsRepository(
                 "createdAtEpochMs" to now,
                 "updatedAtEpochMs" to now,
             ))
-            transaction.set(memberRef, initialMember(firebaseUid, ownerName, now))
+            transaction.set(memberRef, initialMember(firebaseUid, ownerName, now, joinedAsOwner = true))
             transaction.set(membershipRef, mapOf("roomId" to roomRef.id, "joinedAtEpochMs" to now))
             transaction.set(roundRef, mapOf(
                 "roundId" to roundId,
@@ -125,7 +125,7 @@ class FirestoreRockPaperScissorsRepository(
         val reservation = firestore.collection(GAME_ROOM_CODES).document(normalizedCode).get().awaitResult()
         val roomId = reservation.getString("roomId")
             ?: throw IllegalArgumentException("Комната с таким кодом не найдена.")
-        return joinRoom(firebaseUid, memberName, roomId, requirePublic = false)
+        return joinRoom(firebaseUid, memberName, roomId, requirePublic = false, joinedViaCode = normalizedCode)
     }
 
     private suspend fun joinRoom(
@@ -133,6 +133,7 @@ class FirestoreRockPaperScissorsRepository(
         memberName: String,
         roomId: String,
         requirePublic: Boolean,
+        joinedViaCode: String?,
     ): GameRoom {
         val firestore = firestoreFor(firebaseUid)
         val roomRef = firestore.collection(GAME_ROOMS).document(roomId)
@@ -160,7 +161,7 @@ class FirestoreRockPaperScissorsRepository(
                 "memberUids" to currentMembers + firebaseUid,
                 "updatedAtEpochMs" to now,
             ))
-            transaction.set(memberRef, initialMember(firebaseUid, memberName, now))
+            transaction.set(memberRef, initialMember(firebaseUid, memberName, now, joinedViaCode = joinedViaCode))
             transaction.set(membershipRef, mapOf("roomId" to roomId, "joinedAtEpochMs" to now))
             true
         }.awaitResult()
@@ -278,7 +279,7 @@ class FirestoreRockPaperScissorsRepository(
                     "memberUids" to members + firebaseUid,
                     "updatedAtEpochMs" to now,
                 ))
-                transaction.set(memberRef, initialMember(firebaseUid, "Участник", now))
+                transaction.set(memberRef, initialMember(firebaseUid, "Участник", now, joinedViaInvitationId = invitationId))
                 transaction.set(membershipRef, mapOf("roomId" to roomId, "joinedAtEpochMs" to now))
             }
             transaction.update(inviteRef, mapOf(
@@ -402,28 +403,38 @@ class FirestoreRockPaperScissorsRepository(
         return requireNotNull(updatedRoom)
     }
 
-    private fun initialMember(uid: String, name: String, now: Long): Map<String, Any> = mapOf(
-        "uid" to uid,
-        "name" to name.take(80),
-        "score" to 0,
-        "wins" to 0,
-        "draws" to 0,
-        "losses" to 0,
-        "rockCount" to 0,
-        "paperCount" to 0,
-        "scissorsCount" to 0,
-        "matchesPlayed" to 0,
-        "roundWins" to 0,
-        "roundDraws" to 0,
-        "roundLosses" to 0,
-        "roundRockCount" to 0,
-        "roundPaperCount" to 0,
-        "roundScissorsCount" to 0,
-        "roundMatchesPlayed" to 0,
-        "lastReadMessageAtEpochMs" to 0,
-        "lastSeenFinishedRoundId" to "",
-        "joinedAtEpochMs" to now,
-    )
+    private fun initialMember(
+        uid: String,
+        name: String,
+        now: Long,
+        joinedAsOwner: Boolean = false,
+        joinedViaCode: String? = null,
+        joinedViaInvitationId: String? = null,
+    ): Map<String, Any> = buildMap {
+        put("uid", uid)
+        put("name", name.take(80))
+        put("score", 0)
+        put("wins", 0)
+        put("draws", 0)
+        put("losses", 0)
+        put("rockCount", 0)
+        put("paperCount", 0)
+        put("scissorsCount", 0)
+        put("matchesPlayed", 0)
+        put("roundWins", 0)
+        put("roundDraws", 0)
+        put("roundLosses", 0)
+        put("roundRockCount", 0)
+        put("roundPaperCount", 0)
+        put("roundScissorsCount", 0)
+        put("roundMatchesPlayed", 0)
+        put("lastReadMessageAtEpochMs", 0)
+        put("lastSeenFinishedRoundId", "")
+        put("joinedAtEpochMs", now)
+        put("joinedAsOwner", joinedAsOwner)
+        joinedViaCode?.let { put("joinedViaCode", it) }
+        joinedViaInvitationId?.let { put("joinedViaInvitationId", it) }
+    }
 
     private fun DocumentSnapshot.toGameRoom(): GameRoom? {
         if (!exists()) return null

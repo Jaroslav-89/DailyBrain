@@ -310,9 +310,8 @@ class FirestoreRockPaperScissorsGameplayRepository(
             val hasWinner = scoreA >= targetScore || scoreB >= targetScore
             val winnerUid = when {
                 !hasWinner -> null
-                scoreA > scoreB -> uidA
-                scoreB > scoreA -> uidB
-                else -> null
+                scoreA >= scoreB -> uidA
+                else -> uidB
             }
             val winnerName = when (winnerUid) {
                 uidA -> memberA.getString("name").orEmpty()
@@ -354,8 +353,14 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 }
             } else emptyMap()
 
-            transaction.update(memberARef, memberResultUpdate(memberA, moveA, outcomeA, scoreA))
-            transaction.update(memberBRef, memberResultUpdate(memberB, moveB, outcomeB, scoreB))
+            val memberAUpdate = memberResultUpdate(
+                memberA, moveA, outcomeA, if (roundFinishedNow) 0 else scoreA, matchId,
+            )
+            val memberBUpdate = memberResultUpdate(
+                memberB, moveB, outcomeB, if (roundFinishedNow) 0 else scoreB, matchId,
+            )
+            transaction.update(memberARef, if (roundFinishedNow) memberAUpdate + roundResetFields() else memberAUpdate)
+            transaction.update(memberBRef, if (roundFinishedNow) memberBUpdate + roundResetFields() else memberBUpdate)
 
             if (roundFinishedNow) {
                 transaction.update(roundRef, mapOf(
@@ -404,12 +409,9 @@ class FirestoreRockPaperScissorsGameplayRepository(
                         "roundScissorsCount" to 0,
                         "roundMatchesPlayed" to 0,
                     )
-                    val update = when (memberUid) {
-                        uidA -> memberResultUpdate(memberA, moveA, outcomeA, 0)
-                        uidB -> memberResultUpdate(memberB, moveB, outcomeB, 0)
-                        else -> emptyMap()
+                    if (memberUid != uidA && memberUid != uidB) {
+                        transaction.update(memberRef, reset)
                     }
-                    transaction.update(memberRef, update + reset)
                     val notificationRef = firestore.collection(ROUND_NOTIFICATIONS)
                         .document(memberUid).collection(ITEMS).document(roomId + "_" + roundId)
                     transaction.set(notificationRef, mapOf(
@@ -437,6 +439,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
         move: RockPaperScissorsMove,
         outcome: RockPaperScissorsOutcome,
         newScore: Int,
+        matchId: String,
     ): Map<String, Any> {
         val win = if (outcome == RockPaperScissorsOutcome.WIN) 1 else 0
         val draw = if (outcome == RockPaperScissorsOutcome.DRAW) 1 else 0
@@ -461,8 +464,19 @@ class FirestoreRockPaperScissorsGameplayRepository(
             "roundScissorsCount" to ((current.getLong("roundScissorsCount")?.toInt() ?: 0) + scissors),
             "roundMatchesPlayed" to ((current.getLong("roundMatchesPlayed")?.toInt() ?: 0) + 1),
             "lastPlayedAtEpochMs" to System.currentTimeMillis(),
+            "lastResultMatchId" to matchId,
         )
     }
+
+    private fun roundResetFields(): Map<String, Any> = mapOf(
+        "roundWins" to 0,
+        "roundDraws" to 0,
+        "roundLosses" to 0,
+        "roundRockCount" to 0,
+        "roundPaperCount" to 0,
+        "roundScissorsCount" to 0,
+        "roundMatchesPlayed" to 0,
+    )
 
     private suspend fun cleanupRound(firestore: FirebaseFirestore, roomId: String, roundId: String) {
         val roomRef = firestore.collection(GAME_ROOMS).document(roomId)
