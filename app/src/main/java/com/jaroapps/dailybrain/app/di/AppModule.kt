@@ -48,6 +48,7 @@ import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.repository.RockP
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.repository.RockPaperScissorsGameplayRepository
 import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.usecase.ManageGameRoomsUseCase
 import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomsViewModel
+import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarViewModel
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryViewModel
 import com.jaroapps.dailybrain.feature.home.presentation.HomeViewModel
@@ -398,6 +399,18 @@ val appModule = module {
         FirestoreRockPaperScissorsGameplayRepository(context = androidContext(), database = get(), activeUserProvider = get())
     }
     factory { ManageGameRoomsUseCase(repository = get()) }
+    viewModel {
+        GameRoomViewModel(
+            savedStateHandle = get(),
+            observeUserProfile = get(),
+            firebaseAuthenticationRepository = get(),
+            gameplayRepository = get(),
+            manageGameRooms = get(),
+            userDirectoryRepository = get(),
+            activeUserProvider = get(),
+            database = get(),
+        )
+    }
     viewModel {
         GameRoomsViewModel(
             observeUserProfile = get(),

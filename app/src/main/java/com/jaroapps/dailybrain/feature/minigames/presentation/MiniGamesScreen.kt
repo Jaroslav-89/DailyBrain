@@ -25,6 +25,7 @@ import com.jaroapps.dailybrain.R
 @Composable
 fun MiniGamesScreen(
     onStartNumberGrid: () -> Unit,
+    onStartRockPaperScissors: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -84,5 +85,41 @@ fun MiniGamesScreen(
                 }
             }
         }
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(20.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Text(
+                    text = stringResource(R.string.mini_games_rock_paper_scissors),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "✊  ✌️  ✋",
+                    style = MaterialTheme.typography.headlineMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = stringResource(R.string.mini_games_rock_paper_scissors_description),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                Spacer(Modifier.height(4.dp))
+                Button(
+                    onClick = onStartRockPaperScissors,
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = colorResource(R.color.color_button_green),
+                        contentColor = colorResource(R.color.color_on_accent),
+                    ),
+                ) {
+                    Text(stringResource(R.string.mini_games_start))
+                }
+            }
+        }
+
     }
 }

@@ -283,6 +283,8 @@
     <string name="mini_games_title">Mini-games</string>
     <string name="mini_games_description">Short games for attention, concentration, and processing speed.</string>
     <string name="mini_games_number_grid_description">Find every number from 1 to 25 in ascending order. Mistakes do not reset progress, but reduce accuracy.</string>
+    <string name="mini_games_rock_paper_scissors">Rock, paper, scissors</string>
+    <string name="mini_games_rock_paper_scissors_description">Compete with other users, create rooms, and earn points in matches.</string>
     <string name="mini_games_start">Start game</string>
     <string name="exercise_number_grid">Schulte table</string>
     <string name="exercise_number_grid_size">Schulte table %1$d×%1$d</string>

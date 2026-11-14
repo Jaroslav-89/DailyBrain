@@ -43,7 +43,10 @@ object Route {
     const val STROOP_TEST = "stroop_test"
     const val COUNTING_TRAINING = "counting_training"
     const val NUMBER_GRID = "number_grid"
+    const val ROCK_PAPER_SCISSORS = "rock_paper_scissors"
+    const val ROCK_PAPER_SCISSORS_ROOM = "rock_paper_scissors_room/{roomId}"
 
+    fun rockPaperScissorsRoom(roomId: String): String = "rock_paper_scissors_room/${Uri.encode(roomId)}"
     fun dayHistory(date: Int): String = "day_history/$date"
     fun rewardHistory(currency: String): String = "reward_history/$currency"
     fun userProfile(userId: String): String = "user_profile/$userId"

@@ -69,6 +69,8 @@ import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
 import com.jaroapps.dailybrain.feature.minigames.presentation.MiniGamesScreen
 import com.jaroapps.dailybrain.feature.numbergrid.presentation.NumberGridScreen
+import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomsScreen
+import com.jaroapps.dailybrain.feature.rockpaperscissors.presentation.GameRoomScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedItemDetailScreen
 import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryScreen
@@ -464,11 +466,31 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                         onStartNumberGrid = {
                             navController.navigate(Route.exerciseRules("number_grid"))
                         },
+                        onStartRockPaperScissors = {
+                            navController.navigate(Route.ROCK_PAPER_SCISSORS)
+                        },
                     )
                 }
 
                 composable(Route.NUMBER_GRID) {
                     NumberGridScreen(onExit = { navController.popBackStack() })
+                }
+
+                composable(Route.ROCK_PAPER_SCISSORS) {
+                    GameRoomsScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenRoom = { roomId -> navController.navigate(Route.rockPaperScissorsRoom(roomId)) },
+                    )
+                }
+
+                composable(
+                    route = Route.ROCK_PAPER_SCISSORS_ROOM,
+                    arguments = listOf(navArgument("roomId") { type = NavType.StringType }),
+                ) {
+                    GameRoomScreen(
+                        onBack = { navController.popBackStack() },
+                        onOpenUserProfile = { userId -> navController.navigate(Route.userProfile(userId)) },
+                    )
                 }
 
                 composable(Route.STATISTICS) {

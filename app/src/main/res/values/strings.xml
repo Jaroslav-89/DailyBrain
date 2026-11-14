@@ -294,6 +294,8 @@
     <string name="mini_games_title">Мини-игры</string>
     <string name="mini_games_description">Короткие игры на внимание, концентрацию и скорость реакции.</string>
     <string name="mini_games_number_grid_description">Найди все числа от 1 до 25 по порядку. Ошибки не сбрасывают прогресс, но снижают точность.</string>
+    <string name="mini_games_rock_paper_scissors">Камень, ножницы, бумага</string>
+    <string name="mini_games_rock_paper_scissors_description">Соревнуйся с другими пользователями, создавай комнаты и набирай очки в матчах.</string>
     <string name="mini_games_start">Начать игру</string>
     <string name="exercise_number_grid">Таблица Шульте</string>
     <string name="exercise_number_grid_size">Таблица Шульте %1$d×%1$d</string>
