@@ -353,11 +353,16 @@ class FirestoreRockPaperScissorsRepository(
             } else {
                 // Lock the room against new joins before removing any nested documents.
                 if (room.getString("status") != ROOM_CLOSING || room.getString("ownerUid") != firebaseUid) {
+                    val inviteCode = room.getString("inviteCode")
                     transaction.update(roomRef, mapOf(
                         "status" to ROOM_CLOSING,
                         "ownerUid" to firebaseUid,
+                        "inviteCode" to null,
                         "updatedAtEpochMs" to now,
                     ))
+                    if (!inviteCode.isNullOrBlank()) {
+                        transaction.delete(firestore.collection(GAME_ROOM_CODES).document(inviteCode))
+                    }
                 }
                 true
             }

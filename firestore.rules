@@ -500,8 +500,9 @@ service cloud.firestore {
           && request.resource.data.status == 'CLOSING'
           && request.resource.data.ownerUid == request.auth.uid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-            'status', 'ownerUid', 'updatedAtEpochMs'
+            'status', 'ownerUid', 'inviteCode', 'updatedAtEpochMs'
           ])
+          && request.resource.data.inviteCode == null
           && request.resource.data.updatedAtEpochMs is int;
       }
 
