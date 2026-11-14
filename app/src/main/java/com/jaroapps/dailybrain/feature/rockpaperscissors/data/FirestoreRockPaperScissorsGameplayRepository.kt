@@ -128,16 +128,11 @@ class FirestoreRockPaperScissorsGameplayRepository(
         }
         val firestore = firestoreFor(firebaseUid)
         val roomsToCheck = roomId?.let(::listOf) ?: pending.map { it.roomId }.distinct()
-        for (candidateRoomId in roomsToCheck) {
-            val roomRef = firestore.collection(GAME_ROOMS).document(candidateRoomId)
-            val roomState = roomRef.get().awaitResult()
-            val finishedRoundId = roomState.getString("lastFinishedRoundId")
-            val currentRoundId = roomState.getString("currentRoundId")
-            if (!finishedRoundId.isNullOrBlank() && finishedRoundId != currentRoundId) {
-                cleanupRound(firestore, candidateRoomId, finishedRoundId)
-            }
-        }
 
+        // Do not clean lastFinishedRoundId here. It intentionally remains on the room
+        // document after the transition, so every later sync would try to delete the
+        // same finished round again. That can turn an already-completed delete into
+        // permission_denied and block the first move of the new round.
         for (item in pending) {
             if (item.ownerUserId != localUserId) continue
             val move = runCatching { RockPaperScissorsMove.valueOf(item.move) }.getOrNull()
