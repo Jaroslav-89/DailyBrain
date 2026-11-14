@@ -345,6 +345,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 "moveA" to moveA.name,
                 "moveB" to moveB.name,
                 "winnerUid" to winnerUid,
+                "winnerName" to winnerName,
                 "pointsA" to pointsA,
                 "pointsB" to pointsB,
                 "scoreAfterA" to scoreA,
