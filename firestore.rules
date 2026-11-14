@@ -699,11 +699,7 @@ service cloud.firestore {
           || validResultStatsUpdate()
           || validRoundResetUpdate()
         );
-        allow delete: if signedIn()
-          && (
-            request.auth.uid == uid
-            || request.auth.uid == memberRoom().ownerUid
-          );
+        allow delete: if signedIn() && request.auth.uid == uid;
       }
 
       match /rounds/{roundId} {
@@ -799,8 +795,8 @@ service cloud.firestore {
             && request.resource.data.uidB is string
             && request.resource.data.uidA != request.resource.data.uidB
             && request.auth.uid in [request.resource.data.uidA, request.resource.data.uidB]
-            && request.resource.data.uidA in memberRoom().memberUids
-            && request.resource.data.uidB in memberRoom().memberUids
+            && request.resource.data.uidA in get(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
+            && request.resource.data.uidB in get(/databases/$(database)/documents/gameRooms/$(roomId)).data.memberUids
             && request.resource.data.status == 'WAITING'
             && request.resource.data.createdAtEpochMs is int;
 
@@ -841,7 +837,10 @@ service cloud.firestore {
               && request.resource.data.choice in ['ROCK', 'PAPER', 'SCISSORS']
               && request.resource.data.createdAtEpochMs is int
               && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.status == 'WAITING'
-              && uid in [parentMatch().uidA, parentMatch().uidB];
+              && uid in [
+                getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.uidA,
+                getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.uidB
+              ];
             allow update: if false;
             allow delete: if activeUser()
               && matchRoomMember()
