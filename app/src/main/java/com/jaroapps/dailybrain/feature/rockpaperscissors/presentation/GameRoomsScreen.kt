@@ -197,6 +197,7 @@ fun GameRoomsScreen(
                                 GameRoomCard(
                                     room = room,
                                     isMyRoom = selectedTab == 1,
+                                    isJoined = state.profile?.firebaseUid in room.memberUids,
                                     enabled = !state.isWorking,
                                     onOpen = { onOpenRoom(room.roomId) },
                                     onJoin = { viewModel.joinOpenRoom(room.roomId) },
