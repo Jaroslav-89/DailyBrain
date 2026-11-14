@@ -358,6 +358,11 @@ private fun exerciseCopy(key: String): ExerciseCopy = when (key) {
         R.string.intro_stroop,
         R.string.rules_stroop,
     )
+    "number_grid" -> ExerciseCopy(
+        R.string.exercise_number_grid,
+        R.string.intro_number_grid,
+        R.string.rules_number_grid,
+    )
     else -> ExerciseCopy(
         R.string.exercise_arithmetic,
         R.string.intro_arithmetic,
