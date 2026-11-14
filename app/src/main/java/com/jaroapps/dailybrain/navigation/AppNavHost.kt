@@ -28,6 +28,7 @@ import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Newspaper
 import androidx.compose.material.icons.filled.ShoppingBag
+import androidx.compose.material.icons.filled.SportsEsports
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
@@ -66,6 +67,8 @@ import com.jaroapps.dailybrain.feature.counting.presentation.CountingTrainingScr
 import com.jaroapps.dailybrain.feature.history.presentation.CalendarScreen
 import com.jaroapps.dailybrain.feature.history.presentation.DayHistoryScreen
 import com.jaroapps.dailybrain.feature.home.presentation.HomeScreen
+import com.jaroapps.dailybrain.feature.minigames.presentation.MiniGamesScreen
+import com.jaroapps.dailybrain.feature.numbergrid.presentation.NumberGridScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedScreen
 import com.jaroapps.dailybrain.feature.feed.presentation.FeedItemDetailScreen
 import com.jaroapps.dailybrain.feature.rewards.presentation.RewardHistoryScreen
@@ -123,6 +126,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
     val currentRoute = currentBackStackEntry?.destination?.route
     val showBottomNavigation = currentRoute in setOf(
         Route.HOME,
+        Route.MINI_GAMES,
         Route.STATISTICS,
         Route.FEED,
         Route.SHOP,
@@ -256,7 +260,7 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     val exerciseKey = entry.arguments?.getString("exercise") ?: "arithmetic"
                     ExerciseRulesScreen(
                         exerciseKey = exerciseKey,
-                        onBack = { navController.popBackStack(Route.HOME, false) },
+                        onBack = { navController.popBackStack() },
                         onOpenFullInfo = { navController.navigate(Route.exerciseIntro(exerciseKey)) },
                         onStart = {
                             navController.navigate(Route.exerciseCountdown(exerciseKey)) {
@@ -276,12 +280,14 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                         "memory" -> Route.MEMORY_TRAINING
                         "counting" -> Route.COUNTING_TRAINING
                         "stroop" -> Route.STROOP_TEST
+                        "number_grid" -> Route.NUMBER_GRID
                         else -> Route.ARITHMETIC
                     }
                     val exerciseName = when (exerciseKey) {
                         "memory" -> "Запоминание слов"
                         "counting" -> "Устный счёт"
                         "stroop" -> "Тест Струпа"
+                        "number_grid" -> "Таблица Шульте"
                         else -> "Арифметика"
                     }
                     ExerciseCountdownScreen(exerciseName = exerciseName) {
@@ -453,6 +459,18 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
                     RewardHistoryScreen(onBack = { navController.popBackStack() })
                 }
 
+                composable(Route.MINI_GAMES) {
+                    MiniGamesScreen(
+                        onStartNumberGrid = {
+                            navController.navigate(Route.exerciseRules("number_grid"))
+                        },
+                    )
+                }
+
+                composable(Route.NUMBER_GRID) {
+                    NumberGridScreen(onExit = { navController.popBackStack() })
+                }
+
                 composable(Route.STATISTICS) {
                     StatisticsScreen()
                 }
@@ -574,6 +592,11 @@ private fun AppBottomNavigation(
             route = Route.HOME,
             label = stringResource(R.string.action_home),
             icon = Icons.Filled.Home,
+        ),
+        BottomNavigationDestination(
+            route = Route.MINI_GAMES,
+            label = stringResource(R.string.mini_games_title),
+            icon = Icons.Filled.SportsEsports,
         ),
         BottomNavigationDestination(
             route = Route.STATISTICS,
