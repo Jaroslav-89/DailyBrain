@@ -218,7 +218,9 @@ fun GameRoomScreen(
                             participants = snapshot.participants,
                             targetScore = snapshot.room.targetScore,
                             currentUid = currentUid,
-                            onSelectParticipant = { selectedParticipant = it },
+                            onSelectParticipant = {
+                        selectedParticipant = it
+                    },
                         )
                     }
                     item {
@@ -371,6 +373,7 @@ fun GameRoomScreen(
     selectedParticipant?.let { participant ->
         ParticipantStatsDialog(
             participant = participant,
+            pair = snapshot?.pairs?.firstOrNull { it.opponentUid == participant.firebaseUid },
             onOpenProfile = {
                 selectedParticipant = null
                 onOpenUserProfile(participant.firebaseUid)
@@ -605,6 +608,7 @@ private fun GameChatDialog(
 @Composable
 private fun ParticipantStatsDialog(
     participant: GameParticipant,
+    pair: GamePairState?,
     onOpenProfile: () -> Unit,
     onDismiss: () -> Unit,
 ) {
@@ -631,6 +635,19 @@ private fun ParticipantStatsDialog(
                 Text("Набрано очков: " + participant.score)
                 Text("Выборы: ✊ " + percent(participant.rockCount) + "% · ✌️ " +
                     percent(participant.scissorsCount) + "% · ✋ " + percent(participant.paperCount) + "%")
+                Divider()
+                Text("Против вас в текущем раунде", fontWeight = FontWeight.SemiBold)
+                if (pair == null || pair.matchesPlayed == 0) {
+                    Text("Матчей пока не было.")
+                } else {
+                    Text("Матчей: " + pair.matchesPlayed)
+                    Text("Победы: " + pair.ownWins + " · Ничьи: " + pair.ownDraws + " · Поражения: " + pair.ownLosses)
+                    val versusMoves = pair.ownRockCount + pair.ownPaperCount + pair.ownScissorsCount
+                    fun versusPercent(value: Int): Int = if (versusMoves == 0) 0 else value * 100 / versusMoves
+                    Text("Камень: " + versusPercent(pair.ownRockCount) + "% · Ножницы: " +
+                        versusPercent(pair.ownScissorsCount) + "% · Бумага: " +
+                        versusPercent(pair.ownPaperCount) + "%")
+                }
             }
         },
         confirmButton = { TextButton(onClick = onOpenProfile) { Text("Открыть профиль") } },

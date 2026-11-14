@@ -246,7 +246,7 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 "status" to MATCH_WAITING,
                 "submittedUids" to submitted,
                 "updatedAtEpochMs" to now,
-            ))
+            ), SetOptions.merge())
             true
         }.awaitResult()
     }
@@ -359,6 +359,19 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 "winnerUid" to winnerUid,
                 "pointsA" to pointsA,
                 "pointsB" to pointsB,
+                "matchesPlayed" to ((pair.getLong("matchesPlayed")?.toInt() ?: 0) + 1),
+                "winsA" to ((pair.getLong("winsA")?.toInt() ?: 0) + if (outcomeA == RockPaperScissorsOutcome.WIN) 1 else 0),
+                "drawsA" to ((pair.getLong("drawsA")?.toInt() ?: 0) + if (outcomeA == RockPaperScissorsOutcome.DRAW) 1 else 0),
+                "lossesA" to ((pair.getLong("lossesA")?.toInt() ?: 0) + if (outcomeA == RockPaperScissorsOutcome.LOSS) 1 else 0),
+                "winsB" to ((pair.getLong("winsB")?.toInt() ?: 0) + if (outcomeB == RockPaperScissorsOutcome.WIN) 1 else 0),
+                "drawsB" to ((pair.getLong("drawsB")?.toInt() ?: 0) + if (outcomeB == RockPaperScissorsOutcome.DRAW) 1 else 0),
+                "lossesB" to ((pair.getLong("lossesB")?.toInt() ?: 0) + if (outcomeB == RockPaperScissorsOutcome.LOSS) 1 else 0),
+                "rockCountA" to ((pair.getLong("rockCountA")?.toInt() ?: 0) + if (moveA == RockPaperScissorsMove.ROCK) 1 else 0),
+                "paperCountA" to ((pair.getLong("paperCountA")?.toInt() ?: 0) + if (moveA == RockPaperScissorsMove.PAPER) 1 else 0),
+                "scissorsCountA" to ((pair.getLong("scissorsCountA")?.toInt() ?: 0) + if (moveA == RockPaperScissorsMove.SCISSORS) 1 else 0),
+                "rockCountB" to ((pair.getLong("rockCountB")?.toInt() ?: 0) + if (moveB == RockPaperScissorsMove.ROCK) 1 else 0),
+                "paperCountB" to ((pair.getLong("paperCountB")?.toInt() ?: 0) + if (moveB == RockPaperScissorsMove.PAPER) 1 else 0),
+                "scissorsCountB" to ((pair.getLong("scissorsCountB")?.toInt() ?: 0) + if (moveB == RockPaperScissorsMove.SCISSORS) 1 else 0),
                 "resolvedAtEpochMs" to now,
                 "updatedAtEpochMs" to now,
             ))
@@ -707,6 +720,13 @@ class FirestoreRockPaperScissorsGameplayRepository(
             ownPoints = getLong(if (currentUid == uidA) "pointsA" else "pointsB")?.toInt(),
             opponentPoints = getLong(if (currentUid == uidA) "pointsB" else "pointsA")?.toInt(),
             resolvedAtEpochMs = getLong("resolvedAtEpochMs"),
+            matchesPlayed = getLong("matchesPlayed")?.toInt() ?: 0,
+            ownWins = getLong(if (currentUid == uidA) "winsA" else "winsB")?.toInt() ?: 0,
+            ownDraws = getLong(if (currentUid == uidA) "drawsA" else "drawsB")?.toInt() ?: 0,
+            ownLosses = getLong(if (currentUid == uidA) "lossesA" else "lossesB")?.toInt() ?: 0,
+            ownRockCount = getLong(if (currentUid == uidA) "rockCountA" else "rockCountB")?.toInt() ?: 0,
+            ownPaperCount = getLong(if (currentUid == uidA) "paperCountA" else "paperCountB")?.toInt() ?: 0,
+            ownScissorsCount = getLong(if (currentUid == uidA) "scissorsCountA" else "scissorsCountB")?.toInt() ?: 0,
         )
     }
 

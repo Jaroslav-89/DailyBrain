@@ -93,6 +93,13 @@ data class GamePairState(
     val ownPoints: Int? = null,
     val opponentPoints: Int? = null,
     val resolvedAtEpochMs: Long? = null,
+    val matchesPlayed: Int = 0,
+    val ownWins: Int = 0,
+    val ownDraws: Int = 0,
+    val ownLosses: Int = 0,
+    val ownRockCount: Int = 0,
+    val ownPaperCount: Int = 0,
+    val ownScissorsCount: Int = 0,
 )
 
 data class GameRoomSnapshot(
