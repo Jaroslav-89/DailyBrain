@@ -261,11 +261,12 @@ private fun RewardHistoryEntryCard(
         "GIFT_RECEIVED_CAKE" -> R.string.reward_reason_gift_cake
         else -> R.string.reward_history_reason_other
     }
-    val exerciseRes = when (entry.exerciseType) {
-        "ARITHMETIC" -> R.string.exercise_arithmetic
-        "MEMORY_WORDS" -> R.string.exercise_memory
-        "STROOP_TEST" -> R.string.exercise_stroop
-        "COUNTING_TRAINING" -> R.string.exercise_counting
+    val exerciseRes = when {
+        entry.exerciseType == "ARITHMETIC" -> R.string.exercise_arithmetic
+        entry.exerciseType == "MEMORY_WORDS" -> R.string.exercise_memory
+        entry.exerciseType == "STROOP_TEST" -> R.string.exercise_stroop
+        entry.exerciseType == "COUNTING_TRAINING" -> R.string.exercise_counting
+        entry.exerciseType?.startsWith("NUMBER_GRID_") == true -> R.string.exercise_number_grid
         else -> null
     }
     val recordDurationText = if (
