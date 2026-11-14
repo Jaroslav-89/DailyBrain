@@ -780,6 +780,45 @@ service cloud.firestore {
               && request.auth.uid in [request.resource.data.uidA, request.resource.data.uidB];
           }
 
+          function pairBeats(ownMove, otherMove) {
+            return (ownMove == 'ROCK' && otherMove == 'SCISSORS')
+              || (ownMove == 'SCISSORS' && otherMove == 'PAPER')
+              || (ownMove == 'PAPER' && otherMove == 'ROCK');
+          }
+
+          function pairOutcome(ownMove, otherMove) {
+            return ownMove == otherMove ? 'DRAW' : (pairBeats(ownMove, otherMove) ? 'WIN' : 'LOSS');
+          }
+
+          function validResolvedPairUpdate() {
+            let matchPath = /databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.matchId);
+            let matchData = getAfter(matchPath).data;
+            let outcomeA = pairOutcome(matchData.moveA, matchData.moveB);
+            let outcomeB = pairOutcome(matchData.moveB, matchData.moveA);
+            return matchData.status == 'RESOLVED'
+              && matchData.roundId == roundId
+              && matchData.uidA == resource.data.uidA
+              && matchData.uidB == resource.data.uidB
+              && matchData.moveA == request.resource.data.moveA
+              && matchData.moveB == request.resource.data.moveB
+              && matchData.winnerUid == request.resource.data.winnerUid
+              && matchData.pointsA == request.resource.data.pointsA
+              && matchData.pointsB == request.resource.data.pointsB
+              && request.resource.data.matchesPlayed == resource.data.get('matchesPlayed', 0) + 1
+              && request.resource.data.winsA == resource.data.get('winsA', 0) + (outcomeA == 'WIN' ? 1 : 0)
+              && request.resource.data.drawsA == resource.data.get('drawsA', 0) + (outcomeA == 'DRAW' ? 1 : 0)
+              && request.resource.data.lossesA == resource.data.get('lossesA', 0) + (outcomeA == 'LOSS' ? 1 : 0)
+              && request.resource.data.winsB == resource.data.get('winsB', 0) + (outcomeB == 'WIN' ? 1 : 0)
+              && request.resource.data.drawsB == resource.data.get('drawsB', 0) + (outcomeB == 'DRAW' ? 1 : 0)
+              && request.resource.data.lossesB == resource.data.get('lossesB', 0) + (outcomeB == 'LOSS' ? 1 : 0)
+              && request.resource.data.rockCountA == resource.data.get('rockCountA', 0) + (matchData.moveA == 'ROCK' ? 1 : 0)
+              && request.resource.data.paperCountA == resource.data.get('paperCountA', 0) + (matchData.moveA == 'PAPER' ? 1 : 0)
+              && request.resource.data.scissorsCountA == resource.data.get('scissorsCountA', 0) + (matchData.moveA == 'SCISSORS' ? 1 : 0)
+              && request.resource.data.rockCountB == resource.data.get('rockCountB', 0) + (matchData.moveB == 'ROCK' ? 1 : 0)
+              && request.resource.data.paperCountB == resource.data.get('paperCountB', 0) + (matchData.moveB == 'PAPER' ? 1 : 0)
+              && request.resource.data.scissorsCountB == resource.data.get('scissorsCountB', 0) + (matchData.moveB == 'SCISSORS' ? 1 : 0);
+          }
+
           allow get, list: if activeUser() && currentRoomMember();
 
           allow create: if activeUser()
@@ -805,13 +844,10 @@ service cloud.firestore {
               )
               || (
                 request.resource.data.status == 'RESOLVED'
-                && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.matchId)).data.status == 'RESOLVED'
-                && request.resource.data.moveA is string
-                && request.resource.data.moveB is string
-                && request.resource.data.pointsA is int
-                && request.resource.data.pointsB is int
+                && validResolvedPairUpdate()
               )
             );
+
           allow delete: if activeUser()
             && currentRoomMember()
             && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED';
