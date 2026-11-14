@@ -194,12 +194,19 @@ fun ProfileScreen(
                                     }
                                 }
                             profile?.let { user ->
-                                profileAgeLabel(user, today)?.let { age ->
-                                    Text(
-                                        age,
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                user.birthDate?.let { birthDate ->
+                                    val agePeriod = Period.between(birthDate, today)
+                                    if (!agePeriod.isNegative) {
+                                        Text(
+                                            "Возраст: " + pluralStringResource(
+                                                R.plurals.profile_age_years,
+                                                agePeriod.years,
+                                                agePeriod.years,
+                                            ),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
                                 }
                                 user.country?.takeIf(String::isNotBlank)?.let {
                                     Text(it, style = MaterialTheme.typography.bodyMedium)
@@ -486,14 +493,6 @@ fun ProfileScreen(
             },
         )
     }
-}
-
-@Composable
-private fun profileAgeLabel(profile: UserProfile, today: LocalDate): String? {
-    val age = profile.birthDate?.let { birthDate ->
-        Period.between(birthDate, today).years.takeIf { !Period.between(birthDate, today).isNegative }
-    } ?: return null
-    return "Возраст: " + pluralStringResource(R.plurals.profile_age_years, age, age)
 }
 
 @Composable
