@@ -29,20 +29,6 @@
       ]
     },
     {
-      "collectionGroup": "matches",
-      "queryScope": "COLLECTION",
-      "fields": [
-        {
-          "fieldPath": "status",
-          "order": "ASCENDING"
-        },
-        {
-          "fieldPath": "resolvedAtEpochMs",
-          "order": "DESCENDING"
-        }
-      ]
-    },
-    {
       "collectionGroup": "gameRooms",
       "queryScope": "COLLECTION",
       "fields": [

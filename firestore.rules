@@ -886,7 +886,7 @@ service cloud.firestore {
             && resource.data.status == 'WAITING'
             && request.resource.data.status == 'RESOLVED'
             && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
-              'status', 'roundId', 'nameA', 'nameB', 'moveA', 'moveB', 'winnerUid',
+              'status', 'roundId', 'nameA', 'nameB', 'moveA', 'moveB', 'winnerUid', 'winnerName',
               'pointsA', 'pointsB', 'scoreAfterA', 'scoreAfterB', 'targetScore',
               'roundFinished', 'resolvedAtEpochMs'
             ])

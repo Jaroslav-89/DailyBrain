@@ -557,7 +557,8 @@ class FirestoreRockPaperScissorsGameplayRepository(
         val roundId = room.getString("currentRoundId") ?: return emptyList()
         return firestore.collection(GAME_ROOMS).document(roomId)
             .collection(ROUNDS).document(roundId).collection(MATCHES)
-            .whereEqualTo("status", MATCH_RESOLVED)
+            // Unresolved matches do not have resolvedAtEpochMs, so orderBy naturally
+            // excludes them while relying only on Firestore's built-in single-field index.
             .orderBy("resolvedAtEpochMs", Query.Direction.DESCENDING)
             .limit(HISTORY_LIMIT.toLong())
             .get()
