@@ -16,6 +16,7 @@ interface RockPaperScissorsGameplayRepository {
         move: RockPaperScissorsMove,
     )
     suspend fun syncPendingMoves(firebaseUid: String, roomId: String? = null)
+    suspend fun updateMemberDisplayName(firebaseUid: String, roomId: String, displayName: String)
     suspend fun getRoundHistory(firebaseUid: String, roomId: String): List<GameMatchHistoryItem>
     fun observeChat(firebaseUid: String, roomId: String): Flow<List<GameChatMessage>>
     suspend fun sendChatMessage(firebaseUid: String, roomId: String, senderName: String, text: String)

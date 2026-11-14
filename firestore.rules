@@ -491,6 +491,29 @@ service cloud.firestore {
             || request.resource.data.ownerUid in after);
       }
 
+      function validRoomClosingUpdate() {
+        let members = resource.data.get('memberUids', []);
+        return activeUser()
+          && members.size() == 1
+          && request.auth.uid in members
+          && request.resource.data.status == 'CLOSING'
+          && request.resource.data.ownerUid == request.auth.uid
+          && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+            'status', 'ownerUid', 'updatedAtEpochMs'
+          ])
+          && request.resource.data.updatedAtEpochMs is int;
+      }
+
+      function closingRoomByLastMember() {
+        let room = get(roomPath()).data;
+        return activeUser()
+          && room.get('status', '') == 'CLOSING'
+          && room.get('ownerUid', '') == request.auth.uid
+          && room.get('memberUids', []).size() == 1
+          && request.auth.uid in room.get('memberUids', [])
+          && exists(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid));
+      }
+
       function validRoomSettingsUpdate() {
         return request.auth.uid == resource.data.ownerUid
           && request.resource.data.diff(resource.data).affectedKeys().hasOnly([
@@ -608,9 +631,11 @@ service cloud.firestore {
           )
         );
 
-      allow delete: if canDeleteOwnData(request.auth.uid)
+      allow delete: if activeUser()
+        && resource.data.status == 'CLOSING'
         && resource.data.ownerUid == request.auth.uid
         && resource.data.memberUids.size() == 1
+        && request.auth.uid in resource.data.memberUids
         && !existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(request.auth.uid));
 
       match /members/{uid} {
@@ -740,12 +765,21 @@ service cloud.firestore {
             )
           );
 
+        function validOwnDisplayNameUpdate() {
+          return request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['name'])
+            && request.resource.data.name is string
+            && request.resource.data.name.size() > 0
+            && request.resource.data.name.size() <= 80;
+        }
+
         allow update: if activeUser() && (
           validOwnReadMarkerUpdate()
+          || validOwnDisplayNameUpdate()
           || validResultStatsUpdate()
           || validRoundResetUpdate()
         );
-        allow delete: if signedIn() && request.auth.uid == uid;
+        allow delete: if (signedIn() && request.auth.uid == uid) || closingRoomByLastMember();
       }
 
       match /rounds/{roundId} {
@@ -766,9 +800,9 @@ service cloud.firestore {
           && request.resource.data.winningScore is int
           && request.resource.data.finishedAtEpochMs is int
           && existsAfter(/databases/$(database)/documents/gameRooms/$(roomId)/roundResults/$(roundId));
-        allow delete: if activeUser()
+        allow delete: if (activeUser()
           && currentRoomMember()
-          && resource.data.status == 'FINISHED';
+          && resource.data.status == 'FINISHED') || closingRoomByLastMember();
         
         match /pairs/{pairId} {
           function participantsInPair() {
@@ -848,9 +882,10 @@ service cloud.firestore {
               )
             );
 
-          allow delete: if activeUser()
+          allow delete: if (activeUser()
             && currentRoomMember()
-            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED';
+            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED')
+            || closingRoomByLastMember();
         }
 
         match /matches/{matchId} {
@@ -920,9 +955,10 @@ service cloud.firestore {
             && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/members/$(resource.data.uidB)).data.score == (request.resource.data.roundFinished ? 0 : request.resource.data.scoreAfterB)
             && request.resource.data.resolvedAtEpochMs is int;
 
-          allow delete: if activeUser()
+          allow delete: if (activeUser()
             && matchRoomMember()
-            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED';
+            && get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED')
+            || closingRoomByLastMember();
 
           match /moves/{uid} {
             function parentMatch() {
@@ -952,7 +988,11 @@ service cloud.firestore {
             allow update: if false;
             allow delete: if activeUser()
               && matchRoomMember()
-              && getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.status == 'RESOLVED';
+              && (
+                getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(matchId)).data.status == 'RESOLVED'
+                || get(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)).data.status == 'FINISHED'
+                || closingRoomByLastMember()
+              );
           }
         }
       }
@@ -970,7 +1010,7 @@ service cloud.firestore {
           && request.resource.data.text.size() <= 500
           && request.resource.data.createdAtEpochMs is int;
         allow update: if false;
-        allow delete: if activeUser() && currentRoomMember();
+        allow delete: if (activeUser() && currentRoomMember()) || closingRoomByLastMember();
       }
 
       match /chatState/{summaryId} {
@@ -980,7 +1020,7 @@ service cloud.firestore {
           && summaryId == 'summary'
           && request.resource.data.keys().hasOnly(['lastMessageAtEpochMs'])
           && request.resource.data.lastMessageAtEpochMs is int;
-        allow delete: if false;
+        allow delete: if closingRoomByLastMember();
       }
 
       match /roundResults/{roundId} {
@@ -1010,7 +1050,7 @@ service cloud.firestore {
           && request.resource.data.finishedAtEpochMs == getAfter(/databases/$(database)/documents/gameRooms/$(roomId)/rounds/$(roundId)/matches/$(request.resource.data.triggerMatchId)).data.resolvedAtEpochMs
           && request.resource.data.isDraw == (request.resource.data.winnerUid == null);
         allow update: if false;
-        allow delete: if false;
+        allow delete: if closingRoomByLastMember();
       }
     }
 

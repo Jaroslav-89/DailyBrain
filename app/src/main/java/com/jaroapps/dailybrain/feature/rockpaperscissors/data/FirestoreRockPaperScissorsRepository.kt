@@ -7,6 +7,7 @@ import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.firestore.DocumentReference
 import com.google.firebase.firestore.DocumentSnapshot
 import com.google.firebase.firestore.FieldValue
+import com.google.firebase.firestore.Query
 import com.google.firebase.firestore.FirebaseFirestore
 import com.google.firebase.firestore.Transaction
 import com.jaroapps.dailybrain.feature.profile.domain.model.InviteCodePolicy
@@ -325,29 +326,118 @@ class FirestoreRockPaperScissorsRepository(
             .document(firebaseUid).collection(ROOMS).document(roomId)
         val now = System.currentTimeMillis()
 
-        firestore.runTransaction { transaction ->
+        val shouldDeleteRoom = firestore.runTransaction { transaction ->
             val room = transaction.get(roomRef)
             val member = transaction.get(memberRef)
-            if (!room.exists() || !member.exists()) return@runTransaction true
-            val members = room.getStringList("memberUids").filterNot { it == firebaseUid }
-            transaction.delete(memberRef)
-            transaction.delete(membershipRef)
-            if (members.isEmpty()) {
-                val code = room.getString("inviteCode")
-                transaction.delete(roomRef)
-                if (!code.isNullOrBlank()) {
-                    transaction.delete(firestore.collection(GAME_ROOM_CODES).document(code))
+            if (!room.exists() || !member.exists()) return@runTransaction false
+
+            val currentMembers = room.getStringList("memberUids")
+            require(firebaseUid in currentMembers) { "Вы больше не состоите в этой комнате." }
+            val remainingMembers = currentMembers.filterNot { it == firebaseUid }
+
+            if (remainingMembers.isNotEmpty()) {
+                transaction.delete(memberRef)
+                transaction.delete(membershipRef)
+                val previousOwner = room.getString("ownerUid")
+                val nextOwner = if (previousOwner == firebaseUid || previousOwner !in remainingMembers) {
+                    remainingMembers.first()
+                } else {
+                    previousOwner.orEmpty()
                 }
-            } else {
-                val nextOwner = if (room.getString("ownerUid") == firebaseUid) members.first() else room.getString("ownerUid").orEmpty()
                 transaction.update(roomRef, mapOf(
-                    "memberUids" to members,
+                    "memberUids" to remainingMembers,
                     "ownerUid" to nextOwner,
                     "updatedAtEpochMs" to now,
                 ))
+                false
+            } else {
+                // Lock the room against new joins before removing any nested documents.
+                if (room.getString("status") != ROOM_CLOSING || room.getString("ownerUid") != firebaseUid) {
+                    transaction.update(roomRef, mapOf(
+                        "status" to ROOM_CLOSING,
+                        "ownerUid" to firebaseUid,
+                        "updatedAtEpochMs" to now,
+                    ))
+                }
+                true
             }
+        }.awaitResult()
+
+        if (!shouldDeleteRoom) return
+
+        // Firestore does not cascade deletes to subcollections. Remove them while the
+        // final member document still exists so each cleanup write can be authorized.
+        deleteRoomSubcollections(firestore, roomRef)
+
+        firestore.runTransaction { transaction ->
+            val room = transaction.get(roomRef)
+            val member = transaction.get(memberRef)
+            if (!room.exists()) {
+                transaction.delete(membershipRef)
+                return@runTransaction true
+            }
+            check(
+                room.getString("status") == ROOM_CLOSING &&
+                    room.getString("ownerUid") == firebaseUid &&
+                    room.getStringList("memberUids") == listOf(firebaseUid) &&
+                    member.exists()
+            ) { "Комната изменилась во время удаления. Повторите выход." }
+
+            val inviteCode = room.getString("inviteCode")
+            transaction.delete(memberRef)
+            transaction.delete(membershipRef)
+            if (!inviteCode.isNullOrBlank()) {
+                transaction.delete(firestore.collection(GAME_ROOM_CODES).document(inviteCode))
+            }
+            transaction.delete(roomRef)
             true
         }.awaitResult()
+    }
+
+    private suspend fun deleteRoomSubcollections(
+        firestore: FirebaseFirestore,
+        roomRef: DocumentReference,
+    ) {
+        val rounds = roomRef.collection(ROUNDS).get().awaitResult()
+        for (round in rounds.documents) {
+            val roundRef = round.reference
+            val matches = roundRef.collection(MATCHES).get().awaitResult()
+            val moveRefs = matches.documents.flatMap { match ->
+                listOfNotNull(match.getString("uidA"), match.getString("uidB"))
+                    .distinct()
+                    .map { uid -> match.reference.collection(MOVES).document(uid) }
+            }
+            deleteDocumentReferencesInChunks(firestore, moveRefs)
+            deleteQueryInChunks(firestore, roundRef.collection(PAIRS))
+            deleteQueryInChunks(firestore, roundRef.collection(MATCHES))
+            roundRef.delete().awaitResult()
+        }
+
+        deleteQueryInChunks(firestore, roomRef.collection(MESSAGES))
+        deleteQueryInChunks(firestore, roomRef.collection(CHAT_STATE))
+        deleteQueryInChunks(firestore, roomRef.collection(ROUND_RESULTS))
+    }
+
+    private suspend fun deleteDocumentReferencesInChunks(
+        firestore: FirebaseFirestore,
+        references: List<DocumentReference>,
+    ) {
+        references.chunked(DELETE_BATCH_LIMIT).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach(batch::delete)
+            batch.commit().awaitResult()
+        }
+    }
+
+    private suspend fun deleteQueryInChunks(firestore: FirebaseFirestore, query: Query) {
+        var snapshot = query.limit(DELETE_BATCH_LIMIT.toLong()).get().awaitResult()
+        while (snapshot.documents.isNotEmpty()) {
+            val batch = firestore.batch()
+            snapshot.documents.forEach { batch.delete(it.reference) }
+            batch.commit().awaitResult()
+            if (snapshot.documents.size < DELETE_BATCH_LIMIT) break
+            snapshot = query.startAfter(snapshot.documents.last()).limit(DELETE_BATCH_LIMIT.toLong()).get().awaitResult()
+        }
     }
 
     override suspend fun updateRoom(
@@ -485,15 +575,23 @@ class FirestoreRockPaperScissorsRepository(
         }
 
     private companion object {
+        const val DELETE_BATCH_LIMIT = 400
         const val GAME_ROOMS = "gameRooms"
         const val GAME_ROOM_CODES = "gameRoomCodes"
         const val GAME_ROOM_MEMBERSHIPS = "gameRoomMemberships"
         const val GAME_ROOM_INVITATIONS = "gameRoomInvitations"
         const val MEMBERS = "members"
+        const val PAIRS = "pairs"
+        const val MATCHES = "matches"
+        const val MOVES = "moves"
+        const val MESSAGES = "messages"
+        const val CHAT_STATE = "chatState"
+        const val ROUND_RESULTS = "roundResults"
         const val ROOMS = "rooms"
         const val ROUNDS = "rounds"
         const val ITEMS = "items"
         const val ROOM_OPEN = "OPEN"
+        const val ROOM_CLOSING = "CLOSING"
         const val ROUND_ACTIVE = "ACTIVE"
         const val ROOM_LIST_LIMIT = 30
         const val INVITATION_LIST_LIMIT = 30

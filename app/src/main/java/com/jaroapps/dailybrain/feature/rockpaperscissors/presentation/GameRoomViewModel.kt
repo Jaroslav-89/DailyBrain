@@ -70,9 +70,15 @@ class GameRoomViewModel(
     init {
         viewModelScope.launch {
             observeUserProfile().collect { profile ->
-                currentName = profile.username?.takeIf(String::isNotBlank)?.let { "@" + it }
-                    ?: profile.displayName?.takeIf(String::isNotBlank)
-                    ?: profile.generatedAlias
+                currentName = profile.effectiveDisplayName
+                val uid = profile.firebaseUid?.takeIf {
+                    it.isNotBlank() && it == firebaseAuthenticationRepository.currentUserId()
+                }
+                if (uid != null) {
+                    runCatching {
+                        gameplayRepository.updateMemberDisplayName(uid, roomId, currentName)
+                    }
+                }
             }
         }
         viewModelScope.launch {

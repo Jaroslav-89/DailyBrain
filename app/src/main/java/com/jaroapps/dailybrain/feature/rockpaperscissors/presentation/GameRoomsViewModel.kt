@@ -277,10 +277,6 @@ class GameRoomsViewModel(
         firebaseAuthenticationRepository.currentUserId() == uid &&
             _uiState.value.profile?.firebaseUid == uid
 
-    private fun currentUserName(): String {
-        val profile = _uiState.value.profile
-        return profile?.username?.takeIf(String::isNotBlank)?.let { "@$it" }
-            ?: profile?.effectiveDisplayName
-            ?: "Пользователь"
-    }
+    private fun currentUserName(): String =
+        _uiState.value.profile?.effectiveDisplayName ?: "Пользователь"
 }

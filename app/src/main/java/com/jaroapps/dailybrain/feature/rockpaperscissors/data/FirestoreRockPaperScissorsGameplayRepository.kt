@@ -377,9 +377,8 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 "resolvedAtEpochMs" to now,
                 "updatedAtEpochMs" to now,
             ))
-            transaction.delete(moveARef)
-            transaction.delete(moveBRef)
-
+            // Keep move documents until round cleanup. Removing them inside the
+            // result transaction adds two more security-rule checks to the critical path.
             val allMemberSnapshots = if (roundFinishedNow) {
                 buildMap {
                     put(uidA, memberA)
@@ -510,33 +509,19 @@ class FirestoreRockPaperScissorsGameplayRepository(
     private suspend fun cleanupRound(firestore: FirebaseFirestore, roomId: String, roundId: String) {
         val roomRef = firestore.collection(GAME_ROOMS).document(roomId)
         val roundRef = roomRef.collection(ROUNDS).document(roundId)
-        val pairs = roundRef.collection(PAIRS).get().awaitResult()
-        var batch = firestore.batch()
-        var operations = 0
-        for (pair in pairs.documents) {
-            val matchId = pair.getString("matchId")
-            val uids = pair.stringList("submittedUids")
-            if (!matchId.isNullOrBlank()) {
-                for (uid in uids) {
-                    batch.delete(roundRef.collection(MATCHES).document(matchId).collection(MOVES).document(uid))
-                    operations++
-                    if (operations >= BATCH_LIMIT) {
-                        batch.commit().awaitResult()
-                        batch = firestore.batch()
-                        operations = 0
-                    }
-                }
-            }
-            batch.delete(pair.reference)
-            operations++
-            if (operations >= BATCH_LIMIT) {
-                batch.commit().awaitResult()
-                batch = firestore.batch()
-                operations = 0
-            }
+        val matches = roundRef.collection(MATCHES).get().awaitResult()
+        val moveReferences = matches.documents.flatMap { match ->
+            listOfNotNull(match.getString("uidA"), match.getString("uidB"))
+                .distinct()
+                .map { uid -> match.reference.collection(MOVES).document(uid) }
         }
-        if (operations > 0) batch.commit().awaitResult()
-        deleteQueryInChunks(firestore, roundRef.collection(MATCHES).orderBy("createdAtEpochMs"))
+        moveReferences.chunked(BATCH_LIMIT).forEach { chunk ->
+            val batch = firestore.batch()
+            chunk.forEach(batch::delete)
+            batch.commit().awaitResult()
+        }
+        deleteQueryInChunks(firestore, roundRef.collection(PAIRS))
+        deleteQueryInChunks(firestore, roundRef.collection(MATCHES))
         roundRef.delete().awaitResult()
     }
 
@@ -625,6 +610,16 @@ class FirestoreRockPaperScissorsGameplayRepository(
         ))
         batch.set(summaryRef, mapOf("lastMessageAtEpochMs" to now), SetOptions.merge())
         batch.commit().awaitResult()
+    }
+
+    override suspend fun updateMemberDisplayName(firebaseUid: String, roomId: String, displayName: String) {
+        val normalizedName = displayName.trim().take(80)
+        require(normalizedName.isNotEmpty()) { "Имя пользователя не может быть пустым." }
+        val firestore = firestoreFor(firebaseUid)
+        firestore.collection(GAME_ROOMS).document(roomId)
+            .collection(MEMBERS).document(firebaseUid)
+            .update("name", normalizedName)
+            .awaitResult()
     }
 
     override suspend fun markChatRead(firebaseUid: String, roomId: String, readAtEpochMs: Long) {
