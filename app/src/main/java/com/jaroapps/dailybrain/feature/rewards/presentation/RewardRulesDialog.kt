@@ -104,6 +104,7 @@ private fun monthlyChallengeDescription(): String {
             ExerciseType.MEMORY_WORDS -> "тренировки памяти"
             ExerciseType.STROOP_TEST -> "теста Струпа"
             ExerciseType.COUNTING_TRAINING -> "тренировки устного счёта"
+            ExerciseType.NUMBER_GRID -> "таблицы Шульте"
             null -> "упражнений «${requirement.exerciseType}»"
         }
         "${requirement.requiredCount} $label"
