@@ -242,7 +242,7 @@ class ProfileViewModel(
             } catch (error: Exception) {
                 googleReauthenticationError.value = when (error) {
                     is ProfileGoogleSignInCancelledException ->
-                        "Вход в Google отменён. Облачные функции остаются отключёнными."
+                        "Google не завершил авторизацию. Это может быть технический сбой, а не отмена пользователем. Проверьте Google Play services и повторите попытку."
                     is ProfileGoogleAccountMismatchException ->
                         "Выбран другой Google-аккаунт. Выберите аккаунт, привязанный к этому профилю."
                     is ProfileGoogleAccountNotLinkedException ->

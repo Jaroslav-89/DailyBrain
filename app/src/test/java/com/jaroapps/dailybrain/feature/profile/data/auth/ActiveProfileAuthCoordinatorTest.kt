@@ -24,6 +24,7 @@ class ActiveProfileAuthCoordinatorTest {
 
         coordinator.reauthenticate(linkedProfile())
 
+        assertEquals(0, provider.clearCalls)
         assertEquals(0, provider.calls)
         assertEquals(0, firebase.signInCalls)
         assertEquals(0, firebase.signOutCalls)
@@ -40,6 +41,7 @@ class ActiveProfileAuthCoordinatorTest {
 
         coordinator.reauthenticate(linkedProfile())
 
+        assertEquals(1, provider.clearCalls)
         assertEquals(1, provider.calls)
         assertEquals("token-a", firebase.lastToken)
         assertEquals("google-a", firebase.lastExpectedSubject)
@@ -110,6 +112,12 @@ class ActiveProfileAuthCoordinatorTest {
     ) : GoogleSignInProvider {
         var calls = 0
             private set
+        var clearCalls = 0
+            private set
+
+        override suspend fun clearCredentialState() {
+            clearCalls++
+        }
 
         override suspend fun signIn(): GoogleSignInResult {
             calls++

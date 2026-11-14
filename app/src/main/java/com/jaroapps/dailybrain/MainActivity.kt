@@ -35,6 +35,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        GlobalContext.get().get<GoogleSignInClient>().attachActivity(this)
         lifecycleScope.launch {
             runCatching { GlobalContext.get().get<BrainStateManager>().refresh() }
             runCatching { GlobalContext.get().get<ProcessMissedStreakDaysWithAnnouncementUseCase>().invoke() }
@@ -45,7 +46,6 @@ class MainActivity : ComponentActivity() {
         val splashScreen = installSplashScreen()
         splashScreen.setKeepOnScreenCondition { !startupResolved }
         super.onCreate(savedInstanceState)
-        GlobalContext.get().get<GoogleSignInClient>().attachActivity(this)
 
         lifecycleScope.launch {
             val database = runCatching { GlobalContext.get().get<AppDatabase>() }.getOrNull()
@@ -97,7 +97,7 @@ class MainActivity : ComponentActivity() {
         }
     }
     override fun onDestroy() {
-        GlobalContext.get().get<GoogleSignInClient>().attachActivity(null)
+        GlobalContext.get().get<GoogleSignInClient>().detachActivity(this)
         super.onDestroy()
     }
 }

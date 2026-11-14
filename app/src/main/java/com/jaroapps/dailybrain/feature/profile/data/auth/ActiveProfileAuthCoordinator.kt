@@ -31,6 +31,17 @@ class ActiveProfileAuthCoordinator(
         val expectedGoogleSubject = profile.googleSubject?.takeIf(String::isNotBlank)
             ?: throw ProfileGoogleAccountNotLinkedException()
 
+        // Local profile changes can switch between different linked Google accounts.
+        // Clear only the Credential Manager's remembered provider session (not the
+        // Google account itself) so the user can explicitly choose the linked account.
+        try {
+            googleSignInProvider.clearCredentialState()
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (_: Exception) {
+            // Clearing provider state is best-effort; don't block a manual sign-in.
+        }
+
         val googleSignIn = try {
             googleSignInProvider.signIn()
         } catch (cancelled: GetCredentialCancellationException) {
