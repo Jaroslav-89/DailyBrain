@@ -40,7 +40,7 @@ class FirestoreRockPaperScissorsRepository(
             .awaitResult()
             .documents
             .mapNotNull { document: DocumentSnapshot -> document.toGameRoom() }
-            .filter { it.hasSpace && it.ownerUid != firebaseUid }
+            .filter { it.hasSpace || firebaseUid in it.memberUids }
     }
 
     override suspend fun getMyRooms(firebaseUid: String): List<GameRoom> {
