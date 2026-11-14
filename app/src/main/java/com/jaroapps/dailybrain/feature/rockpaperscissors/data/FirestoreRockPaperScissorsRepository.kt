@@ -399,6 +399,90 @@ class FirestoreRockPaperScissorsRepository(
         }.awaitResult()
     }
 
+    override suspend fun deleteRoom(firebaseUid: String, roomId: String) {
+        val firestore = firestoreFor(firebaseUid)
+        val roomRef = firestore.collection(GAME_ROOMS).document(roomId)
+        val ownerMemberRef = roomRef.collection(MEMBERS).document(firebaseUid)
+        val ownerMembershipRef = firestore.collection(GAME_ROOM_MEMBERSHIPS)
+            .document(firebaseUid).collection(ROOMS).document(roomId)
+        val now = System.currentTimeMillis()
+
+        val roomWasAvailable = firestore.runTransaction { transaction ->
+            val room = transaction.get(roomRef)
+            if (!room.exists()) return@runTransaction false
+            check(room.getString("ownerUid") == firebaseUid) {
+                "Удалить комнату может только её создатель."
+            }
+            val status = room.getString("status")
+            if (status == ROOM_OPEN) {
+                check(firebaseUid in room.getStringList("memberUids")) {
+                    "Создатель больше не состоит в этой комнате."
+                }
+                val inviteCode = room.getString("inviteCode")
+                transaction.update(roomRef, mapOf(
+                    "status" to ROOM_CLOSING,
+                    "ownerUid" to firebaseUid,
+                    "inviteCode" to null,
+                    "updatedAtEpochMs" to now,
+                ))
+                if (!inviteCode.isNullOrBlank()) {
+                    transaction.delete(firestore.collection(GAME_ROOM_CODES).document(inviteCode))
+                }
+            } else {
+                check(status == ROOM_CLOSING) { "Комната уже недоступна для удаления." }
+            }
+            true
+        }.awaitResult()
+
+        if (!roomWasAvailable) return
+
+        // Keep the creator's member document until every nested collection is cleared.
+        // This also makes a partially completed deletion safely retryable.
+        val room = roomRef.get().awaitResult()
+        check(firebaseUid in room.getStringList("memberUids") && ownerMemberRef.get().awaitResult().exists()) {
+            "Не удалось подтвердить права создателя комнаты."
+        }
+        deleteRoomSubcollections(firestore, roomRef)
+
+        val currentRoom = roomRef.get().awaitResult()
+        val otherMemberUids = currentRoom.getStringList("memberUids").filterNot { it == firebaseUid }
+        if (otherMemberUids.isNotEmpty()) {
+            val batch = firestore.batch()
+            otherMemberUids.forEach { memberUid ->
+                batch.delete(roomRef.collection(MEMBERS).document(memberUid))
+                batch.delete(
+                    firestore.collection(GAME_ROOM_MEMBERSHIPS)
+                        .document(memberUid).collection(ROOMS).document(roomId)
+                )
+            }
+            batch.update(roomRef, mapOf(
+                "memberUids" to listOf(firebaseUid),
+                "updatedAtEpochMs" to System.currentTimeMillis(),
+            ))
+            batch.commit().awaitResult()
+        }
+
+        firestore.runTransaction { transaction ->
+            val latestRoom = transaction.get(roomRef)
+            val ownerMember = transaction.get(ownerMemberRef)
+            if (!latestRoom.exists()) {
+                transaction.delete(ownerMembershipRef)
+                return@runTransaction true
+            }
+            check(
+                latestRoom.getString("status") == ROOM_CLOSING &&
+                    latestRoom.getString("ownerUid") == firebaseUid &&
+                    latestRoom.getStringList("memberUids") == listOf(firebaseUid) &&
+                    ownerMember.exists()
+            ) { "Комната изменилась во время удаления. Повторите попытку." }
+
+            transaction.delete(ownerMemberRef)
+            transaction.delete(ownerMembershipRef)
+            transaction.delete(roomRef)
+            true
+        }.awaitResult()
+    }
+
     private suspend fun deleteRoomSubcollections(
         firestore: FirebaseFirestore,
         roomRef: DocumentReference,
