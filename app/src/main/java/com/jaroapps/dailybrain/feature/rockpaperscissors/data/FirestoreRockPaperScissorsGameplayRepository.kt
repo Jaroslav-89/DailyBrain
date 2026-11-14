@@ -487,7 +487,16 @@ class FirestoreRockPaperScissorsGameplayRepository(
             }
         }.awaitResult()
 
-        if (roundFinished) cleanupRound(firestore, roomId, roundId)
+        if (roundFinished) {
+            try {
+                cleanupRound(firestore, roomId, roundId)
+            } catch (cancelled: kotlinx.coroutines.CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                // The score, result, and next round are already committed. Cleanup is
+                // housekeeping and must never make a completed move look unsuccessful.
+            }
+        }
     }
 
     private fun memberResultUpdate(
