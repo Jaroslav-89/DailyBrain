@@ -22,6 +22,8 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.CheckCircle
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -36,6 +38,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.colorResource
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
@@ -72,6 +75,7 @@ fun FeedScreen(
     onOpenUserProfile: (String) -> Unit,
     onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     onOpenFeedItem: (FeedEvent) -> Unit,
+    onOpenGameRoom: (String) -> Unit,
     viewModel: FeedViewModel = koinViewModel(),
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -165,6 +169,10 @@ fun FeedScreen(
                         onOpenUserProfile = onOpenUserProfile,
                         onOpenCollectible = onOpenCollectible,
                         onOpenFeedItem = onOpenFeedItem,
+                        isAcceptingGameInvitation = state.acceptingInvitationId == event.exerciseType,
+                        onAcceptGameRoomInvitation = { invitationId ->
+                            viewModel.acceptGameRoomInvitation(invitationId, onOpenGameRoom)
+                        },
                     )
                 }
                 if (state.hasMore) {
@@ -191,6 +199,8 @@ private fun FeedEventCard(
     onOpenUserProfile: (String) -> Unit,
     onOpenCollectible: (String, ProfileCollectibleKind, String) -> Unit,
     onOpenFeedItem: (FeedEvent) -> Unit,
+    isAcceptingGameInvitation: Boolean,
+    onAcceptGameRoomInvitation: (String) -> Unit,
 ) {
     val author = if (event.isOwn) "Вы" else event.authorName
     val authorUid = event.authorFirebaseUid?.takeIf(String::isNotBlank)
@@ -239,6 +249,30 @@ private fun FeedEventCard(
                     Spacer(Modifier.weight(1f))
                 }
                 Text(event.message(), style = MaterialTheme.typography.bodyLarge)
+                if (event.eventType == "GAME_ROOM_INVITATION") {
+                    val accepted = event.valueInt == 1
+                    Button(
+                        onClick = { event.exerciseType?.let(onAcceptGameRoomInvitation) },
+                        enabled = !accepted && !isAcceptingGameInvitation,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (accepted) MaterialTheme.colorScheme.surfaceVariant
+                                else colorResource(R.color.color_button_green),
+                            contentColor = if (accepted) MaterialTheme.colorScheme.onSurfaceVariant
+                                else colorResource(R.color.color_on_accent),
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                            disabledContentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                        ),
+                    ) {
+                        Text(
+                            when {
+                                accepted -> "Вы приняли приглашение"
+                                isAcceptingGameInvitation -> "Принимаем приглашение…"
+                                else -> "Принять приглашение"
+                            },
+                        )
+                    }
+                }
                 Text(
                     text = runCatching {
                         FeedTimeFormatter.format(
@@ -388,6 +422,11 @@ private fun FeedEvent.message(): String = when (eventType) {
     }
     "FOLLOWED_USER" -> "Вы подписались на " +
         (relatedUserName?.takeIf(String::isNotBlank) ?: "пользователя DailyBrain")
+    "GAME_ROOM_INVITATION" -> if (valueInt == 1) {
+        "Вы приняли приглашение в комнату «" + (relatedUserName ?: "без названия") + "»"
+    } else {
+        "Приглашает вас в игровую комнату «" + (relatedUserName ?: "без названия") + "»"
+    }
     "NEW_FOLLOWER" -> "На вас подписался " + authorName
     else -> "Получил новое достижение"
 }

@@ -499,6 +499,9 @@ fun AppNavHost(startDestination: String = Route.STARTUP) {
 
                 composable(Route.FEED) {
                     FeedScreen(
+                        onOpenGameRoom = { roomId ->
+                            navController.navigate(Route.rockPaperScissorsRoom(roomId))
+                        },
                         onOpenUserProfile = { userId ->
                             navController.navigate(Route.userProfile(userId))
                         },

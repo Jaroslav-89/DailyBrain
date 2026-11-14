@@ -9,6 +9,7 @@ import com.jaroapps.dailybrain.feature.feed.domain.FeedRepository
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseSessionMismatchException
 import com.jaroapps.dailybrain.feature.profile.domain.repository.FirebaseAuthenticationRepository
 import com.jaroapps.dailybrain.feature.profile.domain.usecase.ObserveUserProfileUseCase
+import com.jaroapps.dailybrain.feature.rockpaperscissors.domain.usecase.ManageGameRoomsUseCase
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,12 +27,14 @@ data class FeedUiState(
     val isLoadingMore: Boolean = false,
     val hasMore: Boolean = false,
     val errorMessage: String? = null,
+    val acceptingInvitationId: String? = null,
 )
 
 class FeedViewModel(
     private val repository: FeedRepository,
     observeUserProfile: ObserveUserProfileUseCase,
     firebaseAuthenticationRepository: FirebaseAuthenticationRepository,
+    private val manageGameRooms: ManageGameRoomsUseCase,
 ) : ViewModel() {
     private val events = MutableStateFlow<List<FeedEvent>>(emptyList())
     private val isRefreshing = MutableStateFlow(false)
@@ -39,8 +42,10 @@ class FeedViewModel(
     private val hasMore = MutableStateFlow(false)
     private val errorMessage = MutableStateFlow<String?>(null)
     private var refreshPending = false
+    private var activeFirebaseUid: String? = null
+    private val acceptingInvitationId = MutableStateFlow<String?>(null)
 
-    val uiState: StateFlow<FeedUiState> = combine(
+    private val baseUiState = combine(
         events,
         isRefreshing,
         isLoadingMore,
@@ -54,6 +59,10 @@ class FeedViewModel(
             hasMore = more,
             errorMessage = error,
         )
+    }
+
+    val uiState: StateFlow<FeedUiState> = combine(baseUiState, acceptingInvitationId) { base, acceptingId ->
+        base.copy(acceptingInvitationId = acceptingId)
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5_000),
@@ -84,7 +93,8 @@ class FeedViewModel(
                 }
             }
                 .distinctUntilChanged()
-                .collect {
+                .collect { (_, matchingUid) ->
+                    activeFirebaseUid = matchingUid
                     // Always recalculate the selected profile's local rewards. The repository
                     // skips cloud work until the active Firebase UID matches the stored binding.
                     // A later matching auth-state emission retries the deferred cloud sync.
@@ -130,6 +140,29 @@ class FeedViewModel(
                     refreshPending = false
                     refresh()
                 }
+            }
+        }
+    }
+
+
+    fun acceptGameRoomInvitation(
+        invitationId: String,
+        onOpenGameRoom: (String) -> Unit,
+    ) {
+        val uid = activeFirebaseUid ?: return
+        if (acceptingInvitationId.value != null) return
+        if (firebaseAuthenticationRepository.currentUserId() != uid) return
+        acceptingInvitationId.value = invitationId
+        viewModelScope.launch {
+            try {
+                val room = manageGameRooms.acceptInvitation(uid, invitationId)
+                onOpenGameRoom(room.roomId)
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (error: Exception) {
+                errorMessage.value = error.message ?: "Не удалось принять приглашение."
+            } finally {
+                acceptingInvitationId.value = null
             }
         }
     }

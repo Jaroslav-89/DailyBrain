@@ -262,6 +262,7 @@ val appModule = module {
             repository = get(),
             observeUserProfile = get(),
             firebaseAuthenticationRepository = get(),
+            manageGameRooms = get(),
         )
     }
 
