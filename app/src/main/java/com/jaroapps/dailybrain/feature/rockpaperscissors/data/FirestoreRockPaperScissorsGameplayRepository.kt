@@ -126,6 +126,17 @@ class FirestoreRockPaperScissorsGameplayRepository(
             database.pendingGameMoveDao().getPendingForRoom(localUserId, roomId)
         }
         val firestore = firestoreFor(firebaseUid)
+        val roomsToCheck = roomId?.let(::listOf) ?: pending.map { it.roomId }.distinct()
+        for (candidateRoomId in roomsToCheck) {
+            val roomRef = firestore.collection(GAME_ROOMS).document(candidateRoomId)
+            val roomState = roomRef.get().awaitResult()
+            val finishedRoundId = roomState.getString("lastFinishedRoundId")
+            val currentRoundId = roomState.getString("currentRoundId")
+            if (!finishedRoundId.isNullOrBlank() && finishedRoundId != currentRoundId) {
+                cleanupRound(firestore, candidateRoomId, finishedRoundId)
+            }
+        }
+
         for (item in pending) {
             if (item.ownerUserId != localUserId) continue
             val move = runCatching { RockPaperScissorsMove.valueOf(item.move) }.getOrNull()
@@ -320,9 +331,11 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 else -> null
             }
             val winningScore = maxOf(scoreA, scoreB)
+            val roundFinishedNow = hasWinner && !existingResult.exists()
 
             transaction.update(matchRef, mapOf(
                 "status" to MATCH_RESOLVED,
+                "roundId" to roundId,
                 "nameA" to memberA.getString("name").orEmpty(),
                 "nameB" to memberB.getString("name").orEmpty(),
                 "moveA" to moveA.name,
@@ -330,6 +343,10 @@ class FirestoreRockPaperScissorsGameplayRepository(
                 "winnerUid" to winnerUid,
                 "pointsA" to pointsA,
                 "pointsB" to pointsB,
+                "scoreAfterA" to scoreA,
+                "scoreAfterB" to scoreB,
+                "targetScore" to targetScore,
+                "roundFinished" to roundFinishedNow,
                 "resolvedAtEpochMs" to now,
             ))
             transaction.update(pairRef, mapOf(
@@ -345,7 +362,6 @@ class FirestoreRockPaperScissorsGameplayRepository(
             transaction.delete(moveARef)
             transaction.delete(moveBRef)
 
-            val roundFinishedNow = hasWinner && !existingResult.exists()
             val allMemberSnapshots = if (roundFinishedNow) {
                 buildMap {
                     put(uidA, memberA)
@@ -376,6 +392,10 @@ class FirestoreRockPaperScissorsGameplayRepository(
                     "winnerUid" to winnerUid,
                     "winnerName" to winnerName,
                     "winningScore" to winningScore,
+                    "scoreAfterA" to scoreA,
+                    "scoreAfterB" to scoreB,
+                    "targetScore" to targetScore,
+                    "triggerMatchId" to matchId,
                     "finishedAtEpochMs" to now,
                     "isDraw" to (winnerUid == null),
                 ))
@@ -413,18 +433,6 @@ class FirestoreRockPaperScissorsGameplayRepository(
                     if (memberUid != uidA && memberUid != uidB) {
                         transaction.update(memberRef, reset)
                     }
-                    val notificationRef = firestore.collection(ROUND_NOTIFICATIONS)
-                        .document(memberUid).collection(ITEMS).document(roomId + "_" + roundId)
-                    transaction.set(notificationRef, mapOf(
-                        "roomId" to roomId,
-                        "roundId" to roundId,
-                        "roomName" to room.getString("name").orEmpty(),
-                        "winnerUid" to winnerUid,
-                        "winnerName" to winnerName,
-                        "winningScore" to winningScore,
-                        "finishedAtEpochMs" to now,
-                        "status" to "UNREAD",
-                    ))
                 }
                 true
             } else {
@@ -758,7 +766,6 @@ class FirestoreRockPaperScissorsGameplayRepository(
         const val CHAT_STATE = "chatState"
         const val CHAT_SUMMARY = "summary"
         const val ROUND_RESULTS = "roundResults"
-        const val ROUND_NOTIFICATIONS = "gameRoomNotifications"
         const val ITEMS = "items"
         const val ROUND_ACTIVE = "ACTIVE"
         const val ROUND_FINISHED = "FINISHED"
